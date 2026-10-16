@@ -110,37 +110,75 @@ const ratingTone = (rating: number) =>
 interface Shape {
   /** Gap before this cell: starts a new island. */
   gap?: boolean
-  round?: 'all' | 'left' | 'right' | 'none' | 'edge-left' | 'edge-right'
-  /** Pinned: gets an opaque page-colored backing so nothing shows through rounded corners. */
-  sticky?: string
+  /** Corner rounding of the cell's block (Tailwind classes, may be responsive). */
+  round?: string
+  /** Extra classes on the <td>/<th> (pinning). */
+  pin?: string
 }
 
-const ROUND = {
-  all: 'rounded-md',
-  left: 'rounded-l-md',
-  right: 'rounded-r-md',
-  none: '',
-  // The row's outer ends: square on phones, where the table runs edge to edge.
-  'edge-left': 'md:rounded-l-md',
-  'edge-right': 'md:rounded-r-md',
-}
-
-const shell = ({ gap, sticky }: Shape) =>
-  cn('p-0', gap && 'pl-[3px]', sticky && cn(sticky, 'bg-background'))
-const block = ({ round = 'all' }: Shape, head: boolean, className?: string) =>
-  cn('flex items-center', head ? 'h-9 bg-surface-2' : 'h-11 bg-surface', ROUND[round], className)
+const shell = ({ gap, pin }: Shape) => cn('p-0', gap && 'pl-[3px]', pin)
+const block = ({ round = 'rounded-md' }: Shape, head: boolean, className?: string) =>
+  cn('flex items-center', head ? 'h-9 bg-surface-2' : 'h-11 bg-surface', round, className)
 
 /**
  * Pinned while the table scrolls sideways: on phones only the party symbol and avatar (the name
- * would cover half the screen), from md up the name too.
+ * would cover half the screen), from md up the name too. The pinned part is always its own island:
+ * an opaque page-colored backing hides scrolled cells behind rounded corners, and a page-colored
+ * shadow keeps the 3px island gap on its right. Unscrolled, that shadow sits exactly on the next
+ * cell's transparent gap, so nothing shifts when scrolling starts.
  */
-const IDENTITY: Shape = { round: 'edge-left', sticky: 'sticky left-0 z-10' }
-const NAME: Shape = { round: 'right', sticky: 'md:sticky md:left-[4.25rem] md:z-10' }
+// Written out in full (also below with md:): Tailwind only sees literal class names.
+const PIN_GAP = 'shadow-[3px_0_0_var(--color-background)]'
+
+/**
+ * Scrolled cells are cut by a straight line at the pinned island's edge. These caps paint concave
+ * 6px corners (page color outside a quarter circle) just past the gap, so cut cells look rounded
+ * too. Unscrolled, they sit exactly on the next island's own rounded corners.
+ * Class names are written out in full because Tailwind only sees literal strings.
+ */
+const CORNER_CAPS = cn(
+  "before:pointer-events-none before:absolute before:bottom-0 before:-right-[9px] before:size-1.5 before:content-['']",
+  'before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-background)_6px)]',
+  "after:pointer-events-none after:absolute after:top-0 after:-right-[9px] after:size-1.5 after:content-['']",
+  'after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-background)_6px)]',
+)
+const MD_CORNER_CAPS = cn(
+  "md:before:pointer-events-none md:before:absolute md:before:bottom-0 md:before:-right-[9px] md:before:size-1.5 md:before:content-['']",
+  'md:before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-background)_6px)]',
+  "md:after:pointer-events-none md:after:absolute md:after:top-0 md:after:-right-[9px] md:after:size-1.5 md:after:content-['']",
+  'md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-background)_6px)]',
+)
+
+const IDENTITY: Shape = {
+  // Phones: square on the screen edge, rounded on the right. md+: left end of the avatar+name island.
+  round: 'rounded-r-md md:rounded-l-md md:rounded-r-none',
+  pin: cn(
+    'sticky left-0 z-10 bg-background',
+    PIN_GAP,
+    CORNER_CAPS,
+    'md:shadow-none md:before:hidden md:after:hidden',
+  ),
+}
+const NAME: Shape = {
+  // Phones: its own island after the pinned avatar. md+: joined to the avatar, pinned with it.
+  round: 'rounded-md md:rounded-l-none',
+  pin: cn(
+    'pl-[3px] md:sticky md:left-[4.25rem] md:z-10 md:bg-background md:pl-0',
+    'md:shadow-[3px_0_0_var(--color-background)]',
+    MD_CORNER_CAPS,
+  ),
+}
 const RANK: Shape = { gap: true }
 const RATING_SHAPE: Shape = { gap: true }
 const statShape = (index: number): Shape => ({
   gap: index === 0,
-  round: index === 0 ? 'left' : index === COLUMNS.length - 1 ? 'edge-right' : 'none',
+  round:
+    index === 0
+      ? 'rounded-l-md'
+      : // The row's right end: square on phones, where the table runs edge to edge.
+        index === COLUMNS.length - 1
+        ? 'md:rounded-r-md'
+        : 'rounded-none',
 })
 
 /**
@@ -329,7 +367,7 @@ export const Scoreboard = ({
                         <div className={block(IDENTITY, true)} />
                       </th>
                       <th className={shell(NAME)}>
-                        <div className={block(NAME, true, 'font-medium')}>Player</div>
+                        <div className={block(NAME, true, 'pl-3 font-medium md:pl-0')}>Player</div>
                       </th>
                       <th className={shell(RANK)}>
                         <div className={block(RANK, true, 'px-2.5 font-medium')}>Rank</div>
@@ -363,7 +401,7 @@ export const Scoreboard = ({
                           </div>
                         </td>
                         <td className={shell(NAME)}>
-                          <div className={block(NAME, false, 'min-w-0 gap-2 pr-2.5')}>
+                          <div className={block(NAME, false, 'min-w-0 gap-2 pr-2.5 pl-3 md:pl-0')}>
                             <span className="truncate font-medium">{p.name}</span>
                             {p.steamId === viewerSteamId && (
                               <Badge tone="accent" className="shrink-0">
