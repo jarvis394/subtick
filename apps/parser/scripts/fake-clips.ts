@@ -7,7 +7,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { DatabaseEnv, S3Env, loadEnv } from '@subtick/config'
-import { and, createDb, eq, schema } from '@subtick/db'
+import { and, createDb, eq, inArray, schema } from '@subtick/db'
 import { TICKRATE } from '@subtick/domain'
 import { createS3Storage, keys } from '@subtick/storage'
 
@@ -93,6 +93,14 @@ for (const { highlight, map } of rows) {
     .set({ status: 'recorded' })
     .where(eq(schema.highlight.id, highlight.id))
 }
+
+// What the recorder does after a batch: matches with nothing left to record are done.
+const matchIds = [...new Set(rows.map((r) => r.highlight.matchId))]
+if (matchIds.length)
+  await db
+    .update(schema.match)
+    .set({ status: 'ready' })
+    .where(and(inArray(schema.match.id, matchIds), eq(schema.match.status, 'recording')))
 
 await rm(WORK, { recursive: true, force: true })
 console.log(`recorded ${rows.length} placeholder clips`)

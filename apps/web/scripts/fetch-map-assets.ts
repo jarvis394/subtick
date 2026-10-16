@@ -1,8 +1,9 @@
 /* oxlint-disable no-await-in-loop -- one page at a time is polite to the wiki */
 /**
  * Downloads each map's preview image (first infobox image) and logo from the Counter-Strike
- * Fandom wiki into src/assets/maps/. Re-run to refresh; existing files are overwritten.
- *   bun scripts/fetch-map-assets.ts
+ * Fandom wiki into src/assets/maps/. Re-run to refresh; existing files are overwritten. Pass map
+ * ids to fetch only those.
+ *   bun scripts/fetch-map-assets.ts [de_cache ...]
  */
 import { mkdir } from 'node:fs/promises'
 
@@ -16,6 +17,7 @@ const LOGO_WIDTH = 160
 const MAPS: Record<string, string> = {
   de_ancient: 'Ancient',
   de_anubis: 'Anubis',
+  de_cache: 'Cache',
   de_dust2: 'Dust II',
   de_inferno: 'Inferno',
   de_mirage: 'Mirage',
@@ -53,7 +55,10 @@ const download = async (url: string, path: string) => {
 
 await mkdir(`${OUT}preview`, { recursive: true })
 
+const only = new Set(Bun.argv.slice(2))
+
 for (const [id, page] of Object.entries(MAPS)) {
+  if (only.size && !only.has(id)) continue
   const params = new URLSearchParams({
     action: 'parse',
     page,
