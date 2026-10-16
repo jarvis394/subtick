@@ -19,6 +19,23 @@ export const timeAgo = (date: Date | string | null | undefined) => {
   return 'just now'
 }
 
+const AGE_UNITS: [string, number][] = [
+  ['y', 365 * 24 * 3600],
+  ['w', 7 * 24 * 3600],
+  ['d', 24 * 3600],
+  ['h', 3600],
+  ['m', 60],
+]
+
+/** Compact age for tight spots: "14m", "1h", "4d", "2w", never below "1m". */
+export const shortAge = (date: Date | string | null | undefined) => {
+  if (!date) return ''
+  const seconds = (Date.now() - new Date(date).getTime()) / 1000
+  for (const [unit, size] of AGE_UNITS)
+    if (seconds >= size) return `${Math.floor(seconds / size)}${unit}`
+  return '1m'
+}
+
 const SHORT_DATE = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 const LONG_DATE = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' })
 const TIME = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', hour12: false })

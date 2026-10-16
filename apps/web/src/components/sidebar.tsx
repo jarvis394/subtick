@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Spinner } from '@/components/ui/surface'
 import { Wordmark } from '@/components/wordmark'
 import { authClient } from '@/lib/auth'
+import { shortAge } from '@/lib/format'
 import { meQuery, recentMatchesQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -135,11 +136,11 @@ export const SidebarContent = ({
       <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2">
         <p
           className={cn(
-            'px-[11px] pb-1.5 text-[11px] font-medium tracking-wide whitespace-nowrap text-muted/70 uppercase',
+            'px-[11px] pb-1.5 text-[12px] font-medium whitespace-nowrap text-muted/70',
             fade(collapsed),
           )}
         >
-          Recent
+          Recents
         </p>
         <div className="grid gap-0.5">
           {recent?.items.map((match) => {
@@ -155,8 +156,11 @@ export const SidebarContent = ({
               >
                 <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
                 <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
-                  <span className="min-w-0 flex-1 truncate text-foreground/90">
-                    {mapName(match.map)}
+                  <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                    <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+                    <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
+                      {shortAge(match.playedAt ?? match.discoveredAt)}
+                    </span>
                   </span>
                   {isProcessing(match.status) ? (
                     <Spinner className="size-3" />

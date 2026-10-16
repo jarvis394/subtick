@@ -13,6 +13,8 @@ const { match, userMatch, matchPlayer, round, kill, highlight, clip, steamLink }
 
 export const matchRoutes = (ctx: Context) => {
   const { db, auth } = ctx
+  /** Newest played first; a match not resolved yet sorts by when it was found. */
+  const playedOrDiscovered = sql`coalesce(${match.playedAt}, ${userMatch.discoveredAt})`
 
   return new Elysia({ prefix: '/matches' })
     .use(authGuard(auth))
@@ -50,15 +52,18 @@ export const matchRoutes = (ctx: Context) => {
           .where(
             and(
               eq(userMatch.userId, user.id),
-              query.cursor ? lt(userMatch.discoveredAt, new Date(query.cursor)) : undefined,
+              query.cursor ? lt(playedOrDiscovered, new Date(query.cursor)) : undefined,
             ),
           )
-          .orderBy(desc(userMatch.discoveredAt))
+          .orderBy(desc(playedOrDiscovered))
           .limit(query.limit)
 
         return {
           items: rows,
-          nextCursor: rows.length === query.limit ? rows.at(-1)!.discoveredAt.toISOString() : null,
+          nextCursor:
+            rows.length === query.limit
+              ? (rows.at(-1)!.playedAt ?? rows.at(-1)!.discoveredAt).toISOString()
+              : null,
         }
       },
       {
