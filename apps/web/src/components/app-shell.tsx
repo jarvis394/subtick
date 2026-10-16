@@ -1,0 +1,57 @@
+import { Dialog } from '@base-ui/react/dialog'
+import { Menu as MenuIcon } from 'lucide-react'
+import { type ReactNode, useRef, useState } from 'react'
+import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
+import { Wordmark } from '@/components/wordmark'
+import { useLocalStorage } from '@/hooks/use-local-storage'
+import { useMatchEvents } from '@/hooks/use-match-events'
+import { cn } from '@/lib/utils'
+
+/** Sidebar on md+, a top bar with a slide-in drawer below that. */
+export const AppShell = ({ children }: { children: ReactNode }) => {
+  const [collapsed, setCollapsed] = useLocalStorage('subtick:sidebar-collapsed', false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  useMatchEvents()
+
+  return (
+    <div className="flex min-h-dvh select-none">
+      <aside
+        className={cn(
+          'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r bg-surface/50 transition-[width] duration-200 ease-out-quart md:block motion-reduce:transition-none',
+          collapsed ? RAIL_WIDTH : 'w-64',
+        )}
+      >
+        <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:hidden">
+          <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Dialog.Trigger
+              aria-label="Open menu"
+              className="grid size-10 cursor-pointer place-items-center rounded-lg text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MenuIcon className="size-5" />
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+              <Dialog.Popup
+                ref={drawerRef}
+                // Keyboard users land on the first link; a tap focuses the panel itself so no
+                // focus ring appears on the logo.
+                initialFocus={(type) => (type === 'keyboard' ? true : drawerRef.current)}
+                className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r bg-background outline-none transition-transform duration-250 ease-out-quart data-ending-style:-translate-x-full data-starting-style:-translate-x-full"
+              >
+                <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+                <SidebarContent collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
+          <Wordmark />
+        </header>
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
+      </div>
+    </div>
+  )
+}

@@ -1,12 +1,22 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "import", "promise"],
-  "categories": { "correctness": "error", "suspicious": "warn", "perf": "warn" },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
   "rules": {
     "no-console": "off",
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error",
-    "import/no-cycle": "error"
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css"]
+      }
+    ]
   },
-  "ignorePatterns": ["**/dist/**", "**/drizzle/**", "**/test/fixtures/**"]
+  "ignorePatterns": ["**/dist/**", "**/drizzle/**", "**/routeTree.gen.ts", "**/test/fixtures/**"]
 }

@@ -1,0 +1,105 @@
+@import 'tailwindcss';
+
+/*
+ * subtick design tokens. Neutral greys, one accent (CS2 orange), team colors for CT/T.
+ * Light/dark follow the system unless [data-theme] is set on <html>.
+ */
+:root {
+  --background: #f7f7f7;
+  --surface: #ffffff;
+  --surface-2: #efefef;
+  --surface-3: #e4e4e4;
+  --border: rgb(17 17 17 / 0.09);
+  --border-strong: rgb(17 17 17 / 0.16);
+  --foreground: #111111;
+  --muted: #6b6b6b;
+  --accent: rgb(227 135 23);
+  --accent-hover: #cf7a12;
+  /* Dark text: white on this orange is below readable contrast. */
+  --accent-foreground: #111111;
+  --danger: #c8442f;
+  --success: #3f8f4a;
+  --ct: #3f78bd;
+  --t: #b9852a;
+  --ring: rgb(227 135 23 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --background: #111111;
+    --surface: #181818;
+    --surface-2: #212121;
+    --surface-3: #2b2b2b;
+    --border: rgb(255 255 255 / 0.07);
+    --border-strong: rgb(255 255 255 / 0.13);
+    --foreground: #f2f2f2;
+    --muted: #8f8f8f;
+    --accent-hover: #f0962c;
+    --success: #5fb36a;
+    --danger: #e0614f;
+    --ct: #6fa2df;
+    --t: #e0b25a;
+  }
+}
+
+:root[data-theme='dark'] {
+  --background: #111111;
+  --surface: #181818;
+  --surface-2: #212121;
+  --surface-3: #2b2b2b;
+  --border: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.13);
+  --foreground: #f2f2f2;
+  --muted: #8f8f8f;
+  --accent-hover: #f0962c;
+  --success: #5fb36a;
+  --danger: #e0614f;
+  --ct: #6fa2df;
+  --t: #e0b25a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  /* Not `t`/`ct`: `border-t` would read as a border color. */
+  --color-side-ct: var(--ct);
+  --color-side-t: var(--t);
+  --color-ring: var(--ring);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'tnum' 0;
+  }
+  ::selection {
+    background: rgb(227 135 23 / 0.3);
+  }
+}

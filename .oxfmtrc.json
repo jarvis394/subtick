@@ -4,5 +4,5 @@
   "semi": false,
   "singleQuote": true,
   "trailingComma": "all",
-  "ignorePatterns": ["**/drizzle/**", "**/test/fixtures/**", "bun.lock"]
+  "ignorePatterns": ["**/drizzle/**", "**/routeTree.gen.ts", "**/test/fixtures/**", "bun.lock"]
 }
