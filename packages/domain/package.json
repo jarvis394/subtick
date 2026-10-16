@@ -1,0 +1,14 @@
+{
+  "name": "@subtick/domain",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@subtick/tsconfig": "workspace:*"
+  }
+}

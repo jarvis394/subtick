@@ -1,0 +1,42 @@
+name: subtick
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: subtick
+      POSTGRES_PASSWORD: subtick
+      POSTGRES_DB: subtick
+    ports: ['5432:5432']
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U subtick']
+      interval: 5s
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports: ['6379:6379']
+    volumes: [redis:/data]
+
+  # master + volume + filer + S3 gateway in one process
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    ports: ['8333:8333', '8888:8888', '9333:9333']
+    volumes:
+      - seaweedfs:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  # creates buckets and sets demo retention (filer path TTL) on startup
+  seaweedfs-init:
+    image: chrislusf/seaweedfs:latest
+    depends_on: [seaweedfs]
+    entrypoint: ['/bin/sh', '/init.sh']
+    volumes: [./seaweedfs/init.sh:/init.sh:ro]
+    restart: on-failure
+
+volumes:
+  postgres:
+  redis:
+  seaweedfs:

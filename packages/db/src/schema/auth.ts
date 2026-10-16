@@ -1,0 +1,56 @@
+// Tables owned by better-auth (core schema). Kept here so app tables can reference `user`.
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+
+const timestamps = {
+  createdAt: timestamp().notNull().defaultNow(),
+  updatedAt: timestamp()
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+}
+
+export const user = pgTable('user', {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  email: text().notNull().unique(),
+  emailVerified: boolean().notNull().default(false),
+  image: text(),
+  ...timestamps,
+})
+
+export const session = pgTable('session', {
+  id: text().primaryKey(),
+  userId: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  token: text().notNull().unique(),
+  expiresAt: timestamp().notNull(),
+  ipAddress: text(),
+  userAgent: text(),
+  ...timestamps,
+})
+
+export const account = pgTable('account', {
+  id: text().primaryKey(),
+  userId: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  accountId: text().notNull(),
+  providerId: text().notNull(),
+  accessToken: text(),
+  refreshToken: text(),
+  accessTokenExpiresAt: timestamp(),
+  refreshTokenExpiresAt: timestamp(),
+  scope: text(),
+  idToken: text(),
+  password: text(),
+  ...timestamps,
+})
+
+export const verification = pgTable('verification', {
+  id: text().primaryKey(),
+  identifier: text().notNull(),
+  value: text().notNull(),
+  expiresAt: timestamp().notNull(),
+  ...timestamps,
+})

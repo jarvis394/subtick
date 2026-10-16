@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "subtick",
+      "credentials": [{ "accessKey": "subtick", "secretKey": "subtick-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

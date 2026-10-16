@@ -1,0 +1,25 @@
+{
+  "name": "@subtick/parser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "fixtures": "bun scripts/fetch-fixtures.ts",
+    "inspect": "bun scripts/inspect.ts"
+  },
+  "dependencies": {
+    "@laihoe/demoparser2": "^0.42.0",
+    "@subtick/config": "workspace:*",
+    "@subtick/db": "workspace:*",
+    "@subtick/domain": "workspace:*",
+    "@subtick/logger": "workspace:*",
+    "@subtick/queue": "workspace:*",
+    "@subtick/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@subtick/tsconfig": "workspace:*"
+  }
+}
