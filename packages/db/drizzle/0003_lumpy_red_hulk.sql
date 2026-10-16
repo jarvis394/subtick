@@ -1,0 +1,1 @@
+ALTER TABLE "match_player" ADD COLUMN "party_id" text;

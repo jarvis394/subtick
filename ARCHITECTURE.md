@@ -121,7 +121,7 @@ Highlights and clips belong to **(match, player)**, not to a user. If two friend
 
 - Decodes the share code in `domain` (base57) into `{ matchId, outcomeId, token }`.
 - `INSERT … ON CONFLICT DO NOTHING` into `match`, and always upserts `user_match`. **If the match already has a demo or is in progress, stop here.** That is the "don't redownload" guarantee.
-- Otherwise it asks the **Steam Game Coordinator** for the demo URL. This needs a logged-in Steam _bot account_, using `steam-user` + `globaloffensive` and `requestGame(shareCode)`. The URL is in the last `roundstatsall[].map`.
+- Otherwise it asks the **Steam Game Coordinator** for the demo URL. This needs a logged-in Steam _bot account_, using `steam-user` + `globaloffensive` and `requestGame(shareCode)`. The URL is in the last `roundstatsall[].map`. The same response's `reservation` lists `account_ids` with matching `party_ids`; store them as `match.parties` (steamId64 → party id). Demos don't record parties, and the parser copies this map onto `match_player.partyId`.
 - The GC session is a long-lived singleton, so the queue runs with concurrency 1 and a limiter of about 1 req/s. More throughput comes from more bot accounts, not more concurrency.
 
 **`demo.download`** (`jobId = matchId`)
@@ -295,7 +295,7 @@ interface Recorder {
 
 ## 7. Build order
 
-Status: steps 1–3 are done.
+Status: steps 1–4 are done (the radar replay fallback is not built yet).
 
 1. **Scaffold:** turborepo, bun workspaces, oxlint/oxfmt, tsconfig, compose (pg/redis/seaweedfs), `db`, `config`, `queue`, `storage`.
 2. **Parser:** fetch fixtures, the normalize → stats → detectors pipeline, and tests on the three demos. _This is the heart. Iterate on highlight quality here._

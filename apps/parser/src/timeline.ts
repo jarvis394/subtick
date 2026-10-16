@@ -24,6 +24,8 @@ export interface Round {
   aliveAtStart: Set<string>
   /** Rounds won before this round, by the team that started the match on that side. */
   scoreBefore: Record<Side, number>
+  /** The winning team, identified by the side it started the match on (stable across swaps). */
+  winnerTeam: Side
 }
 
 export interface Kill {
@@ -194,7 +196,15 @@ export const buildTimeline = (input: {
         })
       }
     }
-    return { number: i + 1, ...b, sides, equip, aliveAtStart, scoreBefore: { CT: 0, T: 0 } }
+    return {
+      number: i + 1,
+      ...b,
+      sides,
+      equip,
+      aliveAtStart,
+      scoreBefore: { CT: 0, T: 0 },
+      winnerTeam: b.winner,
+    }
   })
 
   // Score per team identity ("the team that started CT"), robust to half-time and overtime swaps.
@@ -204,6 +214,7 @@ export const buildTimeline = (input: {
     const winners = [...round.sides].filter(([, side]) => side === round.winner)
     const startedCt = winners.filter(([id]) => players.get(id)?.startingSide === 'CT').length
     const winnerIdentity: Side = startedCt * 2 >= winners.length ? 'CT' : 'T'
+    round.winnerTeam = winnerIdentity
     finalScore[winnerIdentity]++
   }
 

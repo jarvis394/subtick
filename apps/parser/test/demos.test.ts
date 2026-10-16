@@ -21,22 +21,25 @@ const DEMOS = [
   {
     name: '003848529647721512967_1183300926',
     map: 'de_inferno',
+    mode: 'competitive',
     score: { CT: 8, T: 13 },
     rounds: 21,
   },
   {
     name: '003848529815225237570_0369033508',
     map: 'de_ancient',
+    mode: 'premier',
     score: { CT: 13, T: 6 },
     rounds: 19,
   },
   {
     name: '003848530066480824350_1006508005',
     map: 'de_vertigo',
+    mode: 'competitive',
     score: { CT: 8, T: 13 },
     rounds: 21,
   },
-]
+] as const
 
 for (const demo of DEMOS) {
   describe.skipIf(!hasFixture(demo.name))(`${demo.map} (${demo.name})`, () => {
@@ -51,6 +54,25 @@ for (const demo of DEMOS) {
       expect(a.timeline.rounds).toHaveLength(demo.rounds)
       expect(a.timeline.finalScore).toEqual(demo.score)
       expect(Math.max(demo.score.CT, demo.score.T)).toBe(winsNeeded(0))
+    })
+
+    test('matchmaking mode and ranks', () => {
+      expect(a.mode).toBe(demo.mode)
+      expect(a.ranks.size).toBe(TEAM_SIZE * 2)
+      for (const rank of a.ranks.values()) {
+        expect(rank.mode).toBe(demo.mode)
+        // A first placement reports change 0; otherwise the delta is after − before.
+        if (rank.before > 0) expect(rank.after - rank.before).toBe(rank.change)
+      }
+    })
+
+    test('round winners add up to the final score, by team', () => {
+      const won = { CT: 0, T: 0 }
+      for (const r of a.timeline.rounds) won[r.winnerTeam]++
+      expect(won).toEqual(demo.score)
+      // Regulation first half: a team's side is still the side it started on.
+      for (const r of a.timeline.rounds.slice(0, ROUNDS_PER_HALF))
+        expect(r.winnerTeam).toBe(r.winner)
     })
 
     test('rounds are ordered and do not overlap', () => {

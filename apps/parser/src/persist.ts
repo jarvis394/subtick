@@ -14,7 +14,7 @@ export const persistAnalysis = async (
   analysis: MatchAnalysis,
   parserVersion: number,
 ) => {
-  const { timeline, stats, highlights, killTags } = analysis
+  const { timeline, stats, highlights, killTags, mode, ranks } = analysis
   const steamIds = [...timeline.players.keys()]
 
   return db.transaction(async (tx) => {
@@ -30,6 +30,7 @@ export const persistAnalysis = async (
         status: 'recording',
         error: null,
         map: timeline.header.map,
+        mode,
         serverName: timeline.header.serverName,
         tickrate: timeline.tickrate,
         durationTicks: timeline.durationTicks,
@@ -38,6 +39,11 @@ export const persistAnalysis = async (
         scoreStartedT: timeline.finalScore.T,
         parserVersion,
       })
+      .where(eq(match.id, matchId))
+
+    const [{ parties } = { parties: null }] = await tx
+      .select({ parties: match.parties })
+      .from(match)
       .where(eq(match.id, matchId))
 
     await Promise.all(
@@ -53,6 +59,8 @@ export const persistAnalysis = async (
         name: p.name,
         startingSide: p.startingSide,
         stats: stats.get(p.steamId)!,
+        rank: ranks.get(p.steamId) ?? null,
+        partyId: parties?.[p.steamId] ?? null,
       })),
     )
 
@@ -64,6 +72,7 @@ export const persistAnalysis = async (
           matchId,
           number: r.number,
           winner: r.winner,
+          winnerTeam: r.winnerTeam,
           reason: r.reason,
           startTick: r.startTick,
           freezeEndTick: r.freezeEndTick,

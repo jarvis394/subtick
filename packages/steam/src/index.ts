@@ -46,19 +46,32 @@ export const createSteamWebApi = (apiKey: string) => {
       signal: AbortSignal.timeout(10_000),
     })
 
+  /** Public profiles for any number of players (batched 100 per request, Valve's limit). */
+  const getProfiles = async (steamIds: string[]): Promise<SteamProfile[]> => {
+    const endpoint = '/ISteamUser/GetPlayerSummaries/v2/'
+    const batches = Array.from({ length: Math.ceil(steamIds.length / 100) }, (_, i) =>
+      steamIds.slice(i * 100, i * 100 + 100),
+    )
+    const responses = await Promise.all(
+      batches.map(async (batch) => {
+        const response = await get(endpoint, { steamids: batch.join(',') })
+        if (!response.ok) throw new SteamApiError(endpoint, response.status)
+        return PlayerSummaries.parse(await response.json()).response.players
+      }),
+    )
+    return responses.flat().map((player) => ({
+      steamId: player.steamid,
+      personaName: player.personaname,
+      avatarUrl: player.avatarfull ?? null,
+    }))
+  }
+
   return {
+    getProfiles,
+
     async getProfile(steamId: string): Promise<SteamProfile | null> {
-      const endpoint = '/ISteamUser/GetPlayerSummaries/v2/'
-      const response = await get(endpoint, { steamids: steamId })
-      if (!response.ok) throw new SteamApiError(endpoint, response.status)
-      const [player] = PlayerSummaries.parse(await response.json()).response.players
-      return player
-        ? {
-            steamId: player.steamid,
-            personaName: player.personaname,
-            avatarUrl: player.avatarfull ?? null,
-          }
-        : null
+      const [profile] = await getProfiles([steamId])
+      return profile ?? null
     },
 
     /** Walks a player's match history one share code at a time. */

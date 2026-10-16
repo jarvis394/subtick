@@ -1,4 +1,11 @@
-import type { Highlight, KillTag, PlayerStats } from '@subtick/domain'
+import {
+  type Highlight,
+  type KillTag,
+  type MatchMode,
+  type PlayerRank,
+  type PlayerStats,
+  modeFromRankType,
+} from '@subtick/domain'
 import { type Clutch, detectClutches } from './clutches'
 import { openDemo } from './demo'
 import {
@@ -11,7 +18,7 @@ import { computeStats } from './stats'
 import { type MatchTimeline, buildTimeline } from './timeline'
 
 /** Bump when analysis output changes, so stored matches can be re-analyzed. */
-export const PARSER_VERSION = 1
+export const PARSER_VERSION = 3
 
 export interface MatchAnalysis {
   timeline: MatchTimeline
@@ -20,6 +27,9 @@ export interface MatchAnalysis {
   highlights: Highlight[]
   /** Tags of every credited kill, by kill id. */
   killTags: Map<number, KillTag[]>
+  /** Matchmaking mode; `null` for demos without rank updates (e.g. private servers). */
+  mode: MatchMode | null
+  ranks: Map<string, PlayerRank>
 }
 
 /** Full analysis of one demo. Synchronous and CPU-bound (≈1–2 s for a full match). */
@@ -47,7 +57,21 @@ export const analyzeDemo = (
     config,
   )
 
-  return { timeline, clutches, stats, highlights, killTags }
+  const ranks = new Map(
+    demo.events.rankUpdates.map((r): [string, PlayerRank] => [
+      r.steamId,
+      {
+        mode: modeFromRankType(r.rankTypeId),
+        before: r.before,
+        after: r.after,
+        change: r.change,
+        wins: r.wins,
+      },
+    ]),
+  )
+  const mode = ranks.values().next().value?.mode ?? null
+
+  return { timeline, clutches, stats, highlights, killTags, mode, ranks }
 }
 
 export const readDemoFile = async (path: string) => Buffer.from(await Bun.file(path).arrayBuffer())

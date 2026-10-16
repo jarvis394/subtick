@@ -25,3 +25,14 @@ export const steamLink = pgTable(
   },
   (t) => [index().on(t.userId), index().on(t.nextSyncAt)],
 )
+
+/**
+ * Public Steam profile of any player seen in a match (not only subtick users), for names and
+ * avatars. Filled lazily by the api and refreshed when stale.
+ */
+export const steamProfile = pgTable('steam_profile', {
+  steamId: text().primaryKey(),
+  personaName: text().notNull(),
+  avatarUrl: text(),
+  fetchedAt: timestamp().notNull().defaultNow(),
+})

@@ -70,6 +70,15 @@ export interface DemoBombEvent {
   steamId: string | null
 }
 
+export interface DemoRankUpdate {
+  steamId: string
+  rankTypeId: number
+  before: number
+  after: number
+  change: number
+  wins: number
+}
+
 export interface DemoEvents {
   /** Ticks of `begin_new_match`; the last one marks the real start after warmup/restarts. */
   matchStarts: number[]
@@ -82,6 +91,8 @@ export interface DemoEvents {
   blinds: DemoBlind[]
   bombPlants: DemoBombEvent[]
   bombDefuses: DemoBombEvent[]
+  /** Sent once per player at the end of the match. */
+  rankUpdates: DemoRankUpdate[]
 }
 
 export interface PlayerSnapshot {
@@ -119,6 +130,7 @@ const EVENTS = [
   'player_blind',
   'bomb_planted',
   'bomb_defused',
+  'rank_update',
 ] as const
 
 // demoparser2 returns untyped rows; this is the single place they are interpreted.
@@ -146,6 +158,7 @@ const groupEvents = (rows: Row[]): DemoEvents => {
     blinds: [],
     bombPlants: [],
     bombDefuses: [],
+    rankUpdates: [],
   }
 
   for (const row of rows) {
@@ -214,6 +227,19 @@ const groupEvents = (rows: Row[]): DemoEvents => {
       case 'bomb_defused':
         events.bombDefuses.push({ tick, steamId: str(row.user_steamid) })
         break
+      case 'rank_update': {
+        const steamId = str(row.user_steamid)
+        if (!steamId) break
+        events.rankUpdates.push({
+          steamId,
+          rankTypeId: num(row.rank_type_id) ?? 0,
+          before: num(row.rank_old) ?? 0,
+          after: num(row.rank_new) ?? 0,
+          change: num(row.rank_change) ?? 0,
+          wins: num(row.num_wins) ?? 0,
+        })
+        break
+      }
     }
   }
 

@@ -1,4 +1,11 @@
-import { MATCH_STATUSES, type PlayerStats, SIDES, type Side } from '@subtick/domain'
+import {
+  MATCH_MODES,
+  MATCH_STATUSES,
+  type PlayerRank,
+  type PlayerStats,
+  SIDES,
+  type Side,
+} from '@subtick/domain'
 import {
   index,
   integer,
@@ -16,6 +23,7 @@ import { user } from './auth'
 
 export const matchStatus = pgEnum('match_status', MATCH_STATUSES)
 export const side = pgEnum('side', SIDES)
+export const matchMode = pgEnum('match_mode', MATCH_MODES)
 
 /**
  * One row per CS2 match, shared by everyone who played in it. The id is Valve's 64-bit match id
@@ -30,6 +38,7 @@ export const match = pgTable(
     status: matchStatus().notNull().default('queued'),
     error: text(),
     map: text(),
+    mode: matchMode(),
     serverName: text(),
     tickrate: smallint(),
     durationTicks: integer(),
@@ -37,6 +46,11 @@ export const match = pgTable(
     /** Final score, keyed by the side each team *started* on. */
     scoreStartedCt: smallint(),
     scoreStartedT: smallint(),
+    /**
+     * steamId64 → party id from the Game Coordinator's match reservation (`party_ids`), written
+     * by the steam worker when it resolves the match. Demos don't record parties.
+     */
+    parties: jsonb().$type<Record<string, string>>(),
     demoKey: text(),
     demoExpiresAt: timestamp(),
     parserVersion: smallint(),
@@ -60,6 +74,10 @@ export const matchPlayer = pgTable(
     name: text().notNull(),
     startingSide: side().notNull(),
     stats: jsonb().$type<PlayerStats>().notNull(),
+    /** Rating/skill group before and after this match, from the demo's rank updates. */
+    rank: jsonb().$type<PlayerRank>(),
+    /** Same id = queued together. Copied from `match.parties` on every parse. */
+    partyId: text(),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.steamId] }), index().on(t.steamId)],
 )
@@ -88,6 +106,8 @@ export const round = pgTable(
       .references(() => match.id, { onDelete: 'cascade' }),
     number: smallint().notNull(),
     winner: side().notNull(),
+    /** Winning team by the side it started on, so halves and swaps need no side rules. */
+    winnerTeam: side(),
     reason: text().notNull(),
     startTick: integer().notNull(),
     freezeEndTick: integer().notNull(),

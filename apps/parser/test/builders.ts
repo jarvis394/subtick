@@ -82,6 +82,8 @@ export const buildTestTimeline = (specs: RoundSpec[]): MatchTimeline => {
       equip: new Map(all.map((id) => [id, spec.equip?.[id] ?? 4500])),
       aliveAtStart: new Set(all),
       scoreBefore: { CT: 0, T: 0 },
+      // Test teams never swap sides.
+      winnerTeam: spec.winner,
     }
   })
 

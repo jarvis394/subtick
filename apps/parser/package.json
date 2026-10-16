@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "fixtures": "bun scripts/fetch-fixtures.ts",
-    "inspect": "bun scripts/inspect.ts"
+    "inspect": "bun scripts/inspect.ts",
+    "seed": "bun scripts/seed.ts",
+    "fake-clips": "bun scripts/fake-clips.ts"
   },
   "dependencies": {
     "@laihoe/demoparser2": "^0.42.0",

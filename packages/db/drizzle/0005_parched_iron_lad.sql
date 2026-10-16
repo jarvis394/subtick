@@ -1,0 +1,1 @@
+ALTER TABLE "round" ADD COLUMN "winner_team" "side";
