@@ -3,8 +3,8 @@ import { USER_ROLES } from '@subtick/domain'
 import { boolean, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 const timestamps = {
-  createdAt: timestamp().notNull().defaultNow(),
-  updatedAt: timestamp()
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
@@ -29,7 +29,7 @@ export const session = pgTable('session', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   token: text().notNull().unique(),
-  expiresAt: timestamp().notNull(),
+  expiresAt: timestamp({ withTimezone: true }).notNull(),
   ipAddress: text(),
   userAgent: text(),
   ...timestamps,
@@ -44,8 +44,8 @@ export const account = pgTable('account', {
   providerId: text().notNull(),
   accessToken: text(),
   refreshToken: text(),
-  accessTokenExpiresAt: timestamp(),
-  refreshTokenExpiresAt: timestamp(),
+  accessTokenExpiresAt: timestamp({ withTimezone: true }),
+  refreshTokenExpiresAt: timestamp({ withTimezone: true }),
   scope: text(),
   idToken: text(),
   password: text(),
@@ -56,6 +56,6 @@ export const verification = pgTable('verification', {
   id: text().primaryKey(),
   identifier: text().notNull(),
   value: text().notNull(),
-  expiresAt: timestamp().notNull(),
+  expiresAt: timestamp({ withTimezone: true }).notNull(),
   ...timestamps,
 })

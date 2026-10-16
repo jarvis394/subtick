@@ -41,7 +41,7 @@ export const highlight = pgTable(
     tags: text().array().$type<MomentTag[]>().notNull().default([]),
     clutch: jsonb().$type<HighlightClutch>(),
     status: highlightStatus().notNull().default('candidate'),
-    createdAt: timestamp().notNull().defaultNow(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.matchId, t.steamId), index().on(t.steamId, t.score)],
 )
@@ -56,7 +56,7 @@ export const clip = pgTable('clip', {
   width: smallint().notNull(),
   height: smallint().notNull(),
   recorderVersion: smallint().notNull(),
-  createdAt: timestamp().notNull().defaultNow(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })
 
 export type Highlight = typeof highlight.$inferSelect

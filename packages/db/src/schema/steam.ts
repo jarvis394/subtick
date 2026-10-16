@@ -19,9 +19,9 @@ export const steamLink = pgTable(
     lastShareCode: text(),
     syncState: syncState().notNull().default('idle'),
     lastError: text(),
-    nextSyncAt: timestamp(),
-    lastSyncedAt: timestamp(),
-    createdAt: timestamp().notNull().defaultNow(),
+    nextSyncAt: timestamp({ withTimezone: true }),
+    lastSyncedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.userId), index().on(t.nextSyncAt)],
 )
@@ -34,5 +34,5 @@ export const steamProfile = pgTable('steam_profile', {
   steamId: text().primaryKey(),
   personaName: text().notNull(),
   avatarUrl: text(),
-  fetchedAt: timestamp().notNull().defaultNow(),
+  fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })

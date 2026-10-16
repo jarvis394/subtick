@@ -53,11 +53,11 @@ export const match = pgTable(
      */
     parties: jsonb().$type<Record<string, string>>(),
     demoKey: text(),
-    demoExpiresAt: timestamp(),
+    demoExpiresAt: timestamp({ withTimezone: true }),
     parserVersion: smallint(),
-    playedAt: timestamp(),
-    createdAt: timestamp().notNull().defaultNow(),
-    updatedAt: timestamp()
+    playedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
@@ -94,7 +94,7 @@ export const userMatch = pgTable(
       .notNull()
       .references(() => match.id, { onDelete: 'cascade' }),
     steamId: text().notNull(),
-    discoveredAt: timestamp().notNull().defaultNow(),
+    discoveredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.matchId] }), index().on(t.matchId)],
 )
