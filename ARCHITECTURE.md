@@ -53,7 +53,7 @@ subtick/
 ├─ apps/
 │  ├─ api/            Elysia gateway: better-auth, REST, SSE, signed URLs
 │  ├─ web/            Vite + React + base-ui + Tailwind v4 + TanStack Router/Query
-│  ├─ steam/          worker: scheduler, sync-user, resolve-match, download ("match downloader")
+│  ├─ steam/          worker (@subtick/steam-worker): scheduler, sync-user, resolve-match, download
 │  ├─ parser/         worker: demo.parse (demoparser2) + tests/fixtures
 │  └─ recorder/       worker: clip.record, clip.reel (runs on the GPU host)
 ├─ packages/
@@ -121,16 +121,18 @@ Highlights and clips belong to **(match, player)**, not to a user. If two friend
 
 - Decodes the share code in `domain` (base57) into `{ matchId, outcomeId, token }`.
 - `INSERT … ON CONFLICT DO NOTHING` into `match`, and always upserts `user_match`. **If the match already has a demo or is in progress, stop here.** That is the "don't redownload" guarantee.
-- Otherwise it asks the **Steam Game Coordinator** for the demo URL. This needs a logged-in Steam _bot account_, using `steam-user` + `globaloffensive` and `requestGame(shareCode)`. The URL is in the last `roundstatsall[].map`. The same response's `reservation` lists `account_ids` with matching `party_ids`; store them as `match.parties` (steamId64 → party id). Demos don't record parties, and the parser copies this map onto `match_player.partyId`.
+- Otherwise it asks the **Steam Game Coordinator** for the demo URL. This needs a logged-in Steam _bot account_, using `steam-user` + `globaloffensive` and `requestGame(shareCode)`. The URL is in the last `roundstatsall[].map`. The same response's `reservation` lists `account_ids` and, in principle, matching `party_ids`, stored as `match.parties` (steamId64 → party id) and copied by the parser onto `match_player.partyId`. **Verified on a real Premier match (Oct 2026): `party_ids` comes back empty**, so parties are usually unknown. Demos don't record them either. The demo file name's id is not the share code's match id. A first GC connection with password + Steam Guard can take over a minute; later logins reuse the refresh token and connect in ~2 s.
 - The GC session is a long-lived singleton, so the queue runs with concurrency 1 and a limiter of about 1 req/s. More throughput comes from more bot accounts, not more concurrency.
 
 **`demo.download`** (`jobId = matchId`)
 
-- Streams `replayNNN.valve.net/…dem.bz2`, decompresses it (bz2 streaming), recompresses with zstd, and uploads to `demos/<matchId>.dem.zst`.
+- Streams `replayNNN.valve.net/…dem.bz2` to scratch, decompresses it with the system `bunzip2` (Bun has no bzip2 codec, so the host or image needs bzip2), recompresses with zstd, and uploads to `demos/<matchId>.dem.zst`. `playedAt` falls back to the replay's `Last-Modified`, and `demoExpiresAt` is `playedAt + 30d`.
 - A `404` means Valve expired the demo (about 30 days), so `status = expired`.
 - Then enqueues `demo.parse`.
 
-**Dev entry point.** `bun run --filter steam enqueue <demo-url | share-code>`. This is how the three test demos enter the pipeline without a Steam account.
+**Dev entry point.** `bun run --filter @subtick/steam-worker enqueue <demo-url | share-code>... [--user <steamId64>]`. This is how the three test demos enter the pipeline without a Steam account. It clears a finished job with the same id first, so a match can be run again.
+
+**Bot account.** `STEAM_BOT_USERNAME` / `STEAM_BOT_PASSWORD` (+ `STEAM_BOT_SHARED_SECRET`, or `STEAM_BOT_GUARD_CODE` once). The refresh token from the first login is kept in `$SCRATCH_DIR/steam-bot/`. Without a bot, the resolve worker doesn't start and share codes wait in the queue; syncing and URL imports still work.
 
 ### 4.2 `parser`: stats and highlight detection (the core)
 
@@ -287,7 +289,7 @@ interface Recorder {
 ## 6. Risks to verify first (spikes before building on them)
 
 1. ~~**demoparser2 under Bun.**~~ Verified: it works under Bun 1.3. A full analysis of a 250 MB demo takes about 1.5 s.
-2. **`steam-user` / `globaloffensive` under Bun.** The same approach applies. The GC client is also the most likely thing to break when Valve changes protos.
+2. ~~**`steam-user` / `globaloffensive` under Bun.**~~ Verified: login and `requestGame` work over the TCP transport (the WebSocket transport never connects under Bun 1.3). The GC client is also the most likely thing to break when Valve changes protos.
 3. **CS2 in headless gamescope.** Prove a 10s capture of `playdemo` + `spec_player` + `demo_gototick` on the target GPU box before building the recorder queue. If Linux is flaky, the `Recorder` port allows a Windows host adapter, where Allstar-style setups are proven.
 4. **Valve rate limits and expiry.** Demos disappear after about 30 days and the GC throttles aggressively. Mitigations: one bot, a 1 req/s limiter, and backoff.
 
@@ -295,7 +297,7 @@ interface Recorder {
 
 ## 7. Build order
 
-Status: steps 1–4 are done (the radar replay fallback is not built yet).
+Status: steps 1–5 are done (the radar replay fallback is not built yet).
 
 1. **Scaffold:** turborepo, bun workspaces, oxlint/oxfmt, tsconfig, compose (pg/redis/seaweedfs), `db`, `config`, `queue`, `storage`.
 2. **Parser:** fetch fixtures, the normalize → stats → detectors pipeline, and tests on the three demos. _This is the heart. Iterate on highlight quality here._

@@ -48,7 +48,8 @@ export const match = pgTable(
     scoreStartedT: smallint(),
     /**
      * steamId64 → party id from the Game Coordinator's match reservation (`party_ids`), written
-     * by the steam worker when it resolves the match. Demos don't record parties.
+     * by the steam worker when it resolves the match. Demos don't record parties, and CS2's GC
+     * has so far sent `party_ids` empty, so this is usually null.
      */
     parties: jsonb().$type<Record<string, string>>(),
     demoKey: text(),

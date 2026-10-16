@@ -1,0 +1,29 @@
+{
+  "name": "@subtick/steam-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "enqueue": "bun scripts/enqueue.ts"
+  },
+  "dependencies": {
+    "@subtick/config": "workspace:*",
+    "@subtick/db": "workspace:*",
+    "@subtick/domain": "workspace:*",
+    "@subtick/logger": "workspace:*",
+    "@subtick/queue": "workspace:*",
+    "@subtick/steam": "workspace:*",
+    "@subtick/storage": "workspace:*",
+    "bullmq": "^6.3.15",
+    "globaloffensive": "^3.3.0",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.3.0"
+  },
+  "devDependencies": {
+    "@subtick/tsconfig": "workspace:*",
+    "@types/steam-totp": "^2.1.2",
+    "@types/steam-user": "^5.1.1"
+  }
+}

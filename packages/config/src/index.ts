@@ -40,6 +40,18 @@ export const SteamEnv = {
   /** https://steamcommunity.com/dev/apikey */
   STEAM_API_KEY: z.string().min(1),
 }
+/**
+ * Bot account the steam worker logs in with to ask the Game Coordinator for demo URLs. Optional:
+ * without it, only matches imported with a demo URL can be downloaded. A shared secret (Steam
+ * Guard mobile authenticator) avoids prompts; otherwise pass the emailed code once in
+ * STEAM_BOT_GUARD_CODE and the refresh token saved after login is reused from then on.
+ */
+export const SteamBotEnv = {
+  STEAM_BOT_USERNAME: z.string().min(1).optional(),
+  STEAM_BOT_PASSWORD: z.string().min(1).optional(),
+  STEAM_BOT_SHARED_SECRET: z.string().min(1).optional(),
+  STEAM_BOT_GUARD_CODE: z.string().min(1).optional(),
+}
 /** 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts stored match auth codes. */
 export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
 export const WorkerEnv = {

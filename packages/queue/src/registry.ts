@@ -5,6 +5,8 @@ import type { DefaultJobOptions } from 'bullmq'
  * never act on a stale payload.
  */
 export interface JobPayloads {
+  /** Repeatable tick: enqueues `steam.sync-user` for every link that is due. */
+  'steam.schedule': Record<string, never>
   'steam.sync-user': { steamId: string }
   'steam.resolve-match': { shareCode: string; userId?: string; steamId?: string }
   'demo.download': { matchId: string }
@@ -26,9 +28,19 @@ const exponential = (delay: number) => ({ type: 'exponential', delay }) as const
 
 // BullMQ custom ids must not be plain integers and must not contain ':'.
 export const queues: { [N in QueueName]: QueueDefinition<N> } = {
+  'steam.schedule': {
+    jobId: () => 'schedule',
+    options: { removeOnComplete: true, removeOnFail: true },
+  },
   'steam.sync-user': {
     jobId: ({ steamId }) => `sync-${steamId}`,
-    options: { attempts: 5, backoff: exponential(30_000) },
+    // Removed when done so the id frees up for the next sync; while queued it still dedupes.
+    options: {
+      attempts: 5,
+      backoff: exponential(30_000),
+      removeOnComplete: true,
+      removeOnFail: true,
+    },
   },
   'steam.resolve-match': {
     jobId: ({ shareCode }) => `resolve-${shareCode}`,
