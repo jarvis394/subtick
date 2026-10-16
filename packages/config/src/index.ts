@@ -1,10 +1,10 @@
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 import { z } from 'zod'
 
 // Apps run from their own directory under turbo, so the repo-root .env is loaded explicitly.
 // Variables already set in the environment win.
-config({ path: join(import.meta.dir, '../../../.env'), quiet: true })
+config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true })
 
 /**
  * Validates `env` against a shape: applies defaults, coerces numbers and throws a readable error
@@ -36,6 +36,12 @@ export const S3Env = {
   S3_BUCKET_DEMOS: z.string().default('demos'),
   S3_BUCKET_CLIPS: z.string().default('clips'),
 }
+export const SteamEnv = {
+  /** https://steamcommunity.com/dev/apikey */
+  STEAM_API_KEY: z.string().min(1),
+}
+/** 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts stored match auth codes. */
+export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
 export const WorkerEnv = {
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(1),
   SCRATCH_DIR: z.string().default('/tmp/subtick'),

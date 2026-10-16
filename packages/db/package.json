@@ -8,11 +8,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
-    "studio": "drizzle-kit studio"
+    "generate": "bun --bun drizzle-kit generate",
+    "migrate": "bun src/migrate.ts",
+    "studio": "bun --bun drizzle-kit studio"
   },
   "dependencies": {
+    "@subtick/config": "workspace:*",
     "@subtick/domain": "workspace:*",
     "drizzle-orm": "^0.45.4"
   },

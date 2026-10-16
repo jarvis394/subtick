@@ -223,14 +223,15 @@ interface Recorder {
 ### 4.4 `api`: Elysia gateway
 
 - **better-auth** is mounted with `.mount(auth.handler)`, using email/password and the Drizzle adapter.
-- **Steam** uses OpenID 2.0, which better-auth has no built-in provider for, so subtick ships a small **better-auth plugin** (`steam()`):
-  - `GET /api/auth/steam/link` and `/steam/signin` redirect to `steamcommunity.com/openid`.
+- **Steam** uses OpenID 2.0, which better-auth has no built-in provider for (an upstream plugin is proposed in better-auth/better-auth#4877, not merged), so subtick ships a small **better-auth plugin** (`steam()`) with the same paths:
+  - `POST /api/auth/sign-in/steam` and `POST /api/auth/link-social/steam` return the `steamcommunity.com/openid` URL. Flow state is stored server-side and single-use.
   - `GET /api/auth/steam/callback` verifies with `check_authentication`, extracts steamId64, fetches the persona via `GetPlayerSummaries`, then either links an `account` row to the current user or signs in or creates a user.
 - Routes are grouped in Elysia plugins, each with a zod schema (Elysia accepts Standard Schema), so **Eden Treaty** gives the web app full types:
-  - `POST /steam-links/:id/match-auth`: auth code + last share code, validated against Valve before saving.
+  - `GET /me`: user and linked Steam accounts with sync state.
+  - `PUT /steam-links/:steamId/match-auth`: auth code + last share code, validated against Valve before saving (AES-GCM encrypted at rest). `DELETE /steam-links/:steamId` unlinks, unless it is the last sign-in method.
   - `POST /matches/import`: manual share code.
   - `GET /matches`, `GET /matches/:id`: header, rounds, scoreboard, highlights with signed clip URLs.
-  - `GET /highlights?scope=me|friends`: feed.
+  - `GET /highlights?cursor&recordedOnly`: the user's highlight feed.
   - `POST /highlights/:id/record`: lazy render request.
   - `GET /events`: **SSE**. Workers publish `{ matchId, status, progress }` to Redis pub/sub, and the api fans it out to subscribed users.
 - Clip and demo URLs are short-lived presigned S3 URLs. The api never proxies video bytes.
@@ -293,6 +294,8 @@ interface Recorder {
 ---
 
 ## 7. Build order
+
+Status: steps 1–3 are done.
 
 1. **Scaffold:** turborepo, bun workspaces, oxlint/oxfmt, tsconfig, compose (pg/redis/seaweedfs), `db`, `config`, `queue`, `storage`.
 2. **Parser:** fetch fixtures, the normalize → stats → detectors pipeline, and tests on the three demos. _This is the heart. Iterate on highlight quality here._
