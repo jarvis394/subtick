@@ -126,6 +126,7 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
     .values({ highlightId: h.id, ...values })
     .onConflictDoUpdate({ target: clip.highlightId, set: values })
   await db.update(highlight).set({ status: 'recorded' }).where(eq(highlight.id, h.id))
+  ctx.status.clipsRecorded++
 
   log.info(
     {

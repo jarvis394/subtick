@@ -2,7 +2,15 @@ import { Menu } from '@base-ui/react/menu'
 import { mapName } from '@subtick/domain'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronsUpDown, Clapperboard, LogOut, PanelLeft, Settings, Swords } from 'lucide-react'
+import {
+  ChevronsUpDown,
+  Clapperboard,
+  LogOut,
+  PanelLeft,
+  Settings,
+  ShieldCheck,
+  Swords,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { MapIcon } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
@@ -43,7 +51,7 @@ const NavItem = ({
   collapsed,
   onNavigate,
 }: {
-  to: '/' | '/matches'
+  to: '/' | '/matches' | '/admin'
   icon: ReactNode
   label: string
   collapsed: boolean
@@ -51,8 +59,8 @@ const NavItem = ({
 }) => (
   <Link
     to={to}
-    // Filters live in the query string; the section is active whatever they are.
-    activeOptions={{ exact: true, includeSearch: false }}
+    // Filters live in the query string; the section is active whatever they are. Admin has tabs.
+    activeOptions={{ exact: to !== '/admin', includeSearch: false }}
     onClick={onNavigate}
     aria-label={collapsed ? label : undefined}
     title={collapsed ? label : undefined}
@@ -131,6 +139,15 @@ export const SidebarContent = ({
           collapsed={collapsed}
           onNavigate={onNavigate}
         />
+        {me.user.isAdmin && (
+          <NavItem
+            to="/admin"
+            icon={<ShieldCheck />}
+            label="Admin"
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
+        )}
       </nav>
 
       <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2">

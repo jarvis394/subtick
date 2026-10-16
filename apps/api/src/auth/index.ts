@@ -24,6 +24,10 @@ export const createAuth = ({ env, db, steamApi }: { env: Env; db: Db; steamApi: 
     }),
     // No mail server: accounts are not verified by email and there is no password reset by mail.
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    user: {
+      // Granted by another admin or `bun run grant-admin`, never at sign-up.
+      additionalFields: { role: { type: 'string', defaultValue: 'user', input: false } },
+    },
     plugins: [
       steam({
         async getProfile(steamId) {

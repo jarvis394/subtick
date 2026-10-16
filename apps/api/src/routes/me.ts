@@ -14,7 +14,13 @@ export const meRoutes = ({ db, auth }: Context) =>
         .orderBy(schema.steamLink.createdAt)
 
       return {
-        user: { id: user.id, name: user.name, email: user.email, image: user.image ?? null },
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image ?? null,
+          isAdmin: user.role === 'admin',
+        },
         steamLinks: links.map((link) => ({
           steamId: link.steamId,
           personaName: link.personaName,

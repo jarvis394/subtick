@@ -1,5 +1,6 @@
 // Tables owned by better-auth (core schema). Kept here so app tables can reference `user`.
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { USER_ROLES } from '@subtick/domain'
+import { boolean, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 const timestamps = {
   createdAt: timestamp().notNull().defaultNow(),
@@ -9,12 +10,16 @@ const timestamps = {
     .$onUpdate(() => new Date()),
 }
 
+export const userRole = pgEnum('user_role', USER_ROLES)
+
 export const user = pgTable('user', {
   id: text().primaryKey(),
   name: text().notNull(),
   email: text().notNull().unique(),
   emailVerified: boolean().notNull().default(false),
   image: text(),
+  /** Declared to better-auth as an additional field that sign-up can't set. */
+  role: userRole().notNull().default('user'),
   ...timestamps,
 })
 

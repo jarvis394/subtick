@@ -65,7 +65,14 @@ export const RecorderEnv = {
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),
   /**
-   * Steam account the recorder's game client signs in with, only needed until the first sign-in
+   * Joins the instance's recorder fleet: the subtick origin (PUBLIC_URL) and the token an admin
+   * got when adding this machine. The machine then reports its health and takes its Steam account
+   * from there; without them it runs standalone with the STEAM_* variables below.
+   */
+  SUBTICK_URL: z.url().optional(),
+  RECORDER_TOKEN: z.string().startsWith('strec_').optional(),
+  /**
+   * Standalone only: Steam account the game client signs in with, only needed until the first sign-in
    * (the prefix keeps a token). Use a dedicated account: one account can't run CS2 here and play
    * elsewhere, or be the steam worker's bot, at the same time.
    */

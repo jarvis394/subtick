@@ -1,9 +1,11 @@
 import { Elysia } from 'elysia'
 import type { Context } from './context'
+import { adminRoutes } from './routes/admin'
 import { eventRoutes } from './routes/events'
 import { highlightRoutes } from './routes/highlights'
 import { matchRoutes } from './routes/matches'
 import { meRoutes } from './routes/me'
+import { recorderAgentRoutes } from './routes/recorder-agent'
 import { steamLinkRoutes } from './routes/steam-links'
 
 export const createApp = (ctx: Context) =>
@@ -17,7 +19,9 @@ export const createApp = (ctx: Context) =>
         .use(steamLinkRoutes(ctx))
         .use(matchRoutes(ctx))
         .use(highlightRoutes(ctx))
-        .use(eventRoutes(ctx)),
+        .use(eventRoutes(ctx))
+        .use(adminRoutes(ctx))
+        .use(recorderAgentRoutes(ctx)),
     )
     .onError(({ code, error, request }) => {
       if (code === 'VALIDATION' || code === 'NOT_FOUND') return

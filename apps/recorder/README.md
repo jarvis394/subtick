@@ -40,17 +40,35 @@ The first start creates the Wine prefix and installs .NET, HLAE and Steam (a few
 
 ## Environment
 
-| variable                                                  | default     | what                                                                                                                                                      |
-| --------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`, `REDIS_URL`, `S3_*`                       |             | as for the other workers                                                                                                                                  |
-| `CS2_SOURCE`                                              | `download`  | where the game files come from, see below                                                                                                                 |
-| `CS2_DIR`                                                 | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                                                 |
-| `CS2_SERVER_DIR`                                          |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                                                |
-| `STEAM_USERNAME`, `STEAM_PASSWORD`, `STEAM_SHARED_SECRET` |             | signs Steam in on the first start (the secret answers Steam Guard; without one, see below). Afterwards the prefix keeps a token and these can be removed. |
-| `VNC_PASSWORD`                                            |             | starts a VNC server on `127.0.0.1:5900` to watch the game or sign in by hand                                                                              |
-| `DXVK_VERSION`                                            | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                                               |
-| `HLAE_VERSION`                                            | `2.192.8`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                                                |
-| `WINEPREFIX`                                              | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                                     |
+| variable                                                  | default     | what                                                                                                                                                                       |
+| --------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `REDIS_URL`, `S3_*`                       |             | as for the other workers                                                                                                                                                   |
+| `SUBTICK_URL`, `RECORDER_TOKEN`                           |             | join the instance's recorder fleet (see below). Without them the machine runs standalone.                                                                                  |
+| `CS2_SOURCE`                                              | `download`  | where the game files come from, see below                                                                                                                                  |
+| `CS2_DIR`                                                 | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                                                                  |
+| `CS2_SERVER_DIR`                                          |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                                                                 |
+| `STEAM_USERNAME`, `STEAM_PASSWORD`, `STEAM_SHARED_SECRET` |             | standalone only: signs Steam in on the first start (the secret answers Steam Guard; without one, see below). Afterwards the prefix keeps a token and these can be removed. |
+| `VNC_PASSWORD`                                            |             | starts a VNC server on `127.0.0.1:5900` to watch the game or sign in by hand                                                                                               |
+| `DXVK_VERSION`                                            | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                                                                |
+| `HLAE_VERSION`                                            | `2.192.8`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                                                                 |
+| `WINEPREFIX`                                              | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                                                      |
+
+### A fleet of recorders
+
+Recorders can run on several machines, like CI runners. In subtick, an admin opens **Admin → Recorders**, adds a recorder and gets a token, shown once. Put it in that machine's `recorder.env`:
+
+```sh
+SUBTICK_URL=https://subtick.example.com   # the instance's PUBLIC_URL
+RECORDER_TOKEN=strec_...
+```
+
+The machine then reports its health every 15 s (online, what it's doing, which Steam account is signed in, GPU, last error) and takes its settings from subtick:
+
+- **Steam account**: admins add accounts under **Admin → Steam accounts** (stored encrypted) and assign each to one recorder. The machine signs in with it, switching accounts between jobs if another one is signed in. If Steam emails a Steam Guard code, the recorder shows a field for it.
+- **Pause**: a paused recorder finishes its current job and takes no new ones.
+- **New token / Remove**: the old token stops working at once.
+
+Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins see these pages; make the first admin with `bun run --filter @subtick/api grant-admin <email | steamId64>`, then grant others in **Admin → Users**.
 
 ### Game files: `CS2_SOURCE`
 
@@ -60,7 +78,7 @@ The first start creates the Wine prefix and installs .NET, HLAE and Steam (a few
 
 ### Signing in to Steam
 
-Either set `STEAM_USERNAME`/`STEAM_PASSWORD` (and `STEAM_SHARED_SECRET` for accounts with a mobile authenticator), or set `VNC_PASSWORD`, tunnel the port (`ssh -N -L 5901:localhost:5900 <host>`), open `vnc://localhost:5901` and sign in with "Remember me" checked. Either way it's once per prefix.
+In a fleet, assign the machine an account in subtick (above). Standalone, either set `STEAM_USERNAME`/`STEAM_PASSWORD` (and `STEAM_SHARED_SECRET` for accounts with a mobile authenticator), or set `VNC_PASSWORD`, tunnel the port (`ssh -N -L 5901:localhost:5900 <host>`), open `vnc://localhost:5901` and sign in with "Remember me" checked. Either way it's once per prefix.
 
 Accounts without a mobile authenticator get a Steam Guard code by email on the first sign-in. The recorder logs a warning and waits up to 15 minutes for it:
 

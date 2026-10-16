@@ -18,8 +18,16 @@ export interface WineGameOptions {
   /** Folder HLAE hands to CS2 as `USRLOCALCSGO`: our cfg and video settings live here. */
   configDir: string
   /** Signs a fresh prefix in without VNC; once signed in, Steam reuses its saved token. */
-  steamCredentials?: SteamCredentials
+  steamAccount?: SteamAccountSource
   log: Logger<unknown>
+}
+
+/** Where sign-in details come from: env vars on a standalone machine, or the subtick api. */
+export interface SteamAccountSource {
+  credentials(): Promise<SteamCredentials | undefined>
+  /** An emailed Steam Guard code someone handed over since the last call, if any. */
+  takeGuardCode(): Promise<string | null>
+  onSigningIn?(phase: 'credentials' | 'needs_guard_code' | 'done'): void
 }
 
 const STEAM_LOGIN_TIMEOUT_MS = 3 * 60_000
@@ -52,6 +60,8 @@ export const findProcesses = async (needle: string) => {
   return pids
 }
 
+const steamRunning = async () => (await findProcesses('Steam\\steam.exe')).length > 0
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
@@ -59,12 +69,21 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * Steam signs in once, from credentials or by hand over VNC, and then from its saved token.
  */
 export const createWineGame = (options: WineGameOptions) => {
-  const { cs2Dir, prefix, netconPort, configDir, steamCredentials, log } = options
+  const { cs2Dir, prefix, netconPort, configDir, steamAccount, log } = options
   const steamDir = join(prefix, 'drive_c/Program Files (x86)/Steam')
   const hlaeDir = join(prefix, 'drive_c/hlae')
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
-  /** Accounts without an authenticator get a code by email; it's handed over through this file. */
+  /** Accounts without an authenticator get a code by email; it can be handed over in this file. */
   const guardCodeFile = join(dirname(prefix), 'steam-guard-code')
+  const takeGuardCode = async () => {
+    const fromSource = await steamAccount?.takeGuardCode()
+    if (fromSource) return fromSource
+    const file = Bun.file(guardCodeFile)
+    if (!(await file.exists())) return null
+    const code = await file.text()
+    await rm(guardCodeFile, { force: true })
+    return code
+  }
 
   const spawnWine = (args: string[], env: Record<string, string> = {}) =>
     Bun.spawn(['wine', ...args], {
@@ -79,53 +98,99 @@ export const createWineGame = (options: WineGameOptions) => {
     return (await file.text()).match(/\[Logged On,/g)?.length ?? 0
   }
 
+  /** Kills every Windows process in the prefix (Steam, CS2, HLAE) through its wineserver. */
+  const stopAll = async () => {
+    await Bun.spawn(['wineserver', '-k'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
+    await Bun.spawn(['wineserver', '-w'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
+  }
+
+  /** The account Steam signs in with on start, from the registry; null when signed out. */
+  const signedInAs = async () => {
+    const reg = Bun.file(join(prefix, 'user.reg'))
+    if (!(await reg.exists())) return null
+    return /^"AutoLoginUser"="([^"]+)"$/m.exec(await reg.text())?.[1] ?? null
+  }
+
+  /** Forgets the signed-in account (its saved token and login), so Steam asks again. */
+  const signOut = async () => {
+    log.info({ account: await signedInAs() }, 'signing Steam out')
+    await stopAll()
+    await rm(join(steamDir, 'config/loginusers.vdf'), { force: true })
+    // local.vdf holds the encrypted refresh token ("ConnectCache").
+    for (const user of await readdir(join(prefix, 'drive_c/users')).catch(() => []))
+      await rm(join(prefix, 'drive_c/users', user, 'AppData/Local/Steam/local.vdf'), {
+        force: true,
+      })
+    const reg = Bun.spawn(
+      ['wine', 'reg', 'add', 'HKCU\\Software\\Valve\\Steam', '/v', 'AutoLoginUser', '/d', '', '/f'],
+      {
+        env: { ...process.env, WINEPREFIX: prefix, WINEDEBUG: '-all' },
+        stdio: ['ignore', 'ignore', 'ignore'],
+      },
+    )
+    await reg.exited
+    await stopAll()
+  }
+
+  /** Starts Steam if needed and waits until it's signed in, typing credentials if it asks. */
   const ensureSteam = async () => {
-    if ((await findProcesses('Steam\\steam.exe')).length) return
+    if (await steamRunning()) {
+      if (!(await findLoginWindow())) return
+      // A sign-in that failed earlier left the form open: start over.
+      log.warn('Steam is stuck at its sign-in window; restarting it')
+      await stopAll()
+    }
     log.info('starting Steam')
     const before = await steamLogins()
     spawnWine([windowsPath(prefix, join(steamDir, 'steam.exe')), '-no-cef-sandbox', '-silent'])
     let deadline = Date.now() + STEAM_LOGIN_TIMEOUT_MS
     let typed = false
     let awaitingEmailCode = false
-    while (Date.now() < deadline) {
-      await sleep(3000)
-      if ((await steamLogins()) > before) return log.info('Steam signed in')
-      const window = await findLoginWindow()
-      if (!window) continue
-      if (awaitingEmailCode) {
-        const file = Bun.file(guardCodeFile)
-        if (!(await file.exists())) continue
-        const code = await file.text()
+    try {
+      while (Date.now() < deadline) {
+        await sleep(3000)
+        if ((await steamLogins()) > before) return log.info('Steam signed in')
+        const window = await findLoginWindow()
+        if (!window) continue
+        if (awaitingEmailCode) {
+          const code = await takeGuardCode()
+          if (!code) continue
+          log.info('typing the emailed Steam Guard code')
+          await typeSteamGuardCode(window, code)
+          continue
+        }
+        if (typed) continue
+        typed = true
+        const credentials = await steamAccount?.credentials()
+        if (!credentials) {
+          log.warn('Steam is waiting for a sign-in: assign it an account, or sign in over VNC')
+          continue
+        }
+        log.info({ username: credentials.username }, 'signing Steam in')
+        steamAccount?.onSigningIn?.('credentials')
         await rm(guardCodeFile, { force: true })
-        log.info('typing the emailed Steam Guard code')
-        await typeSteamGuardCode(window, code)
-        continue
+        await typeSteamLogin(window, credentials)
+        if (credentials.sharedSecret) {
+          await sleep(8000)
+          await typeSteamGuardCode(window, steamGuardCode(credentials.sharedSecret))
+          continue
+        }
+        awaitingEmailCode = true
+        deadline = Date.now() + STEAM_EMAIL_CODE_TIMEOUT_MS
+        steamAccount?.onSigningIn?.('needs_guard_code')
+        log.warn(
+          { file: guardCodeFile },
+          'if Steam emailed a Steam Guard code, enter it in subtick (Admin → Recorders) or write ' +
+            `it to this file (docker exec <container> sh -c 'echo CODE > ${guardCodeFile}')`,
+        )
       }
-      if (typed) continue
-      typed = true
-      if (!steamCredentials) {
-        log.warn('Steam is waiting for a sign-in: set STEAM_USERNAME/STEAM_PASSWORD or use VNC')
-        continue
-      }
-      log.info({ username: steamCredentials.username }, 'signing Steam in')
-      await rm(guardCodeFile, { force: true })
-      await typeSteamLogin(window, steamCredentials)
-      if (steamCredentials.sharedSecret) {
-        await sleep(8000)
-        await typeSteamGuardCode(window, steamGuardCode(steamCredentials.sharedSecret))
-        continue
-      }
-      awaitingEmailCode = true
-      deadline = Date.now() + STEAM_EMAIL_CODE_TIMEOUT_MS
-      log.warn(
-        { file: guardCodeFile },
-        'if Steam emailed a Steam Guard code, write it to this file in the container ' +
-          `(docker exec <container> sh -c 'echo CODE > ${guardCodeFile}')`,
-      )
+    } finally {
+      steamAccount?.onSigningIn?.('done')
     }
     throw new Error(
-      'Steam did not sign in: check STEAM_USERNAME/STEAM_PASSWORD/STEAM_SHARED_SECRET, ' +
-        'or sign in once over VNC with "remember me" checked',
+      awaitingEmailCode
+        ? 'Steam did not sign in: no Steam Guard code arrived in time'
+        : 'Steam did not sign in: check the account and its password',
     )
   }
 
@@ -195,7 +260,7 @@ export const createWineGame = (options: WineGameOptions) => {
     }
   }
 
-  return { connect, kill }
+  return { connect, kill, signIn: ensureSteam, signOut, signedInAs }
 }
 
 export type WineGame = ReturnType<typeof createWineGame>
