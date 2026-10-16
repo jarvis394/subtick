@@ -4,6 +4,7 @@ import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { importShareCode } from '../services/matches'
+import { getProfiles } from '../services/profiles'
 import { withClipUrls } from '../services/highlights'
 import { authGuard } from './guard'
 
@@ -29,7 +30,12 @@ export const matchRoutes = (ctx: Context) => {
             scoreStartedT: match.scoreStartedT,
             discoveredAt: userMatch.discoveredAt,
             steamId: userMatch.steamId,
-            player: { startingSide: matchPlayer.startingSide, stats: matchPlayer.stats },
+            mode: match.mode,
+            player: {
+              startingSide: matchPlayer.startingSide,
+              stats: matchPlayer.stats,
+              rank: matchPlayer.rank,
+            },
             highlightCount: sql<number>`(
               select count(*)::int from ${highlight}
               where ${highlight.matchId} = ${match.id} and ${highlight.steamId} = ${userMatch.steamId}
@@ -48,22 +54,28 @@ export const matchRoutes = (ctx: Context) => {
             ),
           )
           .orderBy(desc(userMatch.discoveredAt))
-          .limit(PAGE_SIZE)
+          .limit(query.limit)
 
         return {
           items: rows,
-          nextCursor: rows.length === PAGE_SIZE ? rows.at(-1)!.discoveredAt.toISOString() : null,
+          nextCursor: rows.length === query.limit ? rows.at(-1)!.discoveredAt.toISOString() : null,
         }
       },
-      { auth: true, query: z.object({ cursor: z.iso.datetime().optional() }) },
+      {
+        auth: true,
+        query: z.object({
+          cursor: z.iso.datetime().optional(),
+          limit: z.coerce.number().int().min(1).max(PAGE_SIZE).default(PAGE_SIZE),
+        }),
+      },
     )
     .get(
       '/:id',
-      async ({ params, status }) => {
+      async ({ user, params, status }) => {
         const [row] = await db.select().from(match).where(eq(match.id, params.id))
         if (!row) return status(404, { error: 'not_found' as const })
 
-        const [players, rounds, kills, highlights] = await Promise.all([
+        const [players, rounds, kills, highlights, [viewer]] = await Promise.all([
           db.select().from(matchPlayer).where(eq(matchPlayer.matchId, row.id)),
           db.select().from(round).where(eq(round.matchId, row.id)).orderBy(round.number),
           db.select().from(kill).where(eq(kill.matchId, row.id)).orderBy(kill.tick),
@@ -73,12 +85,25 @@ export const matchRoutes = (ctx: Context) => {
             .leftJoin(clip, eq(clip.highlightId, highlight.id))
             .where(eq(highlight.matchId, row.id))
             .orderBy(desc(highlight.score)),
+          db
+            .select({ steamId: userMatch.steamId })
+            .from(userMatch)
+            .where(and(eq(userMatch.matchId, row.id), eq(userMatch.userId, user.id))),
         ])
 
-        const { shareCode: _, demoKey: __, error: ___, ...publicMatch } = row
+        const profiles = await getProfiles(
+          ctx,
+          players.map((p) => p.steamId),
+        )
+        const { shareCode: _, demoKey: __, error: ___, parties: ____, ...publicMatch } = row
         return {
           match: publicMatch,
-          players,
+          /** The viewer's player in this match, if they played it. */
+          viewerSteamId: viewer?.steamId ?? null,
+          players: players.map((p) => ({
+            ...p,
+            avatarUrl: profiles.get(p.steamId)?.avatarUrl ?? null,
+          })),
           rounds,
           kills,
           highlights: withClipUrls(ctx, highlights),

@@ -1,13 +1,29 @@
-import { and, desc, eq, inArray, lt, or, schema } from '@subtick/db'
+import { and, desc, eq, inArray, or, schema, sql } from '@subtick/db'
+import { HIGHLIGHT_KINDS, type HighlightKind } from '@subtick/domain'
 import { enqueue } from '@subtick/queue'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { withClipUrls } from '../services/highlights'
+import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
 const PAGE_SIZE = 24
-const { highlight, clip, match, steamLink } = schema
+const { highlight, clip, match, matchPlayer, userMatch } = schema
+
+/** A match's play time, falling back to when subtick first saw it. */
+const playedAt = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`.mapWith(match.createdAt)
+
+const isHighlightKind = (value: string): value is HighlightKind =>
+  HIGHLIGHT_KINDS.includes(value as HighlightKind)
+
+/** Joins `user_match` so only the user's own player's highlights remain. */
+const ownHighlight = (userId: string) =>
+  and(
+    eq(userMatch.userId, userId),
+    eq(userMatch.matchId, highlight.matchId),
+    eq(userMatch.steamId, highlight.steamId),
+  )
 
 export const highlightRoutes = (ctx: Context) => {
   const { db, auth, queues } = ctx
@@ -17,40 +33,74 @@ export const highlightRoutes = (ctx: Context) => {
     .get(
       '/',
       async ({ user, query }) => {
-        const ownSteamIds = db
-          .select({ steamId: steamLink.steamId })
-          .from(steamLink)
-          .where(eq(steamLink.userId, user.id))
-
+        const kinds = query.kinds?.split(',').filter(isHighlightKind) ?? []
         const rows = await db
-          .select({ highlight, clip, map: match.map, playedAt: match.playedAt })
+          .select({ highlight, clip, map: match.map, playedAt, playerName: matchPlayer.name })
           .from(highlight)
+          .innerJoin(userMatch, ownHighlight(user.id))
           .innerJoin(match, eq(match.id, highlight.matchId))
-          .leftJoin(clip, eq(clip.highlightId, highlight.id))
-          .where(
+          .innerJoin(clip, eq(clip.highlightId, highlight.id))
+          .innerJoin(
+            matchPlayer,
             and(
-              inArray(highlight.steamId, ownSteamIds),
-              query.recordedOnly ? eq(highlight.status, 'recorded') : undefined,
-              query.cursor ? lt(highlight.createdAt, new Date(query.cursor)) : undefined,
+              eq(matchPlayer.matchId, highlight.matchId),
+              eq(matchPlayer.steamId, highlight.steamId),
             ),
           )
-          .orderBy(desc(highlight.createdAt), desc(highlight.score))
-          .limit(PAGE_SIZE)
+          .where(
+            and(
+              eq(highlight.status, 'recorded'),
+              kinds.length ? inArray(highlight.kind, kinds) : undefined,
+              query.map ? eq(match.map, query.map) : undefined,
+            ),
+          )
+          // Newest match first; within a match, best moment first.
+          .orderBy(desc(playedAt), desc(highlight.score))
+          .limit(PAGE_SIZE + 1)
+          .offset(query.offset)
 
-        const withUrls = withClipUrls(ctx, rows)
+        const page = rows.slice(0, PAGE_SIZE)
+        const withUrls = withClipUrls(ctx, page)
+        const profiles = await getProfiles(
+          ctx,
+          page.map((row) => row.highlight.steamId),
+        )
         return {
-          items: rows.map((row, i) => ({ ...withUrls[i]!, map: row.map, playedAt: row.playedAt })),
-          nextCursor:
-            rows.length === PAGE_SIZE ? rows.at(-1)!.highlight.createdAt.toISOString() : null,
+          items: page.map((row, i) => ({
+            ...withUrls[i]!,
+            map: row.map,
+            playedAt: row.playedAt,
+            player: {
+              name: row.playerName,
+              avatarUrl: profiles.get(row.highlight.steamId)?.avatarUrl ?? null,
+            },
+          })),
+          nextOffset: rows.length > PAGE_SIZE ? query.offset + PAGE_SIZE : null,
         }
       },
       {
         auth: true,
         query: z.object({
-          cursor: z.iso.datetime().optional(),
-          recordedOnly: z.stringbool().default(false),
+          offset: z.coerce.number().int().min(0).default(0),
+          /** Comma-separated highlight kinds. */
+          kinds: z.string().optional(),
+          map: z.string().optional(),
         }),
       },
+    )
+    .get(
+      '/facets',
+      async ({ user }) => {
+        // Maps the user has clips on, for the filter bar.
+        const maps = await db
+          .selectDistinct({ map: match.map })
+          .from(highlight)
+          .innerJoin(userMatch, ownHighlight(user.id))
+          .innerJoin(match, eq(match.id, highlight.matchId))
+          .where(eq(highlight.status, 'recorded'))
+        return { maps: maps.flatMap((m) => (m.map ? [m.map] : [])).toSorted() }
+      },
+      { auth: true },
     )
     .post(
       '/:id/record',
