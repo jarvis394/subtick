@@ -40,17 +40,17 @@ The first start creates the Wine prefix and installs .NET, HLAE and Steam (a few
 
 ## Environment
 
-| variable                                                  | default     | what                                                                                                                              |
-| --------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`, `REDIS_URL`, `S3_*`                       |             | as for the other workers                                                                                                          |
-| `CS2_SOURCE`                                              | `download`  | where the game files come from, see below                                                                                         |
-| `CS2_DIR`                                                 | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                         |
-| `CS2_SERVER_DIR`                                          |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                        |
-| `STEAM_USERNAME`, `STEAM_PASSWORD`, `STEAM_SHARED_SECRET` |             | signs Steam in on the first start (the secret answers Steam Guard). Afterwards the prefix keeps a token and these can be removed. |
-| `VNC_PASSWORD`                                            |             | starts a VNC server on `127.0.0.1:5900` to watch the game or sign in by hand                                                      |
-| `DXVK_VERSION`                                            | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                       |
-| `HLAE_VERSION`                                            | `2.192.8`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                        |
-| `WINEPREFIX`                                              | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                             |
+| variable                                                  | default     | what                                                                                                                                                      |
+| --------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `REDIS_URL`, `S3_*`                       |             | as for the other workers                                                                                                                                  |
+| `CS2_SOURCE`                                              | `download`  | where the game files come from, see below                                                                                                                 |
+| `CS2_DIR`                                                 | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                                                 |
+| `CS2_SERVER_DIR`                                          |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                                                |
+| `STEAM_USERNAME`, `STEAM_PASSWORD`, `STEAM_SHARED_SECRET` |             | signs Steam in on the first start (the secret answers Steam Guard; without one, see below). Afterwards the prefix keeps a token and these can be removed. |
+| `VNC_PASSWORD`                                            |             | starts a VNC server on `127.0.0.1:5900` to watch the game or sign in by hand                                                                              |
+| `DXVK_VERSION`                                            | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                                               |
+| `HLAE_VERSION`                                            | `2.192.8`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                                                |
+| `WINEPREFIX`                                              | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                                     |
 
 ### Game files: `CS2_SOURCE`
 
@@ -61,6 +61,12 @@ The first start creates the Wine prefix and installs .NET, HLAE and Steam (a few
 ### Signing in to Steam
 
 Either set `STEAM_USERNAME`/`STEAM_PASSWORD` (and `STEAM_SHARED_SECRET` for accounts with a mobile authenticator), or set `VNC_PASSWORD`, tunnel the port (`ssh -N -L 5901:localhost:5900 <host>`), open `vnc://localhost:5901` and sign in with "Remember me" checked. Either way it's once per prefix.
+
+Accounts without a mobile authenticator get a Steam Guard code by email on the first sign-in. The recorder logs a warning and waits up to 15 minutes for it:
+
+```sh
+docker exec subtick-recorder sh -c 'echo CODE > /wine/steam-guard-code'
+```
 
 ## The look of a clip
 

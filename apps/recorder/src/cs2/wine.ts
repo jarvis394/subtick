@@ -1,9 +1,15 @@
 /* oxlint-disable no-await-in-loop -- polling loops: each check waits for the game or Steam */
-import { readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readdir, rm } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import type { Logger } from '@subtick/logger'
 import { type NetCon, connectNetCon } from './netcon'
-import { type SteamCredentials, findLoginWindow, typeSteamLogin } from './steam-login'
+import {
+  type SteamCredentials,
+  findLoginWindow,
+  steamGuardCode,
+  typeSteamGuardCode,
+  typeSteamLogin,
+} from './steam-login'
 
 export interface WineGameOptions {
   cs2Dir: string
@@ -17,6 +23,8 @@ export interface WineGameOptions {
 }
 
 const STEAM_LOGIN_TIMEOUT_MS = 3 * 60_000
+/** Time for a person to fetch an emailed Steam Guard code and hand it over. */
+const STEAM_EMAIL_CODE_TIMEOUT_MS = 15 * 60_000
 const GAME_START_TIMEOUT_MS = 4 * 60_000
 /** The menu line may come before we connect; playdemo's retries cover a still-booting game. */
 const MENU_WAIT_MS = 60_000
@@ -55,6 +63,8 @@ export const createWineGame = (options: WineGameOptions) => {
   const steamDir = join(prefix, 'drive_c/Program Files (x86)/Steam')
   const hlaeDir = join(prefix, 'drive_c/hlae')
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
+  /** Accounts without an authenticator get a code by email; it's handed over through this file. */
+  const guardCodeFile = join(dirname(prefix), 'steam-guard-code')
 
   const spawnWine = (args: string[], env: Record<string, string> = {}) =>
     Bun.spawn(['wine', ...args], {
@@ -74,21 +84,44 @@ export const createWineGame = (options: WineGameOptions) => {
     log.info('starting Steam')
     const before = await steamLogins()
     spawnWine([windowsPath(prefix, join(steamDir, 'steam.exe')), '-no-cef-sandbox', '-silent'])
-    const deadline = Date.now() + STEAM_LOGIN_TIMEOUT_MS
+    let deadline = Date.now() + STEAM_LOGIN_TIMEOUT_MS
     let typed = false
+    let awaitingEmailCode = false
     while (Date.now() < deadline) {
       await sleep(3000)
       if ((await steamLogins()) > before) return log.info('Steam signed in')
       const window = await findLoginWindow()
-      if (!window || typed) continue
+      if (!window) continue
+      if (awaitingEmailCode) {
+        const file = Bun.file(guardCodeFile)
+        if (!(await file.exists())) continue
+        const code = await file.text()
+        await rm(guardCodeFile, { force: true })
+        log.info('typing the emailed Steam Guard code')
+        await typeSteamGuardCode(window, code)
+        continue
+      }
+      if (typed) continue
+      typed = true
       if (!steamCredentials) {
         log.warn('Steam is waiting for a sign-in: set STEAM_USERNAME/STEAM_PASSWORD or use VNC')
-        typed = true
         continue
       }
       log.info({ username: steamCredentials.username }, 'signing Steam in')
+      await rm(guardCodeFile, { force: true })
       await typeSteamLogin(window, steamCredentials)
-      typed = true
+      if (steamCredentials.sharedSecret) {
+        await sleep(8000)
+        await typeSteamGuardCode(window, steamGuardCode(steamCredentials.sharedSecret))
+        continue
+      }
+      awaitingEmailCode = true
+      deadline = Date.now() + STEAM_EMAIL_CODE_TIMEOUT_MS
+      log.warn(
+        { file: guardCodeFile },
+        'if Steam emailed a Steam Guard code, write it to this file in the container ' +
+          `(docker exec <container> sh -c 'echo CODE > ${guardCodeFile}')`,
+      )
     }
     throw new Error(
       'Steam did not sign in: check STEAM_USERNAME/STEAM_PASSWORD/STEAM_SHARED_SECRET, ' +

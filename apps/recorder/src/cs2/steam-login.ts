@@ -39,10 +39,7 @@ const xdotool = async (...args: string[]) => {
 export const findLoginWindow = async () =>
   (await xdotool('search', '--onlyvisible', '--name', '^Sign in to Steam$')).split('\n')[0] || null
 
-/**
- * Types the credentials into the login window (its username field has focus when it opens), then
- * the Steam Guard code, if the account has an authenticator secret.
- */
+/** Types the credentials into the login window (its username field has focus when it opens). */
 export const typeSteamLogin = async (window: string, credentials: SteamCredentials) => {
   await xdotool('windowactivate', '--sync', window)
   await Bun.sleep(1000)
@@ -50,9 +47,10 @@ export const typeSteamLogin = async (window: string, credentials: SteamCredentia
   await xdotool('key', 'Tab')
   await xdotool('type', '--delay', '40', credentials.password)
   await xdotool('key', 'Return')
-  if (!credentials.sharedSecret) return
-  // The 2FA step replaces the form in the same window and focuses its first code box.
-  await Bun.sleep(8000)
+}
+
+/** Types a Steam Guard code: the code step replaces the form and focuses its first box. */
+export const typeSteamGuardCode = async (window: string, code: string) => {
   await xdotool('windowactivate', '--sync', window)
-  await xdotool('type', '--delay', '80', steamGuardCode(credentials.sharedSecret))
+  await xdotool('type', '--delay', '80', code.trim().toUpperCase())
 }
