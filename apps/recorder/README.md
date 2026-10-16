@@ -55,7 +55,7 @@ The first start creates the Wine prefix and installs .NET, HLAE and Steam (a few
 
 ### A fleet of recorders
 
-Recorders can run on several machines, like CI runners. In subtick, an admin opens **Admin → Recorders**, adds a recorder and gets a token, shown once. Put it in that machine's `recorder.env`:
+Recorders can run on several machines, like CI runners. In subtick, an admin opens **Manage instance → Recorders** (in the account menu), adds a recorder and gets a token, shown once. Put it in that machine's `recorder.env`:
 
 ```sh
 SUBTICK_URL=https://subtick.example.com   # the instance's PUBLIC_URL
@@ -64,11 +64,11 @@ RECORDER_TOKEN=strec_...
 
 The machine then reports its health every 15 s (online, what it's doing, which Steam account is signed in, GPU, last error) and takes its settings from subtick:
 
-- **Steam account**: admins add accounts under **Admin → Steam accounts** (stored encrypted) and assign each to one recorder. The machine signs in with it, switching accounts between jobs if another one is signed in. If Steam emails a Steam Guard code, the recorder shows a field for it.
+- **Steam account**: admins add accounts under **Manage instance → Steam accounts** (stored encrypted) and assign each to one recorder. The machine signs in with it, switching accounts between jobs if another one is signed in. If Steam emails a Steam Guard code, the recorder shows a field for it.
 - **Pause**: a paused recorder finishes its current job and takes no new ones.
 - **New token / Remove**: the old token stops working at once.
 
-Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins see these pages; make the first admin with `bun run --filter @subtick/api grant-admin <email | steamId64>`, then grant others in **Admin → Users**.
+Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins see these pages; make the first admin with `bun run --filter @subtick/api grant-admin <email | steamId64>`, then grant others in **Manage instance → Users**.
 
 ### Game files: `CS2_SOURCE`
 

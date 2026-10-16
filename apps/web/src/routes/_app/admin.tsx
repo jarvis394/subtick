@@ -21,7 +21,7 @@ function AdminLayout() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       <div className="grid gap-4">
-        <h1 className="font-serif text-3xl tracking-tight">Admin</h1>
+        <h1 className="font-serif text-3xl tracking-tight">Manage instance</h1>
         <nav className="flex gap-1 overflow-x-auto border-b">
           {TABS.map((tab) => (
             <Link

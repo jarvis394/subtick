@@ -8,7 +8,7 @@ import {
   LogOut,
   PanelLeft,
   Settings,
-  ShieldCheck,
+  Server,
   Swords,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -51,7 +51,7 @@ const NavItem = ({
   collapsed,
   onNavigate,
 }: {
-  to: '/' | '/matches' | '/admin'
+  to: '/' | '/matches'
   icon: ReactNode
   label: string
   collapsed: boolean
@@ -59,8 +59,8 @@ const NavItem = ({
 }) => (
   <Link
     to={to}
-    // Filters live in the query string; the section is active whatever they are. Admin has tabs.
-    activeOptions={{ exact: to !== '/admin', includeSearch: false }}
+    // Filters live in the query string; the section is active whatever they are.
+    activeOptions={{ exact: true, includeSearch: false }}
     onClick={onNavigate}
     aria-label={collapsed ? label : undefined}
     title={collapsed ? label : undefined}
@@ -139,15 +139,6 @@ export const SidebarContent = ({
           collapsed={collapsed}
           onNavigate={onNavigate}
         />
-        {me.user.isAdmin && (
-          <NavItem
-            to="/admin"
-            icon={<ShieldCheck />}
-            label="Admin"
-            collapsed={collapsed}
-            onNavigate={onNavigate}
-          />
-        )}
       </nav>
 
       <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2">
@@ -226,6 +217,17 @@ export const SidebarContent = ({
           <Menu.Portal>
             <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
               <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+                {me.user.isAdmin && (
+                  <Menu.Item
+                    className={menuItemClass}
+                    onClick={() => {
+                      onNavigate?.()
+                      void navigate({ to: '/admin' })
+                    }}
+                  >
+                    <Server /> Manage instance
+                  </Menu.Item>
+                )}
                 <Menu.Item
                   className={menuItemClass}
                   onClick={() => {

@@ -180,7 +180,7 @@ export const createWineGame = (options: WineGameOptions) => {
         steamAccount?.onSigningIn?.('needs_guard_code')
         log.warn(
           { file: guardCodeFile },
-          'if Steam emailed a Steam Guard code, enter it in subtick (Admin → Recorders) or write ' +
+          'if Steam emailed a Steam Guard code, enter it in subtick (Manage instance → Recorders) or write ' +
             `it to this file (docker exec <container> sh -c 'echo CODE > ${guardCodeFile}')`,
         )
       }
