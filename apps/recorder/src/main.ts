@@ -25,7 +25,11 @@ worker.on('failed', async (job, error) => {
   await recorder.reset()
   const exhausted =
     job && (job.attemptsMade >= (job.opts.attempts ?? 1) || error.name === 'UnrecoverableError')
-  if (matchId && exhausted) await ctx.setStatus(matchId, 'failed', error.message)
+  // Event handlers aren't awaited: a rejection here (e.g. Redis briefly gone) would kill the process.
+  if (matchId && exhausted)
+    await ctx
+      .setStatus(matchId, 'failed', error.message)
+      .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
 })
 
 closeOnSignal(worker)

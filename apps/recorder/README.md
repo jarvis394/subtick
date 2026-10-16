@@ -30,7 +30,7 @@ It only talks to Postgres, Redis and S3 through URLs, so it can run on the same 
 
 ```sh
 docker build -f apps/recorder/Dockerfile -t subtick-recorder .
-docker run -d --init --name subtick-recorder --runtime nvidia --network host \
+docker run -d --init --restart unless-stopped --name subtick-recorder --runtime nvidia --network host \
   --env-file recorder.env \
   -v subtick-cs2:/cs2 -v subtick-wine:/wine \
   subtick-recorder

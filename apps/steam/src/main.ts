@@ -32,7 +32,12 @@ const start = <N extends QueueName>(
     // Out of retries: put the match in a terminal state so the UI stops showing it as pending.
     const exhausted =
       job && (job.attemptsMade >= (job.opts.attempts ?? 1) || error.name === 'UnrecoverableError')
-    if (matchId && exhausted) await ctx.setStatus(matchId, 'failed', error.message)
+    // Event handlers aren't awaited: a rejection here (e.g. Redis briefly gone) would kill the
+    // process.
+    if (matchId && exhausted)
+      await ctx
+        .setStatus(matchId, 'failed', error.message)
+        .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
   })
   return worker
 }

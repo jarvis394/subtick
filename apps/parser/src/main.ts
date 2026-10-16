@@ -81,8 +81,12 @@ worker.on('failed', async (job, error) => {
     error,
   )
   if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
-    await markMatchFailed(db, job.data.matchId, error.message)
-    await publish({ matchId: job.data.matchId, status: 'failed' })
+    const { matchId } = job.data
+    // Event handlers aren't awaited: a rejection here (e.g. Redis briefly gone) would kill the
+    // process.
+    await markMatchFailed(db, matchId, error.message)
+      .then(() => publish({ matchId, status: 'failed' }))
+      .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
   }
 })
 
