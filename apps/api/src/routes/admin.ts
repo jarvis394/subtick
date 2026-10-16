@@ -8,7 +8,9 @@ import { authGuard } from './guard'
 
 const { user, recorder, recorderSteamAccount: account } = schema
 
-const Id = z.object({ id: z.string() })
+/** better-auth user ids are opaque strings; recorders and accounts use uuids. */
+const UserId = z.object({ id: z.string() })
+const Id = z.object({ id: z.uuid() })
 const Name = z.string().trim().min(1).max(64)
 const Secret = z.string().min(1).max(256)
 const SharedSecret = z
@@ -76,7 +78,7 @@ export const adminRoutes = (ctx: Context) => {
           if (!row) return status(404, { error: 'not_found' as const })
           return { ok: true as const }
         },
-        { admin: true, params: Id, body: z.object({ role: z.enum(USER_ROLES) }) },
+        { admin: true, params: UserId, body: z.object({ role: z.enum(USER_ROLES) }) },
       )
 
       // Recorders

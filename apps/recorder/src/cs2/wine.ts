@@ -25,7 +25,7 @@ export interface WineGameOptions {
 /** Where sign-in details come from: env vars on a standalone machine, or the subtick api. */
 export interface SteamAccountSource {
   credentials(): Promise<SteamCredentials | undefined>
-  /** An emailed Steam Guard code someone handed over since the last call, if any. */
+  /** A Steam Guard code (emailed or from the mobile app) someone handed over since the last call. */
   takeGuardCode(): Promise<string | null>
   onSigningIn?(phase: 'credentials' | 'needs_guard_code' | 'done'): void
 }
@@ -73,7 +73,7 @@ export const createWineGame = (options: WineGameOptions) => {
   const steamDir = join(prefix, 'drive_c/Program Files (x86)/Steam')
   const hlaeDir = join(prefix, 'drive_c/hlae')
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
-  /** Accounts without an authenticator get a code by email; it can be handed over in this file. */
+  /** Accounts without a stored shared secret need a code typed in; it can be handed over in this file. */
   const guardCodeFile = join(dirname(prefix), 'steam-guard-code')
   const takeGuardCode = async () => {
     const fromSource = await steamAccount?.takeGuardCode()
@@ -180,7 +180,7 @@ export const createWineGame = (options: WineGameOptions) => {
         steamAccount?.onSigningIn?.('needs_guard_code')
         log.warn(
           { file: guardCodeFile },
-          'if Steam emailed a Steam Guard code, enter it in subtick (Manage instance → Recorders) or write ' +
+          'if Steam asks for a Steam Guard code (email or mobile app), enter it in subtick (Manage instance → Recorders) or write ' +
             `it to this file (docker exec <container> sh -c 'echo CODE > ${guardCodeFile}')`,
         )
       }

@@ -26,7 +26,7 @@ export const Field = ({
   error?: ReactNode
 }) => (
   <BaseField.Root
-    className={cn('grid gap-1.5', typeof className === 'string' && className)}
+    className={cn('grid content-start gap-1.5', typeof className === 'string' && className)}
     invalid={Boolean(error)}
     {...props}
   >

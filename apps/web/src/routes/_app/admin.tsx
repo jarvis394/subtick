@@ -1,4 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { recordersQuery } from '@/lib/admin'
 import { meQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +20,10 @@ const TABS = [
 ] as const
 
 function AdminLayout() {
+  // Polled anyway by the recorders page; here it flags a sign-in waiting for a code on any tab.
+  const { data: recorders } = useQuery(recordersQuery)
+  const needsCode = recorders?.some((r) => r.online && r.state === 'needs_guard_code')
+
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       <div className="grid gap-4">
@@ -34,6 +40,12 @@ function AdminLayout() {
               )}
             >
               {tab.label}
+              {tab.to === '/admin/recorders' && needsCode && (
+                <span
+                  className="ml-1.5 inline-block size-1.5 -translate-y-0.5 rounded-full bg-danger"
+                  title="A recorder needs a Steam Guard code"
+                />
+              )}
             </Link>
           ))}
         </nav>

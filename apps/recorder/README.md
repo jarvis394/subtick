@@ -64,7 +64,7 @@ RECORDER_TOKEN=strec_...
 
 The machine then reports its health every 15 s (online, what it's doing, which Steam account is signed in, GPU, last error) and takes its settings from subtick:
 
-- **Steam account**: admins add accounts under **Manage instance → Steam accounts** (stored encrypted) and assign each to one recorder. The machine signs in with it, switching accounts between jobs if another one is signed in. If Steam emails a Steam Guard code, the recorder shows a field for it.
+- **Steam account**: admins add accounts under **Manage instance → Steam accounts** (stored encrypted) and assign each to one recorder. The machine signs in with it, switching accounts between jobs if another one is signed in. Without a stored shared secret, Steam asks for a Steam Guard code on that first sign-in (by email, or from the Steam mobile app); the recorder's card then shows a field for it and the machine types it in.
 - **Pause**: a paused recorder finishes its current job and takes no new ones.
 - **New token / Remove**: the old token stops working at once.
 
@@ -80,7 +80,7 @@ Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins se
 
 In a fleet, assign the machine an account in subtick (above). Standalone, either set `STEAM_USERNAME`/`STEAM_PASSWORD` (and `STEAM_SHARED_SECRET` for accounts with a mobile authenticator), or set `VNC_PASSWORD`, tunnel the port (`ssh -N -L 5901:localhost:5900 <host>`), open `vnc://localhost:5901` and sign in with "Remember me" checked. Either way it's once per prefix.
 
-Accounts without a mobile authenticator get a Steam Guard code by email on the first sign-in. The recorder logs a warning and waits up to 15 minutes for it:
+Standalone, accounts without `STEAM_SHARED_SECRET` need a Steam Guard code (email or mobile app) on the first sign-in. The recorder logs a warning and waits up to 15 minutes for it:
 
 ```sh
 docker exec subtick-recorder sh -c 'echo CODE > /wine/steam-guard-code'

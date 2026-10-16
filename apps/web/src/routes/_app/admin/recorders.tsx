@@ -351,36 +351,33 @@ function GuardCodeForm({ recorder }: { recorder: AdminRecorder }) {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="flex flex-wrap items-end gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4"
-    >
+    <form onSubmit={submit} className="rounded-xl border border-danger/30 bg-danger/5 p-4">
       <Field
-        label={`Steam emailed a code to ${recorder.steamAccount?.username ?? 'the account'}'s address`}
+        label={`Steam is asking ${recorder.steamAccount?.username ?? 'this account'} for a Steam Guard code`}
         description={
           recorder.awaitingGuardCode
-            ? 'Sent; the machine picks it up within a few seconds.'
-            : 'Enter it here and the machine types it in.'
+            ? 'Sent. The machine types it in within a few seconds.'
+            : "From the account's email or the Steam Guard mobile app. The machine types it in."
         }
         error={send.error?.message}
-        className="min-w-56 flex-1"
       >
-        <Input
-          name="code"
-          required
-          minLength={5}
-          maxLength={5}
-          placeholder="XXXXX"
-          autoComplete="one-time-code"
-          spellCheck={false}
-          className="font-mono uppercase"
-        />
+        <div className="flex gap-2">
+          <Input
+            name="code"
+            required
+            minLength={5}
+            maxLength={5}
+            placeholder="XXXXX"
+            autoComplete="one-time-code"
+            spellCheck={false}
+            autoFocus
+            className="min-w-0 flex-1 font-mono uppercase"
+          />
+          <Button type="submit" disabled={send.isPending} className="h-10">
+            Send code
+          </Button>
+        </div>
       </Field>
-      <div className="pb-6">
-        <Button type="submit" disabled={send.isPending}>
-          Send code
-        </Button>
-      </div>
     </form>
   )
 }

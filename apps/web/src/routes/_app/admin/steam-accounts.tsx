@@ -83,39 +83,93 @@ function AccountForm({ account, onDone }: { account?: AdminSteamAccount; onDone:
   }
 
   return (
-    <Card className="p-4">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" autoComplete="off">
-        {!account && (
-          <Field label="Username" description="The Steam login name, not the profile name.">
-            <Input name="username" required autoFocus spellCheck={false} />
+    <Card>
+      <form onSubmit={submit} autoComplete="off">
+        <div className="grid gap-5 p-5">
+          <div>
+            <h3 className="font-medium">
+              {account ? `Edit ${account.username}` : 'Add a Steam account'}
+            </h3>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {account
+                ? 'Leave a field blank to keep what is stored.'
+                : 'Stored encrypted. Recorders fetch it only when they sign in.'}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {account ? (
+              <Field label="Username">
+                <Input value={account.username} disabled readOnly />
+              </Field>
+            ) : (
+              <Field label="Username">
+                <Input
+                  name="username"
+                  required
+                  autoFocus
+                  spellCheck={false}
+                  placeholder="Steam login name"
+                />
+              </Field>
+            )}
+            <Field label={account ? 'New password' : 'Password'}>
+              <Input
+                name="password"
+                type="password"
+                required={!account}
+                autoComplete="new-password"
+                placeholder={account ? 'Unchanged' : undefined}
+              />
+            </Field>
+          </div>
+
+          <Field
+            label={
+              <>
+                Shared secret <span className="font-normal text-muted">optional</span>
+              </>
+            }
+            description={
+              account?.hasSharedSecret
+                ? 'A secret is stored, so recorders answer Steam Guard by themselves.'
+                : "The base64 shared_secret from a mobile authenticator export. With it, recorders answer Steam Guard by themselves; without it, you enter the code (from email or the Steam app) on the recorder's card when it signs in."
+            }
+          >
+            <Input
+              name="sharedSecret"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={account?.hasSharedSecret ? 'Unchanged' : undefined}
+              className="font-mono"
+            />
           </Field>
-        )}
-        <Field
-          label={account ? 'New password' : 'Password'}
-          description={account ? 'Leave blank to keep the stored one.' : undefined}
-        >
-          <Input name="password" type="password" required={!account} autoComplete="new-password" />
-        </Field>
-        <Field
-          label="Shared secret"
-          description={
-            account?.hasSharedSecret
-              ? 'Stored. Leave blank to keep it.'
-              : 'Optional: from a mobile authenticator export. Without it, Steam emails a code on sign-in.'
-          }
-        >
-          <Input name="sharedSecret" type="password" autoComplete="off" spellCheck={false} />
-        </Field>
-        <Field label="Note">
-          <Input name="note" defaultValue={account?.note ?? ''} maxLength={200} />
-        </Field>
-        {save.error && <p className="text-sm text-danger sm:col-span-2">{describe(save.error)}</p>}
-        <div className="flex gap-2 sm:col-span-2">
-          <Button type="submit" disabled={save.isPending}>
-            {account ? 'Save' : 'Add account'}
-          </Button>
+
+          <Field
+            label={
+              <>
+                Note <span className="font-normal text-muted">optional</span>
+              </>
+            }
+          >
+            <Input
+              name="note"
+              defaultValue={account?.note ?? ''}
+              maxLength={200}
+              placeholder="e.g. who owns it, where the email goes"
+            />
+          </Field>
+
+          {save.error && <p className="text-sm text-danger">{describe(save.error)}</p>}
+        </div>
+
+        <div className="flex justify-end gap-2 border-t px-5 py-3">
           <Button type="button" variant="ghost" onClick={onDone}>
             Cancel
+          </Button>
+          <Button type="submit" disabled={save.isPending}>
+            {account ? 'Save' : 'Add account'}
           </Button>
         </div>
       </form>
@@ -144,7 +198,7 @@ function AccountCard({ account }: { account: AdminSteamAccount }) {
         <p className="flex items-center gap-2 truncate font-medium">
           {account.username}
           <Badge tone={account.hasSharedSecret ? 'success' : 'neutral'}>
-            {account.hasSharedSecret ? 'Authenticator' : 'Email codes'}
+            {account.hasSharedSecret ? 'Unattended' : 'Code on sign-in'}
           </Badge>
         </p>
         <p className="truncate text-[13px] text-muted">
