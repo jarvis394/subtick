@@ -1,0 +1,80 @@
+/** Turns a raw capture into what the web app plays: a small faststart MP4 and a JPEG poster. */
+
+const run = async (command: string[]) => {
+  const proc = Bun.spawn(command, { stdout: 'pipe', stderr: 'pipe' })
+  const [code, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  if (code !== 0)
+    throw new Error(`${command[0]} failed: ${stderr.trim().split('\n').slice(-3).join(' ')}`)
+  return stdout
+}
+
+const ffmpeg = (...args: string[]) =>
+  run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...args])
+
+export interface VideoInfo {
+  durationMs: number
+  width: number
+  height: number
+}
+
+export const probe = async (path: string): Promise<VideoInfo> => {
+  const out = await run([
+    'ffprobe',
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'stream=width,height:format=duration',
+    '-of',
+    'json',
+    path,
+  ])
+  const json = JSON.parse(out) as {
+    streams: { width: number; height: number }[]
+    format: { duration: string }
+  }
+  const stream = json.streams[0]
+  if (!stream) throw new Error(`${path} has no video stream`)
+  return {
+    durationMs: Math.round(Number(json.format.duration) * 1000),
+    width: stream.width,
+    height: stream.height,
+  }
+}
+
+/**
+ * Cuts the capture to the planned length (it can run a frame or two long) and muxes the game
+ * audio in as AAC. The video stream is copied, never re-encoded.
+ */
+export const finishClip = (
+  video: string,
+  audio: string | undefined,
+  output: string,
+  maxSeconds: number,
+) =>
+  ffmpeg(
+    '-i',
+    video,
+    ...(audio ? ['-i', audio, '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '160k'] : []),
+    '-t',
+    maxSeconds.toFixed(3),
+    '-c:v',
+    'copy',
+    '-movflags',
+    '+faststart',
+    output,
+  )
+
+export const thumbnail = async (input: string, output: string, atSeconds: number) => {
+  // Past the end, ffmpeg writes nothing and still exits 0.
+  const { durationMs } = await probe(input)
+  const at = Math.min(Math.max(0, atSeconds), Math.max(0, durationMs / 1000 - 0.1))
+  await ffmpeg('-ss', at.toFixed(3), '-i', input, '-frames:v', '1', '-q:v', '3', output)
+  if (!(await Bun.file(output).exists()))
+    throw new Error(`no frame at ${at}s in ${input} (${durationMs} ms long)`)
+}

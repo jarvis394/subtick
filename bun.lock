@@ -45,6 +45,21 @@
         "@subtick/tsconfig": "workspace:*",
       },
     },
+    "apps/recorder": {
+      "name": "@subtick/recorder-worker",
+      "dependencies": {
+        "@subtick/config": "workspace:*",
+        "@subtick/db": "workspace:*",
+        "@subtick/domain": "workspace:*",
+        "@subtick/logger": "workspace:*",
+        "@subtick/queue": "workspace:*",
+        "@subtick/storage": "workspace:*",
+        "bullmq": "^6.3.15",
+      },
+      "devDependencies": {
+        "@subtick/tsconfig": "workspace:*",
+      },
+    },
     "apps/steam": {
       "name": "@subtick/steam-worker",
       "dependencies": {
@@ -497,6 +512,8 @@
     "@subtick/parser": ["@subtick/parser@workspace:apps/parser"],
 
     "@subtick/queue": ["@subtick/queue@workspace:packages/queue"],
+
+    "@subtick/recorder-worker": ["@subtick/recorder-worker@workspace:apps/recorder"],
 
     "@subtick/steam": ["@subtick/steam@workspace:packages/steam"],
 

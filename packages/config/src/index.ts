@@ -54,6 +54,25 @@ export const SteamBotEnv = {
 }
 /** 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts stored match auth codes. */
 export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
+/**
+ * The recorder runs CS2 (Windows build) under Wine next to a signed-in Steam client, injects HLAE
+ * and drives it over the netcon console. Paths are as seen from the recorder's container.
+ */
+export const RecorderEnv = {
+  /** CS2 install root, the folder that holds `game/`. */
+  CS2_DIR: z.string().default('/cs2'),
+  /** Wine prefix with Steam, .NET and HLAE (apps/recorder/docker/bootstrap.sh sets it up). */
+  WINEPREFIX: z.string().default('/wine/pfx'),
+  CS2_NETCON_PORT: z.coerce.number().int().default(2121),
+  /**
+   * Steam account the recorder's game client signs in with, only needed until the first sign-in
+   * (the prefix keeps a token). Use a dedicated account: one account can't run CS2 here and play
+   * elsewhere, or be the steam worker's bot, at the same time.
+   */
+  STEAM_USERNAME: z.string().min(1).optional(),
+  STEAM_PASSWORD: z.string().min(1).optional(),
+  STEAM_SHARED_SECRET: z.string().min(1).optional(),
+}
 export const WorkerEnv = {
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(1),
   SCRATCH_DIR: z.string().default('/tmp/subtick'),

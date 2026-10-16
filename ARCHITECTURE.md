@@ -66,7 +66,7 @@ subtick/
 │  ├─ ui/             base-ui components with subtick defaults (button, dialog, menu…)
 │  └─ tsconfig/       shared tsconfig bases
 ├─ infra/
-│  └─ compose.yml     postgres, redis, seaweedfs (+ recorder image on the GPU box)
+│  └─ compose.yml     postgres, redis, seaweedfs (the recorder image runs on the GPU box)
 ├─ turbo.json  package.json  .oxlintrc.json  .oxfmtrc.json
 ```
 
@@ -193,26 +193,29 @@ All thresholds live in one `highlightConfig` object, versioned by `parserVersion
 
 ### 4.3 `recorder`: headless CS2 capture
 
-This is the hardest piece and the reason the `Recorder` port exists:
+This is the hardest piece and the reason the `Recorder` port exists (`apps/recorder/src/recorder.ts`):
 
 ```ts
 interface Recorder {
-  prepare(match: { demoPath: string; map: string }): Promise<void>
-  record(clip: ClipPlan): Promise<RecordedFile> // mp4 on local disk
-  dispose(): Promise<void>
+  prepare(match: MatchToRecord): Promise<void> // load the demo once per batch
+  record(clip: ClipPlan): Promise<RecordedFile> // video (+ audio) on local disk
+  reset(): Promise<void> // forget the demo; game adapters restart the game
+  readonly ready: boolean
 }
 ```
 
-**Primary adapter: `Cs2Recorder`** (Linux GPU host, Docker)
+**Primary adapter: `Cs2Recorder`** (`apps/recorder`, one Docker image, any Linux box with an NVIDIA GPU). Setup, environment and tuning are in `apps/recorder/README.md`.
 
-- CS2 runs inside **gamescope `--backend headless`** (no physical display) on an NVIDIA/AMD GPU. Launch options: `-insecure -novid -nojoy -console -netconport 2121 -w 1920 -h 1080 +exec subtick.cfg`. The Steam client runs logged in as the same bot account (CS2 is free).
-- **Control** goes through the netcon TCP console: `playdemo`, `demo_gototick <t>`, `spec_player_by_accountid <id>`, `demo_timescale`, `demo_pause/resume`. Readiness is detected by tailing console output. Game State Integration is an optional second signal.
-- **`subtick.cfg`** gives a clean look: `cl_draw_only_deathnotices 1`, a hidden demo UI, `voice_enable 0`, no x-ray, a fixed viewmodel/FOV, `cl_hud_color`, and so on. This is the visual identity of every clip.
-- **Capture** uses ffmpeg from the gamescope PipeWire stream plus the audio sink. NVENC H.264 1080p60, about 12 Mbps.
-- **Batching is the key optimization.** One `clip.record` job is one match: load the demo once (10–20s), then for each clip seek to `startTick − 2s` (settle), set POV, unpause, and capture `(end − start) / tickrate` seconds. The trim to exact boundaries happens after capture.
-- **Post:** `ffmpeg` trims, writes a thumbnail from the peak-kill frame, then the files are uploaded to `clips/<highlightId>.mp4` and the `clip` rows inserted.
-- The worker has concurrency 1 per GPU and keeps CS2 warm between jobs. A watchdog restarts CS2 if netcon goes silent, and a per-clip timeout marks the clip `failed` without failing the whole batch.
-- Queue priority: freshly discovered matches > lazy requests > re-renders.
+- CS2's **Windows build runs under Wine** (wine-staging, DXVK) on a headless Xorg on the NVIDIA driver, next to a signed-in Windows Steam client (CS2 won't start without SteamAPI). **HLAE** is injected with its command-line loader (`AfxHookSource2`). A PulseAudio null sink gives the engine an audio device.
+- The game files come from `CS2_SOURCE`: an anonymous steamcmd download, an existing Windows install, or a Linux dedicated-server install plus only the Windows binaries depot (symlinked; the server is never written). `docker/bootstrap.sh` prepares the prefix (DXVK, .NET 4.8, HLAE, Steam) and the files on start.
+- **Control** goes through the netcon TCP console. Readiness is read from console lines: `Signon traffic "server"` (menu up), `QueueNewRequest( Playing Demo` (playdemo taken; CS2 silently drops it while it changes host state, so it is retried), `Signon traffic "DEMO"` (demo loaded), `Demo Skipping finished` (seek done).
+- **Capture** is HLAE's `mirv_streams` screen recording, offline at a fixed 60 fps: a slow GPU renders slower, never choppier. `mirv_cmd addAtTick` starts and ends each take on the exact ticks; HLAE's ffmpeg writes H.264 (CRF 20) and `startMovieWav` the game audio.
+- **Per clip:** seek to `startTick − 5 s`, then `spec_player` (a seek resets the target; the player switch triggers a re-sync skip that must land before the start trigger), resume, wait for the end marker, wait for HLAE's ffmpeg to exit.
+- **Post:** `ffmpeg` muxes the audio (AAC), trims to the planned length without re-encoding, and writes a poster from the last kill; then `clips/<highlightId>.mp4`/`.jpg` are uploaded and the `clip` row upserted with `recorderVersion`.
+- **`subtick.cfg`** is the look: player HUD on, no demo UI, build watermark, TrueView badge, telemetry or x-ray. `cs2_video.txt` is per-GPU tuning (see the README).
+- Batching: one `clip.record` job is one match; the demo loads once and clips go in demo order. A failed capture marks that highlight `failed` and restarts the game; the batch continues. A match without a stored demo gets its highlights `skipped`.
+- One CS2 session slows down as it records (on a 1 GB GPU, ~6× real time fresh, 15–30× after five clips), so the game restarts every four clips and after any clip slower than 12×.
+- Measured on a GTX 650 (1 GB, driver 470, DXVK 1.10.3): ~25 s to a loaded demo, ~6–7 s of rendering per second of clip, so a six-highlight match takes 10–15 minutes.
 
 **Fallback adapter: `RadarRecorder`** (no GPU, also useful in dev)
 
@@ -290,14 +293,14 @@ interface Recorder {
 
 1. ~~**demoparser2 under Bun.**~~ Verified: it works under Bun 1.3. A full analysis of a 250 MB demo takes about 1.5 s.
 2. ~~**`steam-user` / `globaloffensive` under Bun.**~~ Verified: login and `requestGame` work over the TCP transport (the WebSocket transport never connects under Bun 1.3). The GC client is also the most likely thing to break when Valve changes protos.
-3. **CS2 in headless gamescope.** Prove a 10s capture of `playdemo` + `spec_player` + `demo_gototick` on the target GPU box before building the recorder queue. If Linux is flaky, the `Recorder` port allows a Windows host adapter, where Allstar-style setups are proven.
+3. ~~**Headless CS2 capture.**~~ Verified (Oct 2026) on a GTX 650: CS2's Windows build + HLAE under Wine with DXVK 1.10.3, headless Xorg on the NVIDIA driver. WineD3D crashes; DXVK 2.x needs Vulkan 1.3; wine-stable 11.0 can't draw the Steam client's text (staging can). Details in `apps/recorder/spike/README.md`.
 4. **Valve rate limits and expiry.** Demos disappear after about 30 days and the GC throttles aggressively. Mitigations: one bot, a 1 req/s limiter, and backoff.
 
 ---
 
 ## 7. Build order
 
-Status: steps 1–5 are done (the radar replay fallback is not built yet).
+Status: steps 1–6 are done (the radar replay fallback is not built yet).
 
 1. **Scaffold:** turborepo, bun workspaces, oxlint/oxfmt, tsconfig, compose (pg/redis/seaweedfs), `db`, `config`, `queue`, `storage`.
 2. **Parser:** fetch fixtures, the normalize → stats → detectors pipeline, and tests on the three demos. _This is the heart. Iterate on highlight quality here._

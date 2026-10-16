@@ -4,13 +4,13 @@ Risk #3 in `ARCHITECTURE.md`. Target: `homelab` (GTX 650, Kepler, driver 470, Vu
 
 ## Layout on the host (`~/subtick-recorder`)
 
-| path                 | what                                                                                    |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| `winbin/`            | Windows client depot 2347771 (`download_depot`, anonymous, ~4.8 GB)                     |
-| `upper/`, `work/`    | overlay upper/work dirs; everything the game writes lands here                          |
-| volume `subtick-cs2` | overlay: `winbin` over the Pelican CS2 server volume (never written)                    |
-| `prefix/`            | Wine prefix (`/wine/pfx` in the container), including the signed-in Steam client        |
-| `demos/`             | demo files                                                                              |
+| path                 | what                                                                             |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `winbin/`            | Windows client depot 2347771 (`download_depot`, anonymous, ~4.8 GB)              |
+| `upper/`, `work/`    | overlay upper/work dirs; everything the game writes lands here                   |
+| volume `subtick-cs2` | overlay: `winbin` over the Pelican CS2 server volume (never written)             |
+| `prefix/`            | Wine prefix (`/wine/pfx` in the container), including the signed-in Steam client |
+| `demos/`             | demo files                                                                       |
 
 ```sh
 docker volume create --driver local --opt type=overlay --opt device=overlay \

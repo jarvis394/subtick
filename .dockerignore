@@ -1,0 +1,11 @@
+**/node_modules
+**/.turbo
+**/dist
+.git
+.env
+.env.*
+!.env.example
+*.dem
+*.dem.bz2
+apps/parser/test/fixtures
+apps/recorder/spike

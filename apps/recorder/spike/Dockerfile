@@ -11,7 +11,7 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
  && mkdir -pm755 /etc/apt/keyrings \
  && curl -fsSL https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key \
  && curl -fsSL -o /etc/apt/sources.list.d/winehq-noble.sources https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
- && apt-get update && apt-get install -y --install-recommends winehq-stable \
+ && apt-get update && apt-get install -y --install-recommends winehq-staging \
  && curl -fsSL -o /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/20250102/src/winetricks \
  && chmod +x /usr/local/bin/winetricks \
  && rm -rf /var/lib/apt/lists/*
