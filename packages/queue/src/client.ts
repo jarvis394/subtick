@@ -1,12 +1,17 @@
-import { type Job, Queue, Worker, type WorkerOptions } from 'bullmq'
+import { type Job, Queue, Worker, type WorkerOptions, createBunRedisClient } from 'bullmq'
 import { RedisClient } from 'bun'
 import { defaultJobOptions, type JobPayload, type QueueName, queues } from './registry'
 
 export type TypedQueue<N extends QueueName> = Queue<JobPayload<N>, void, N>
 export type TypedJob<N extends QueueName> = Job<JobPayload<N>, void, N>
 
-/** BullMQ talks to Bun's native Redis client directly; each queue/worker gets its own connection. */
-const connect = (redisUrl: string) => new RedisClient(redisUrl)
+/**
+ * BullMQ over Bun's native Redis client; each queue/worker gets its own connection.
+ * The client must be wrapped explicitly: BullMQ only auto-detects clients that have
+ * connect/disconnect/duplicate, and otherwise silently treats the object as connection
+ * *options* and falls back to ioredis on 127.0.0.1:6379.
+ */
+const connect = (redisUrl: string) => createBunRedisClient(new RedisClient(redisUrl))
 
 export const createQueue = <N extends QueueName>(name: N, redisUrl: string): TypedQueue<N> =>
   new Queue(name, { connection: connect(redisUrl), defaultJobOptions: defaultJobOptions(name) })
