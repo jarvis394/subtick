@@ -33,6 +33,26 @@ export const enqueue = <N extends QueueName>(
   })
 }
 
+/**
+ * Enqueues work that already ran. Finished and failed jobs are kept for a while under their
+ * deterministic id, and `enqueue` would dedupe against them; this removes such a job first. Work
+ * still waiting or running is left as it is.
+ */
+export const requeue = async <N extends QueueName>(
+  queue: TypedQueue<N>,
+  payload: JobPayload<N>,
+  options: { priority?: number; delay?: number } = {},
+) => {
+  const name = queue.name as N
+  const existing = await queue.getJob(queues[name].jobId(payload))
+  if (existing) {
+    const state = await existing.getState()
+    if (state !== 'completed' && state !== 'failed' && state !== 'unknown') return existing
+    await existing.remove()
+  }
+  return enqueue(queue, payload, options)
+}
+
 export const enqueueBulk = <N extends QueueName>(
   queue: TypedQueue<N>,
   payloads: JobPayload<N>[],
@@ -46,7 +66,7 @@ export const enqueueBulk = <N extends QueueName>(
 export const createWorker = <N extends QueueName>(
   name: N,
   redisUrl: string,
-  processor: (job: TypedJob<N>) => Promise<void>,
+  processor: (job: TypedJob<N>, token?: string) => Promise<void>,
   options: Omit<WorkerOptions, 'connection'> = {},
 ): Worker<JobPayload<N>, void, N> =>
   new Worker(name, processor, { ...options, connection: connect(redisUrl) })

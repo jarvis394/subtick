@@ -3,18 +3,28 @@ import { join } from 'node:path'
 import { eq, schema } from '@subtick/db'
 import { enqueue, type TypedJob } from '@subtick/queue'
 import { keys } from '@subtick/storage'
-import { UnrecoverableError } from 'bullmq'
+import { DelayedError, UnrecoverableError } from 'bullmq'
 import type { Context } from './context'
 
 /** Valve deletes demos from its replay servers about a month after the match. */
 const VALVE_RETENTION_MS = 30 * 24 * 3600_000
+/**
+ * Valve uploads the demo a while after the match ends (45 minutes seen), and its URL 404s until
+ * then. A 404 this soon after the match means "not yet", so look again later.
+ */
+const UPLOAD_WAIT_MS = 6 * 3600_000
+const UPLOAD_POLL_MS = 5 * 60_000
 
 /**
  * Fetches a demo from Valve's replay servers and stores it as zstd (smaller, and far faster to
  * decompress than bzip2 for every re-parse). The job id is the match id, so a demo is never
  * downloaded twice while its job exists, and a stored demo is never fetched again.
  */
-export const downloadDemo = async (ctx: Context, job: TypedJob<'demo.download'>) => {
+export const downloadDemo = async (
+  ctx: Context,
+  job: TypedJob<'demo.download'>,
+  token?: string,
+) => {
   const { db, demos, queues, setStatus, env, log } = ctx
   const { matchId } = job.data
   const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
@@ -26,6 +36,13 @@ export const downloadDemo = async (ctx: Context, job: TypedJob<'demo.download'>)
   const started = performance.now()
   const response = await fetch(row.demoUrl, { signal: AbortSignal.timeout(10 * 60_000) })
   if (response.status === 404) {
+    const since = (row.playedAt ?? row.createdAt).getTime()
+    if (token && Date.now() - since < UPLOAD_WAIT_MS) {
+      log.info({ matchId }, 'demo not uploaded yet, looking again later')
+      await setStatus(matchId, 'queued')
+      await job.moveToDelayed(Date.now() + UPLOAD_POLL_MS, token)
+      throw new DelayedError()
+    }
     await setStatus(matchId, 'expired', 'Valve no longer has this demo')
     return
   }

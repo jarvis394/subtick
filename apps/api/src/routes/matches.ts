@@ -3,7 +3,7 @@ import { isShareCode } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
-import { importShareCode } from '../services/matches'
+import { importShareCode, retryMatch } from '../services/matches'
 import { withParties } from '../services/parties'
 import { getProfiles } from '../services/profiles'
 import { notOneKill, withClipUrls } from '../services/highlights'
@@ -144,5 +144,20 @@ export const matchRoutes = (ctx: Context) => {
           steamId: z.string().optional(),
         }),
       },
+    )
+    .post(
+      '/:id/retry',
+      async ({ user, params, status }) => {
+        // Retrying spends download and GPU time: only for people who have the match, and admins.
+        const [own] = await db
+          .select({ matchId: userMatch.matchId })
+          .from(userMatch)
+          .where(and(eq(userMatch.matchId, params.id), eq(userMatch.userId, user.id)))
+        if (!own && user.role !== 'admin') return status(403, { error: 'forbidden' as const })
+        const result = await retryMatch(ctx, params.id)
+        if (!result) return status(404, { error: 'not_found' as const })
+        return { status: result }
+      },
+      { auth: true, params: z.object({ id: z.string().regex(/^\d+$/) }) },
     )
 }

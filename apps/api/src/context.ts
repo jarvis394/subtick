@@ -1,6 +1,6 @@
 import { createDb, createSecretBox } from '@subtick/db'
 import { createLogger } from '@subtick/logger'
-import { createQueue } from '@subtick/queue'
+import { createMatchEventPublisher, createQueue } from '@subtick/queue'
 import { createSteamWebApi } from '@subtick/steam'
 import { createS3Storage } from '@subtick/storage'
 import { createAuth } from './auth'
@@ -31,8 +31,11 @@ export const createContext = async (env: Env) => {
     queues: {
       syncUser: createQueue('steam.sync-user', env.REDIS_URL),
       resolveMatch: createQueue('steam.resolve-match', env.REDIS_URL),
+      download: createQueue('demo.download', env.REDIS_URL),
+      parse: createQueue('demo.parse', env.REDIS_URL),
       recordClip: createQueue('clip.record', env.REDIS_URL),
     },
+    publish: createMatchEventPublisher(env.REDIS_URL),
     auth: createAuth({ env, db, steamApi }),
   }
 }

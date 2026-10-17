@@ -1,8 +1,8 @@
 import { Tabs } from '@base-ui/react/tabs'
 import { mapName } from '@subtick/domain'
-import { type QueryClient, useQuery } from '@tanstack/react-query'
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
@@ -13,7 +13,9 @@ import { MatchStatusBadge } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
+import { api, unwrap } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { clipMask, clipViewerSearch } from '@/lib/highlights'
 import { type MatchDetail, type MatchListItem, matchQuery } from '@/lib/queries'
@@ -92,7 +94,7 @@ function MatchPage() {
 
   return (
     <div className="grid gap-10">
-      <MatchHeader head={head} />
+      <MatchHeader id={id} head={head} />
       <FadeSwap swapKey={data ? 'ready' : 'loading'} enterDelay={data ? 0 : 120}>
         {data ? <MatchBody data={data} /> : <BodySkeleton />}
       </FadeSwap>
@@ -121,7 +123,18 @@ const BodySkeleton = () => (
   </div>
 )
 
-function MatchHeader({ head }: { head: MatchHead | null }) {
+function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
+  const queryClient = useQueryClient()
+  const retry = useMutation({
+    mutationFn: () => unwrap(api.matches({ id }).retry.post()),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['match', id] }),
+        queryClient.invalidateQueries({ queryKey: ['matches'] }),
+      ]),
+  })
+  const canRetry = head && (head.status === 'failed' || head.status === 'expired')
+
   return (
     <div>
       <Link
@@ -152,7 +165,25 @@ function MatchHeader({ head }: { head: MatchHead | null }) {
                     </>
                   )}
                   <MatchStatusBadge status={head.status} className="ml-1.5" />
+                  {canRetry && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="ml-1"
+                      onClick={() => retry.mutate()}
+                      disabled={retry.isPending}
+                    >
+                      <RotateCw className="size-3.5" /> Retry
+                    </Button>
+                  )}
                 </p>
+                {retry.error && (
+                  <p className="mt-1.5 text-sm text-danger">
+                    {retry.error.message === 'forbidden'
+                      ? 'Only players who imported this match can retry it.'
+                      : 'Could not retry. Try again in a moment.'}
+                  </p>
+                )}
               </div>
             </div>
           ) : (

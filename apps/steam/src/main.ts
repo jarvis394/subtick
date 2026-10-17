@@ -17,7 +17,7 @@ const matchIdOf = (data: { matchId?: string; shareCode?: string }) =>
 
 const start = <N extends QueueName>(
   name: N,
-  processor: (job: TypedJob<N>) => Promise<void>,
+  processor: (job: TypedJob<N>, token?: string) => Promise<void>,
   options?: Omit<WorkerOptions, 'connection'>,
 ) => {
   const worker = createWorker(name, env.REDIS_URL, processor, options)
@@ -55,7 +55,7 @@ const workers = [
     concurrency: 4,
     limiter: { max: 5, duration: 1000 },
   }),
-  start('demo.download', (job) => downloadDemo(ctx, job), {
+  start('demo.download', (job, token) => downloadDemo(ctx, job, token), {
     concurrency: env.WORKER_CONCURRENCY,
     lockDuration: 5 * 60_000,
   }),
