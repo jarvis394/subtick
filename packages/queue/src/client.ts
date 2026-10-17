@@ -10,8 +10,13 @@ export type TypedJob<N extends QueueName> = Job<JobPayload<N>, void, N>
  * The client must be wrapped explicitly: BullMQ only auto-detects clients that have
  * connect/disconnect/duplicate, and otherwise silently treats the object as connection
  * *options* and falls back to ioredis on 127.0.0.1:6379.
+ *
+ * Bun gives up after 20 reconnects (well under a minute) and never tries again, which leaves a
+ * worker alive but deaf to its queue. Redis can be gone for hours (the recorder reaches it through
+ * an SSH tunnel), so keep retrying; attempts back off to a couple of seconds apart.
  */
-const connect = (redisUrl: string) => createBunRedisClient(new RedisClient(redisUrl))
+const connect = (redisUrl: string) =>
+  createBunRedisClient(new RedisClient(redisUrl, { maxRetries: 1_000_000 }))
 
 export const createQueue = <N extends QueueName>(name: N, redisUrl: string): TypedQueue<N> =>
   new Queue(name, { connection: connect(redisUrl), defaultJobOptions: defaultJobOptions(name) })
