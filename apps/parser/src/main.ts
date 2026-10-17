@@ -1,5 +1,3 @@
-import { mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
 import { DatabaseEnv, RedisEnv, S3Env, WorkerEnv, loadEnv } from '@subtick/config'
 import { createDb, eq, schema } from '@subtick/db'
 import { createLogger } from '@subtick/logger'
@@ -28,17 +26,8 @@ const demos = createS3Storage({
 const recordQueue = createQueue('clip.record', env.REDIS_URL)
 const publish = createMatchEventPublisher(env.REDIS_URL)
 
-const loadDemo = async (matchId: string) => {
-  const dir = join(env.SCRATCH_DIR, 'parser')
-  await mkdir(dir, { recursive: true })
-  const path = join(dir, keys.demo(matchId))
-  try {
-    await demos.download(keys.demo(matchId), path)
-    return Buffer.from(await Bun.zstdDecompress(await Bun.file(path).bytes()))
-  } finally {
-    await rm(path, { force: true })
-  }
-}
+const loadDemo = async (matchId: string) =>
+  Buffer.from(await Bun.zstdDecompress(await demos.bytes(keys.demo(matchId))))
 
 const worker = createWorker(
   'demo.parse',
@@ -56,7 +45,6 @@ const worker = createWorker(
     const highlightIds = await persistAnalysis(db, matchId, analysis, PARSER_VERSION)
 
     if (highlightIds.length) await enqueue(recordQueue, { matchId, highlightIds })
-    else await db.update(schema.match).set({ status: 'ready' }).where(eq(schema.match.id, matchId))
     await publish({ matchId, status: highlightIds.length ? 'recording' : 'ready' })
 
     log.info(

@@ -293,7 +293,7 @@ interface Recorder {
 
 1. ~~**demoparser2 under Bun.**~~ Verified: it works under Bun 1.3. A full analysis of a 250 MB demo takes about 1.5 s.
 2. ~~**`steam-user` / `globaloffensive` under Bun.**~~ Verified: login and `requestGame` work over the TCP transport (the WebSocket transport never connects under Bun 1.3). The GC client is also the most likely thing to break when Valve changes protos.
-3. ~~**Headless CS2 capture.**~~ Verified (Oct 2026) on a GTX 650: CS2's Windows build + HLAE under Wine with DXVK 1.10.3, headless Xorg on the NVIDIA driver. WineD3D crashes; DXVK 2.x needs Vulkan 1.3; wine-stable 11.0 can't draw the Steam client's text (staging can). Details in `apps/recorder/spike/README.md`.
+3. ~~**Headless CS2 capture.**~~ Verified (Oct 2026) on a GTX 650: CS2's Windows build + HLAE under Wine with DXVK 1.10.3, headless Xorg on the NVIDIA driver. WineD3D crashes; DXVK 2.x needs Vulkan 1.3; wine-stable 11.0 can't draw the Steam client's text (staging can). Details in `apps/recorder/README.md`.
 4. **Valve rate limits and expiry.** Demos disappear after about 30 days and the GC throttles aggressively. Mitigations: one bot, a 1 req/s limiter, and backoff.
 
 ---

@@ -5,8 +5,9 @@ import { shouldAutoRecord } from './highlights'
 const { match, matchPlayer, round, kill, highlight, steamLink } = schema
 
 /**
- * Replaces everything derived from the demo in one transaction (re-parsing is idempotent) and
- * returns the highlights that should be recorded now: subtick players' 3Ks and up and 1v2+
+ * Replaces everything derived from the demo in one transaction (re-parsing is idempotent), moves
+ * the match to `recording` or, with nothing to record, `ready`, and returns the highlights that
+ * should be recorded now: subtick players' 3Ks and up and 1v2+
  * clutches. Everything else stays `candidate` and is recorded on request.
  */
 export const persistAnalysis = async (
@@ -24,11 +25,12 @@ export const persistAnalysis = async (
       .from(steamLink)
       .where(inArray(steamLink.steamId, steamIds))
     const subtickPlayers = new Set(users.map((u) => u.steamId))
+    const queued = highlights.map((h) => subtickPlayers.has(h.steamId) && shouldAutoRecord(h))
 
-    await tx
+    const [{ parties } = { parties: null }] = await tx
       .update(match)
       .set({
-        status: 'recording',
+        status: queued.includes(true) ? 'recording' : 'ready',
         error: null,
         map: timeline.header.map,
         mode,
@@ -41,11 +43,7 @@ export const persistAnalysis = async (
         parserVersion,
       })
       .where(eq(match.id, matchId))
-
-    const [{ parties } = { parties: null }] = await tx
-      .select({ parties: match.parties })
-      .from(match)
-      .where(eq(match.id, matchId))
+      .returning({ parties: match.parties })
 
     await Promise.all(
       [matchPlayer, round, kill, highlight].map((table) =>
@@ -113,7 +111,7 @@ export const persistAnalysis = async (
     const rows = await tx
       .insert(highlight)
       .values(
-        highlights.map((h) => ({
+        highlights.map((h, i) => ({
           matchId,
           steamId: h.steamId,
           round: h.round,
@@ -126,10 +124,7 @@ export const persistAnalysis = async (
           kills: h.kills,
           tags: h.tags,
           clutch: h.clutch,
-          status:
-            subtickPlayers.has(h.steamId) && shouldAutoRecord(h)
-              ? ('queued' as const)
-              : ('candidate' as const),
+          status: queued[i] ? ('queued' as const) : ('candidate' as const),
         })),
       )
       .returning({ id: highlight.id, status: highlight.status })

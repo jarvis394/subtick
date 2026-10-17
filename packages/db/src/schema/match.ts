@@ -9,7 +9,6 @@ import {
 import {
   index,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -19,6 +18,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core'
+import { jsonb } from '../jsonb'
 import { user } from './auth'
 
 export const matchStatus = pgEnum('match_status', MATCH_STATUSES)

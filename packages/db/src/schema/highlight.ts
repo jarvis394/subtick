@@ -9,7 +9,6 @@ import {
 import {
   index,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -18,6 +17,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { jsonb } from '../jsonb'
 import { match } from './match'
 
 export const highlightKind = pgEnum('highlight_kind', HIGHLIGHT_KINDS)

@@ -74,7 +74,6 @@ services:
   parser:
     <<: *server
     command: ['bun', 'apps/parser/src/main.ts']
-    volumes: ['${DATA_DIR}/scratch/parser:/data']
     depends_on:
       migrate: { condition: service_completed_successfully }
 

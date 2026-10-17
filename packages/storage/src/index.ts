@@ -3,8 +3,7 @@ import { S3Client } from 'bun'
 /** Object storage port. One instance per bucket. */
 export interface ObjectStorage {
   put(key: string, data: Blob | Uint8Array | string | Response, contentType?: string): Promise<void>
-  /** Downloads an object to a local file and returns its size in bytes. */
-  download(key: string, path: string): Promise<number>
+  bytes(key: string): Promise<Uint8Array>
   exists(key: string): Promise<boolean>
   delete(key: string): Promise<void>
   /** Short-lived GET URL for browsers and the recorder. */
@@ -36,7 +35,7 @@ export const createS3Storage = ({
     async put(key, data, contentType) {
       await client.write(key, data, contentType ? { type: contentType } : undefined)
     },
-    download: (key, path) => Bun.write(path, client.file(key)),
+    bytes: (key) => client.file(key).bytes(),
     exists: (key) => client.exists(key),
     delete: (key) => client.delete(key),
     presign: (key, expiresIn = 3600) => publicClient.presign(key, { expiresIn }),

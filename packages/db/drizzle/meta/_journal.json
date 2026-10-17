@@ -78,6 +78,13 @@
       "when": 1792256974741,
       "tag": "0010_yummy_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792264420141,
+      "tag": "0011_unwrap_jsonb",
+      "breakpoints": true
     }
   ]
 }

@@ -58,9 +58,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
     if (pending.length) {
       await ctx.setStatus(matchId, 'recording')
       const demoPath = join(work, 'demo.dem')
-      await demos.download(keys.demo(matchId), `${demoPath}.zst`)
-      await Bun.write(demoPath, await Bun.zstdDecompress(await Bun.file(`${demoPath}.zst`).bytes()))
-      await rm(`${demoPath}.zst`)
+      await Bun.write(demoPath, await Bun.zstdDecompress(await demos.bytes(keys.demo(matchId))))
 
       for (const [index, { highlight: h, playerName }] of pending.entries()) {
         await ctx.progress(matchId, index / pending.length)

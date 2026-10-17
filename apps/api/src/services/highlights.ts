@@ -4,12 +4,11 @@ import type { Context } from '../context'
 
 /**
  * Hides single-kill moments that analysis before parser v4 still stored; they are never shown,
- * however special the kill, unless they won a 1v2 or harder. `#>> '{}'` unwraps jsonb that was
- * stored as a JSON string.
+ * however special the kill, unless they won a 1v2 or harder.
  */
 export const notOneKill = sql`(
-  jsonb_array_length((${schema.highlight.kills} #>> '{}')::jsonb) <> 1
-  or (((${schema.highlight.clutch} #>> '{}')::jsonb ->> 'opponents')::int >= 2)
+  jsonb_array_length(${schema.highlight.kills}) <> 1
+  or (${schema.highlight.clutch} ->> 'opponents')::int >= 2
 )`
 
 type HighlightRow = typeof schema.highlight.$inferSelect
