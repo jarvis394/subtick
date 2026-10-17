@@ -130,7 +130,8 @@ function MatchPage() {
               </div>
             )}
             {moments.length > 0 && (
-              <div>
+              // Long titles truncate instead of widening the page.
+              <div className="min-w-0">
                 <h3 className="mb-2 text-sm font-medium text-muted">
                   {clips.length > 0 ? 'More moments' : 'Moments'} · not recorded yet
                 </h3>
@@ -139,6 +140,7 @@ function MatchPage() {
                     <MomentRow
                       key={m.id}
                       moment={m}
+                      match={data}
                       player={scope === 'all' ? playerOf(m.steamId) : undefined}
                     />
                   ))}
