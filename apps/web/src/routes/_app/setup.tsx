@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/surface'
 import { describeAuthError, startSteamFlow } from '@/lib/auth'
 import { meQuery } from '@/lib/queries'
+import { skipSetup } from '@/lib/setup'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/setup')({
@@ -90,6 +91,22 @@ function SetupPage() {
           <MatchAuthForm steamId={link.steamId} onDone={() => navigate({ to: '/' })} />
         )}
       </Step>
+
+      {!link?.hasMatchAuth && (
+        <div className="flex items-center justify-between gap-4 pt-1 pl-1">
+          <p className="text-[13px] text-muted">You can finish this later from the sidebar.</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              skipSetup()
+              void navigate({ to: '/' })
+            }}
+          >
+            Skip for now
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

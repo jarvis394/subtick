@@ -48,9 +48,12 @@ export const ButtonLayer = () => (
     aria-hidden
     className={cn(
       'absolute inset-0 -z-10 rounded-[inherit] border border-(--layer-border,transparent) bg-(--bg)',
-      'transition-[scale,background-color] duration-200 ease-out-quart',
+      // Press moves (strong ease-out); hover only recolors (plain ease).
+      '[transition:scale_160ms_var(--ease-out-quart),background-color_150ms_ease]',
       'group-hover/button:bg-(--bg-hover) group-active/button:scale-[0.96]',
-      'group-disabled/button:scale-100 group-data-disabled/button:scale-100 motion-reduce:transition-none',
+      'group-disabled/button:scale-100 group-data-disabled/button:scale-100',
+      // Reduced motion: no press movement, keep the color fade.
+      'motion-reduce:group-active/button:scale-100',
     )}
   />
 )

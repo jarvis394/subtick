@@ -1,9 +1,12 @@
 import { Select } from '@base-ui/react/select'
+import { Tabs } from '@base-ui/react/tabs'
 import { mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Clapperboard, SearchX } from 'lucide-react'
 import { z } from 'zod'
+import { EmptyState } from '@/components/empty-state'
+import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
 import { MapIcon } from '@/components/map-icon'
 import { isProcessing } from '@/components/match-status'
@@ -51,6 +54,11 @@ function HighlightsPage() {
 
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
   const filtered = kind !== 'all' || Boolean(search.map)
+  // One view per filter, so switching between cached filters crossfades too. Loading stays a
+  // single view: skeletons don't refade when the filter changes again mid-load.
+  const view = clips.isPending
+    ? 'loading'
+    : `${items.length === 0 ? 'empty' : 'results'}:${kind}:${search.map ?? ''}`
   const mapItems = [
     { value: ALL_MAPS, label: 'All maps' },
     ...(facets.data?.maps ?? []).map((m) => ({ value: m, label: mapName(m) })),
@@ -69,29 +77,34 @@ function HighlightsPage() {
       </div>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
-        <div
-          role="group"
-          aria-label="Kind"
-          className="flex flex-wrap gap-1 rounded-[10px] bg-surface-2/70 p-0.5"
+        <Tabs.Root
+          value={kind}
+          onValueChange={(value) =>
+            navigate({
+              search: (s) => ({ ...s, kind: value === 'all' ? undefined : (value as KindFilter) }),
+            })
+          }
         >
-          {KIND_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              aria-pressed={kind === f.id}
-              onClick={() =>
-                navigate({ search: (s) => ({ ...s, kind: f.id === 'all' ? undefined : f.id }) })
-              }
-              className={cn(
-                'h-8 cursor-pointer rounded-lg px-3 text-sm text-muted outline-none select-none transition-colors',
-                'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
-                'aria-pressed:bg-surface aria-pressed:text-foreground aria-pressed:shadow-sm aria-pressed:shadow-black/10',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+          <Tabs.List
+            aria-label="Kind"
+            className="relative flex flex-wrap gap-1 rounded-[10px] bg-surface-2/70 p-0.5"
+          >
+            {KIND_FILTERS.map((f) => (
+              <Tabs.Tab
+                key={f.id}
+                value={f.id}
+                className={cn(
+                  'relative z-10 h-8 cursor-pointer rounded-lg px-3 text-sm text-muted outline-none select-none transition-colors',
+                  'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:text-foreground',
+                )}
+              >
+                {f.label}
+              </Tabs.Tab>
+            ))}
+            {/* Follows top/height too: the filter wraps onto several rows on narrow screens. */}
+            <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg bg-surface shadow-sm shadow-black/10 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
+          </Tabs.List>
+        </Tabs.Root>
 
         <Select.Root
           items={mapItems}
@@ -139,54 +152,55 @@ function HighlightsPage() {
         </Select.Root>
       </div>
 
-      {clips.isPending ? (
-        <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }, (_, i) => (
-            <Skeleton key={i} className="aspect-video" />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed px-6 py-16 text-center">
-          <p className="font-serif text-xl">
-            {filtered ? 'Nothing matches these filters' : 'No clips yet'}
-          </p>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-            {filtered
-              ? 'Try another kind or map.'
-              : 'Your best moments are clipped automatically after each match. They show up here once recorded.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-12">
-          {groupByDay(items).map((group) => (
-            <section key={group.label}>
-              <h2 className="mb-4 text-sm font-medium text-muted">{group.label}</h2>
-              <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-                {group.clips.map((clip) =>
-                  clip.clip ? (
-                    <HighlightCard
-                      key={clip.id}
-                      highlight={{ ...clip, clip: clip.clip }}
-                      player={clip.player}
-                    />
-                  ) : null,
-                )}
+      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0}>
+        {clips.isPending ? (
+          <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="aspect-video" />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={filtered ? <SearchX /> : <Clapperboard />}
+            title={filtered ? 'Nothing matches these filters' : 'No clips yet'}
+            description={
+              filtered
+                ? 'Try another kind or map.'
+                : 'Your best moments are clipped automatically after each match. They show up here once recorded.'
+            }
+          />
+        ) : (
+          <div className="grid gap-12">
+            {groupByDay(items).map((group) => (
+              <section key={group.label}>
+                <h2 className="mb-4 text-sm font-medium text-muted">{group.label}</h2>
+                <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+                  {group.clips.map((clip) =>
+                    clip.clip ? (
+                      <HighlightCard
+                        key={clip.id}
+                        highlight={{ ...clip, clip: clip.clip }}
+                        player={clip.player}
+                      />
+                    ) : null,
+                  )}
+                </div>
+              </section>
+            ))}
+            {clips.hasNextPage && (
+              <div className="flex justify-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => clips.fetchNextPage()}
+                  disabled={clips.isFetchingNextPage}
+                >
+                  {clips.isFetchingNextPage ? 'Loading…' : 'Show more'}
+                </Button>
               </div>
-            </section>
-          ))}
-          {clips.hasNextPage && (
-            <div className="flex justify-center">
-              <Button
-                variant="secondary"
-                onClick={() => clips.fetchNextPage()}
-                disabled={clips.isFetchingNextPage}
-              >
-                {clips.isFetchingNextPage ? 'Loading…' : 'Show more'}
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </FadeSwap>
     </div>
   )
 }

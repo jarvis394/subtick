@@ -1,13 +1,21 @@
 import type { HighlightKind } from '@subtick/domain'
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
-import { api, unwrap } from './api'
+import { ApiError, api, unwrap } from './api'
+import { clearStoredMe, readStoredMe, writeStoredMe } from './stored-me'
 
 export interface ClipFilters {
   kinds?: HighlightKind[]
   map?: string
 }
 
-const fetchMe = () => unwrap(api.me.get())
+const fetchMe = async () => {
+  const me = await unwrap(api.me.get()).catch((error: unknown) => {
+    if (isSessionError(error)) clearStoredMe()
+    throw error
+  })
+  writeStoredMe(me)
+  return me
+}
 const fetchMatches = (cursor?: string, limit = 20) =>
   unwrap(api.matches.get({ query: { cursor, limit } }))
 const fetchMatch = (id: string) => unwrap(api.matches({ id }).get())
@@ -24,7 +32,18 @@ export type MatchListItem = Awaited<ReturnType<typeof fetchMatches>>['items'][nu
 export type MatchDetail = Awaited<ReturnType<typeof fetchMatch>>
 export type Clip = Awaited<ReturnType<typeof fetchClips>>['items'][number]
 
-export const meQuery = queryOptions({ queryKey: ['me'], queryFn: fetchMe, staleTime: 30_000 })
+/** `/me` answering 401 (no session) or 403 (rejected) means the stored session is no good. */
+export const isSessionError = (error: unknown) =>
+  error instanceof ApiError && (error.status === 401 || error.status === 403)
+
+export const meQuery = queryOptions({
+  queryKey: ['me'],
+  queryFn: fetchMe,
+  staleTime: 30_000,
+  // The last known user renders the app straight away; epoch 0 marks it stale so it revalidates.
+  initialData: readStoredMe,
+  initialDataUpdatedAt: 0,
+})
 
 export const matchesQuery = infiniteQueryOptions({
   queryKey: ['matches'],

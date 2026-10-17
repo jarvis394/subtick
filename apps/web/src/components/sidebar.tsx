@@ -12,15 +12,19 @@ import {
   Swords,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
-import { Spinner } from '@/components/ui/surface'
+import { ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Skeleton, Spinner } from '@/components/ui/surface'
 import { Wordmark } from '@/components/wordmark'
 import { authClient } from '@/lib/auth'
 import { shortAge } from '@/lib/format'
 import { meQuery, recentMatchesQuery } from '@/lib/queries'
+import { isSetUp } from '@/lib/setup'
+import { clearStoredMe } from '@/lib/stored-me'
 import { cn } from '@/lib/utils'
 
 /**
@@ -80,6 +84,8 @@ const NavItem = ({
   )
 }
 
+const SKELETON_WIDTHS = ['w-28', 'w-36', 'w-24', 'w-32', 'w-28']
+
 const menuItemClass =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
 
@@ -97,9 +103,11 @@ export const SidebarContent = ({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const pendingPath = usePendingPath()
+  const setUp = isSetUp(me)
 
   const signOut = async () => {
     await authClient.signOut()
+    clearStoredMe()
     queryClient.clear()
     await navigate({ to: '/login' })
   }
@@ -132,6 +140,22 @@ export const SidebarContent = ({
         >
           <Wordmark />
         </Link>
+        {!setUp && (
+          <Link
+            to="/setup"
+            onClick={onNavigate}
+            tabIndex={collapsed ? -1 : undefined}
+            className={buttonClass(
+              'secondary',
+              'sm',
+              cn('ml-auto h-7 rounded-md px-2 text-[12px]', fade(collapsed)),
+            )}
+          >
+            <ButtonLayer />
+            <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+            Finish setup
+          </Link>
+        )}
       </div>
 
       <nav className="grid gap-0.5 px-2">
@@ -160,53 +184,88 @@ export const SidebarContent = ({
         >
           Recents
         </p>
-        <div className="grid gap-0.5">
-          {recent?.items.map((match) => {
-            const score = perspectiveScore(match, match.player?.startingSide)
-            return (
-              <Link
-                key={match.id}
-                to="/matches/$id"
-                params={{ id: match.id }}
-                onClick={onNavigate}
-                title={collapsed ? mapName(match.map) : undefined}
-                className={cn(
-                  rowClass(collapsed),
-                  'h-10 px-2',
-                  pendingPath === `/matches/${match.id}` && 'shimmer',
-                )}
-              >
-                <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
-                <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
-                  <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                    <span className="truncate text-foreground/90">{mapName(match.map)}</span>
-                    <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
-                      {shortAge(match.playedAt ?? match.discoveredAt)}
-                    </span>
+        <FadeSwap swapKey={recent ? 'ready' : 'loading'}>
+          {recent ? (
+            <>
+              {recent.items.length === 0 && (
+                <div
+                  className={cn(
+                    'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
+                    fade(collapsed),
+                  )}
+                >
+                  <span className="mb-3 grid size-9 place-items-center rounded-lg border bg-surface text-muted">
+                    <Swords className="size-4" />
                   </span>
-                  {isProcessing(match.status) ? (
-                    <Spinner className="size-3" />
-                  ) : score ? (
-                    <span className="font-mono text-[12px] tabular-nums">
+                  <p className="text-[13px] font-medium">No matches yet</p>
+                  <p className="mt-1 text-[12px] text-balance text-muted">
+                    {setUp
+                      ? 'Matches you play show up here.'
+                      : 'Finish setup to start picking up your matches.'}
+                  </p>
+                </div>
+              )}
+              <div className="grid gap-0.5">
+                {recent.items.map((match) => {
+                  const score = perspectiveScore(match, match.player?.startingSide)
+                  return (
+                    <Link
+                      key={match.id}
+                      to="/matches/$id"
+                      params={{ id: match.id }}
+                      onClick={onNavigate}
+                      title={collapsed ? mapName(match.map) : undefined}
+                      className={cn(
+                        rowClass(collapsed),
+                        'h-10 px-2',
+                        pendingPath === `/matches/${match.id}` && 'shimmer',
+                      )}
+                    >
+                      <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
                       <span
-                        className={
-                          score.result === 'win'
-                            ? 'text-success'
-                            : score.result === 'loss'
-                              ? 'text-danger'
-                              : undefined
-                        }
+                        className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}
                       >
-                        {score.own}
+                        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                          <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+                          <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
+                            {shortAge(match.playedAt ?? match.discoveredAt)}
+                          </span>
+                        </span>
+                        {isProcessing(match.status) ? (
+                          <Spinner className="size-3" />
+                        ) : score ? (
+                          <span className="font-mono text-[12px] tabular-nums">
+                            <span
+                              className={
+                                score.result === 'win'
+                                  ? 'text-success'
+                                  : score.result === 'loss'
+                                    ? 'text-danger'
+                                    : undefined
+                              }
+                            >
+                              {score.own}
+                            </span>
+                            :{score.enemy}
+                          </span>
+                        ) : null}
                       </span>
-                      :{score.enemy}
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-0.5" aria-hidden>
+              {SKELETON_WIDTHS.map((width, i) => (
+                <div key={i} className="flex h-10 items-center gap-2 px-2">
+                  <Skeleton className="size-6 shrink-0 rounded-md" />
+                  <Skeleton className={cn('h-3.5 rounded-md', width, fade(collapsed))} />
+                </div>
+              ))}
+            </div>
+          )}
+        </FadeSwap>
       </div>
 
       <div className="shrink-0 border-t p-2">

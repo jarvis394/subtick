@@ -12,6 +12,7 @@ import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { timeAgo } from '@/lib/format'
 import { type Me, meQuery } from '@/lib/queries'
+import { clearStoredMe } from '@/lib/stored-me'
 
 export const Route = createFileRoute('/_app/settings')({
   validateSearch: z.object({ error: z.string().optional() }),
@@ -42,6 +43,7 @@ function SettingsPage() {
             variant="outline"
             onClick={async () => {
               await authClient.signOut()
+              clearStoredMe()
               queryClient.clear()
               await navigate({ to: '/login' })
             }}

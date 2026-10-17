@@ -118,7 +118,7 @@ function LoginPage() {
               <Tabs.Tab value="sign-up" className={tabClass}>
                 Create account
               </Tabs.Tab>
-              <Tabs.Indicator className="absolute top-0.5 left-0 z-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-lg bg-surface shadow-sm shadow-black/5 transition-[translate,width] duration-200 ease-out-quart" />
+              <Tabs.Indicator className="absolute top-0.5 left-0 z-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-lg bg-surface shadow-sm shadow-black/5 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
             </Tabs.List>
           </Tabs.Root>
 

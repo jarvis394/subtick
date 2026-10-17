@@ -1,5 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { Swords } from 'lucide-react'
+import { EmptyState } from '@/components/empty-state'
 import { MatchTable } from '@/components/match-table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
@@ -20,9 +22,11 @@ function MatchesPage() {
       {matches.isPending ? (
         <Skeleton className="h-64" />
       ) : items.length === 0 ? (
-        <p className="py-6 text-sm text-muted">
-          No matches yet. They appear here as soon as Steam reports them.
-        </p>
+        <EmptyState
+          icon={<Swords />}
+          title="No matches yet"
+          description="They appear here as soon as Steam reports them."
+        />
       ) : (
         <MatchTable matches={items} />
       )}

@@ -82,6 +82,8 @@
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  /* Edge drawers: iOS-style settle. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @layer base {
