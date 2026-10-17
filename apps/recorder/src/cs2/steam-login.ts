@@ -40,6 +40,42 @@ export const findLoginWindow = async () =>
   (await xdotool('search', '--onlyvisible', '--name', '^Sign in to Steam$')).split('\n')[0] || null
 
 /**
+ * What the login window shows, read off two pixels: the QR code's white border is there whenever
+ * the account-name form is, and the Sign in button dims while a sign-in is pending.
+ * - `form`: the empty or filled form, ready to sign in (also after Steam dropped a sign-in)
+ * - `pending`: Sign in was pressed and Steam is still working on it
+ * - `other`: anything else, i.e. the Steam Guard code step
+ */
+export type LoginScreen = 'form' | 'pending' | 'other'
+
+/** Offsets in the 700×440 login window, measured on Steam's own screenshots. */
+const QR_BORDER = { x: 465, y: 130 }
+const SIGN_IN_BUTTON = { x: 105, y: 290 }
+
+const pixel = async (x: number, y: number) => {
+  const proc = Bun.spawn(
+    ['import', '-window', 'root', '-crop', `1x1+${x}+${y}`, '-depth', '8', 'txt:-'],
+    { stdout: 'pipe', stderr: 'ignore' },
+  )
+  const out = await new Response(proc.stdout).text()
+  await proc.exited
+  const [, r, g, b] = /\((\d+),(\d+),(\d+)/.exec(out) ?? []
+  return r === undefined ? null : { r: Number(r), g: Number(g), b: Number(b) }
+}
+
+export const readLoginScreen = async (window: string): Promise<LoginScreen> => {
+  const geometry = await xdotool('getwindowgeometry', '--shell', window)
+  const x = Number(/^X=(\d+)/m.exec(geometry)?.[1])
+  const y = Number(/^Y=(\d+)/m.exec(geometry)?.[1])
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return 'other'
+  const qr = await pixel(x + QR_BORDER.x, y + QR_BORDER.y)
+  if (!qr || Math.min(qr.r, qr.g, qr.b) < 235) return 'other'
+  const button = await pixel(x + SIGN_IN_BUTTON.x, y + SIGN_IN_BUTTON.y)
+  // Idle: a bright blue (b = 255). Pending: the same gradient dimmed (b ≈ 142).
+  return button && button.b >= 220 ? 'form' : 'pending'
+}
+
+/**
  * Types the credentials into the login window (its username field has focus when it opens). Each
  * field is selected first: a form Steam reset after a dropped sign-in keeps what was typed.
  */
