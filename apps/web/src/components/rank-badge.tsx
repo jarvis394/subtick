@@ -15,7 +15,7 @@ const number = new Intl.NumberFormat('en')
 
 /**
  * Premier: the CS Rating in a slanted, tier-colored plate (like in game) plus the change.
- * Competitive/Wingman: the skill group name.
+ * Competitive/Wingman: the skill group icon (public/ranks/, from scripts/fetch-rank-icons.ts).
  */
 export const RankBadge = ({
   rank,
@@ -29,8 +29,16 @@ export const RankBadge = ({
   if (!rank || rank.after === 0) return <span className={cn('text-muted', className)}>–</span>
 
   if (rank.mode !== 'premier') {
+    const name = skillGroupName(rank.after)
     return (
-      <span className={cn('truncate text-muted', className)}>{skillGroupName(rank.after)}</span>
+      <img
+        src={`/ranks/${rank.after}.png`}
+        alt={name}
+        title={name}
+        width={50}
+        height={20}
+        className={cn('inline-block h-5 w-[50px] shrink-0 align-middle', className)}
+      />
     )
   }
 
