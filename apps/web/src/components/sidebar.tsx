@@ -1,7 +1,7 @@
 import { Menu } from '@base-ui/react/menu'
 import { mapName } from '@subtick/domain'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ChevronsUpDown,
   Clapperboard,
@@ -33,12 +33,18 @@ export const RAIL_WIDTH = 'w-14'
 const rowClass = (collapsed: boolean) =>
   cn(
     'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-[11px] text-sm whitespace-nowrap text-muted outline-none select-none',
-    'transition-[width,background-color,color] duration-200 ease-out-quart',
+    'transition-[width] duration-200 ease-out-quart',
     'hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
     'data-[status=active]:bg-surface-2 data-[status=active]:text-foreground',
     '[&_svg]:size-[18px] [&_svg]:shrink-0',
     collapsed ? 'w-10' : 'w-full',
   )
+
+/** The path being navigated to while its route loads, so its row can shimmer. */
+const usePendingPath = () =>
+  useRouterState({
+    select: (s) => (s.status === 'pending' ? s.location.pathname : undefined),
+  })
 
 /** Text that fades out in the rail instead of being removed (removal would shift the layout). */
 const fade = (collapsed: boolean) =>
@@ -56,20 +62,23 @@ const NavItem = ({
   label: string
   collapsed: boolean
   onNavigate?: () => void
-}) => (
-  <Link
-    to={to}
-    // Filters live in the query string; the section is active whatever they are.
-    activeOptions={{ exact: true, includeSearch: false }}
-    onClick={onNavigate}
-    aria-label={collapsed ? label : undefined}
-    title={collapsed ? label : undefined}
-    className={rowClass(collapsed)}
-  >
-    {icon}
-    <span className={fade(collapsed)}>{label}</span>
-  </Link>
-)
+}) => {
+  const pending = usePendingPath() === to
+  return (
+    <Link
+      to={to}
+      // Filters live in the query string; the section is active whatever they are.
+      activeOptions={{ exact: true, includeSearch: false }}
+      onClick={onNavigate}
+      aria-label={collapsed ? label : undefined}
+      title={collapsed ? label : undefined}
+      className={cn(rowClass(collapsed), pending && 'shimmer')}
+    >
+      {icon}
+      <span className={fade(collapsed)}>{label}</span>
+    </Link>
+  )
+}
 
 const menuItemClass =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
@@ -87,6 +96,7 @@ export const SidebarContent = ({
   const { data: recent } = useQuery(recentMatchesQuery)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const pendingPath = usePendingPath()
 
   const signOut = async () => {
     await authClient.signOut()
@@ -160,7 +170,11 @@ export const SidebarContent = ({
                 params={{ id: match.id }}
                 onClick={onNavigate}
                 title={collapsed ? mapName(match.map) : undefined}
-                className={cn(rowClass(collapsed), 'h-10 px-2')}
+                className={cn(
+                  rowClass(collapsed),
+                  'h-10 px-2',
+                  pendingPath === `/matches/${match.id}` && 'shimmer',
+                )}
               >
                 <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
                 <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
@@ -200,7 +214,7 @@ export const SidebarContent = ({
           <Menu.Trigger
             className={cn(
               'flex cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg p-1.5 text-left outline-none',
-              'transition-[width,background-color] duration-200 ease-out-quart',
+              'transition-[width] duration-200 ease-out-quart',
               'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2',
               collapsed ? 'w-10' : 'w-full',
             )}

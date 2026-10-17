@@ -57,7 +57,7 @@ export const MatchTable = ({ matches }: { matches: MatchListItem[] }) => (
           params={{ id: match.id }}
           className={cn(
             GRID,
-            'h-16 border-b text-sm tabular-nums transition-colors outline-none last:border-0',
+            'h-16 border-b text-sm tabular-nums outline-none last:border-0',
             'hover:bg-surface-2/60 focus-visible:bg-surface-2/60',
           )}
         >
