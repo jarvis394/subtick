@@ -73,6 +73,8 @@ export class Cs2Recorder implements Recorder {
   #povBroken = false
   /** `mirv_pov 1` was sent in this game session. */
   #povOn = false
+  /** A demo was loaded in this game session. */
+  #demoLoaded = false
 
   constructor(private readonly options: Cs2RecorderOptions) {}
 
@@ -83,6 +85,10 @@ export class Cs2Recorder implements Recorder {
   async prepare(match: MatchToRecord) {
     const { game, cs2Dir, log } = this.options
     this.#matchId = null
+    // A second demo in one game session starts on the wrong player: the first clip showed whoever
+    // the camera held after `playdemo` until that player died, though `spec_player` was sent as
+    // usual. Each match gets a fresh game instead, the state every first clip is recorded from.
+    if (this.#demoLoaded) await this.reset()
     const netcon = (this.#netcon =
       this.#netcon?.closed === false ? this.#netcon : await game.connect())
 
@@ -119,6 +125,7 @@ export class Cs2Recorder implements Recorder {
       'mirv_streams settings edit afxDefault settings subtick',
     )
     this.#matchId = match.matchId
+    this.#demoLoaded = true
     log.info({ matchId: match.matchId, map: match.map }, 'demo loaded')
   }
 
@@ -239,6 +246,7 @@ export class Cs2Recorder implements Recorder {
 
   async reset() {
     this.#povOn = false
+    this.#demoLoaded = false
     this.#povBroken = false
     this.#matchId = null
     this.#sessionClips = 0
