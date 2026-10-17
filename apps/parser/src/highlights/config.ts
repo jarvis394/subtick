@@ -67,6 +67,12 @@ export const highlightConfig = {
     minScore: 30,
     maxPerPlayer: 6,
   },
+  /** Highlights of subtick players recorded right after parsing; the rest wait for a request. */
+  autoRecord: {
+    minKills: 3,
+    /** Won clutches against at least this many opponents. */
+    minClutchOpponents: 2,
+  },
 }
 
 export type HighlightConfig = typeof highlightConfig

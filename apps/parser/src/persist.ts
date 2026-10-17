@@ -1,12 +1,13 @@
 import { type Db, eq, inArray, schema } from '@subtick/db'
 import type { MatchAnalysis } from './analyze'
+import { shouldAutoRecord } from './highlights'
 
 const { match, matchPlayer, round, kill, highlight, steamLink } = schema
 
 /**
  * Replaces everything derived from the demo in one transaction (re-parsing is idempotent) and
- * returns the highlights that should be recorded now: those of players who use subtick.
- * Other players' highlights stay `candidate` and are recorded on request.
+ * returns the highlights that should be recorded now: subtick players' 3Ks and up and 1v2+
+ * clutches. Everything else stays `candidate` and is recorded on request.
  */
 export const persistAnalysis = async (
   db: Db,
@@ -115,7 +116,10 @@ export const persistAnalysis = async (
           kills: h.kills,
           tags: h.tags,
           clutch: h.clutch,
-          status: subtickPlayers.has(h.steamId) ? ('queued' as const) : ('candidate' as const),
+          status:
+            subtickPlayers.has(h.steamId) && shouldAutoRecord(h)
+              ? ('queued' as const)
+              : ('candidate' as const),
         })),
       )
       .returning({ id: highlight.id, status: highlight.status })

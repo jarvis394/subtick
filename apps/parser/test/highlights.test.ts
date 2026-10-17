@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { secondsToTicks } from '@subtick/domain'
 import { detectClutches } from '../src/clutches'
-import { detectHighlights, highlightConfig } from '../src/highlights'
+import { detectHighlights, highlightConfig, shouldAutoRecord } from '../src/highlights'
 import { type RoundSpec, buildTestTimeline, roundTick } from './builders'
 
 const detect = (rounds: RoundSpec[]) => {
@@ -147,10 +147,45 @@ describe('detectHighlights', () => {
     expect(h!.tags).toEqual(expect.arrayContaining(['defuse', 'ninja_defuse']))
   })
 
-  test('plain single kills fall below the selection threshold', () => {
+  test('single kills are never highlights, however special', () => {
     expect(
-      detect([{ winner: 'CT', kills: [{ at: 1, attacker: 'ct1', victim: 't1' }], endsAt: 90 }]),
+      detect([
+        {
+          winner: 'CT',
+          kills: [{ at: 1, attacker: 'ct1', victim: 't1', weapon: 'knife', headshot: true }],
+          endsAt: 90,
+        },
+      ]),
     ).toEqual([])
+  })
+
+  test('only 3Ks and up and 1v2+ clutches are recorded on their own', () => {
+    const highlights = detect([
+      { winner: 'CT', kills: ecoRound().kills, endsAt: 90 },
+      {
+        winner: 'CT',
+        kills: [1, 2, 3].map((at, i) => ({ at, attacker: 'ct1', victim: `t${i + 1}` })),
+        endsAt: 90,
+      },
+      {
+        winner: 'CT',
+        kills: [
+          { at: 1, attacker: 't1', victim: 'ct1' },
+          { at: 2, attacker: 't1', victim: 'ct2' },
+          { at: 3, attacker: 't2', victim: 'ct3' },
+          { at: 4, attacker: 't2', victim: 'ct4' },
+          { at: 20, attacker: 'ct5', victim: 't1' },
+          { at: 22, attacker: 'ct5', victim: 't2' },
+        ],
+      },
+    ])
+    expect(highlights.map((h) => [h.round, h.kind, shouldAutoRecord(h)])).toEqual(
+      expect.arrayContaining([
+        [1, 'double', false],
+        [2, 'triple', true],
+        [3, 'clutch', true],
+      ]),
+    )
   })
 
   test('at most maxPerPlayer highlights per player, best first', () => {

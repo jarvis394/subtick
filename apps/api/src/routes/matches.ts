@@ -5,7 +5,7 @@ import { z } from 'zod'
 import type { Context } from '../context'
 import { importShareCode } from '../services/matches'
 import { getProfiles } from '../services/profiles'
-import { withClipUrls } from '../services/highlights'
+import { notOneKill, withClipUrls } from '../services/highlights'
 import { authGuard } from './guard'
 
 const PAGE_SIZE = 20
@@ -41,6 +41,7 @@ export const matchRoutes = (ctx: Context) => {
             highlightCount: sql<number>`(
               select count(*)::int from ${highlight}
               where ${highlight.matchId} = ${match.id} and ${highlight.steamId} = ${userMatch.steamId}
+                and ${notOneKill}
             )`,
           })
           .from(userMatch)
@@ -88,7 +89,7 @@ export const matchRoutes = (ctx: Context) => {
             .select({ highlight, clip })
             .from(highlight)
             .leftJoin(clip, eq(clip.highlightId, highlight.id))
-            .where(eq(highlight.matchId, row.id))
+            .where(and(eq(highlight.matchId, row.id), notOneKill))
             .orderBy(desc(highlight.score)),
           db
             .select({ steamId: userMatch.steamId })

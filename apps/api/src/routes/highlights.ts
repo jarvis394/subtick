@@ -4,7 +4,7 @@ import { enqueue } from '@subtick/queue'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
-import { withClipUrls } from '../services/highlights'
+import { notOneKill, withClipUrls } from '../services/highlights'
 import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
@@ -50,6 +50,7 @@ export const highlightRoutes = (ctx: Context) => {
           .where(
             and(
               eq(highlight.status, 'recorded'),
+              notOneKill,
               kinds.length ? inArray(highlight.kind, kinds) : undefined,
               query.map ? eq(match.map, query.map) : undefined,
             ),
@@ -97,7 +98,7 @@ export const highlightRoutes = (ctx: Context) => {
           .from(highlight)
           .innerJoin(userMatch, ownHighlight(user.id))
           .innerJoin(match, eq(match.id, highlight.matchId))
-          .where(eq(highlight.status, 'recorded'))
+          .where(and(eq(highlight.status, 'recorded'), notOneKill))
         return { maps: maps.flatMap((m) => (m.map ? [m.map] : [])).toSorted() }
       },
       { auth: true },

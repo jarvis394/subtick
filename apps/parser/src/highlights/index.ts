@@ -25,7 +25,13 @@ export const detectHighlights = (
   const killTags = tagKills(timeline, flicks, config)
   const totalRounds = timeline.rounds.length
 
-  const candidates = buildMoments(timeline, clutches, config).map((moment): Highlight => {
+  // A lone kill is never a highlight, unless it won a 1v2 or harder.
+  const moments = buildMoments(timeline, clutches, config).filter(
+    (m) =>
+      m.kills.length !== 1 ||
+      (m.clutch !== null && m.clutch.opponents >= config.autoRecord.minClutchOpponents),
+  )
+  const candidates = moments.map((moment): Highlight => {
     const tags = momentTags(moment, totalRounds)
     const kind = momentKind(moment, killTags)
     return {
@@ -65,3 +71,11 @@ export const detectHighlights = (
 
   return { highlights, killTags }
 }
+
+/** Whether a subtick player's highlight is recorded without being asked for: 3K+ and real clutches. */
+export const shouldAutoRecord = (
+  h: Pick<Highlight, 'kills' | 'clutch'>,
+  config: HighlightConfig = highlightConfig,
+) =>
+  h.kills.length >= config.autoRecord.minKills ||
+  (h.clutch !== null && h.clutch.won && h.clutch.opponents >= config.autoRecord.minClutchOpponents)

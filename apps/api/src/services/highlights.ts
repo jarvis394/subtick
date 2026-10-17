@@ -1,6 +1,16 @@
-import type { schema } from '@subtick/db'
+import { schema, sql } from '@subtick/db'
 import { keys } from '@subtick/storage'
 import type { Context } from '../context'
+
+/**
+ * Hides single-kill moments that analysis before parser v4 still stored; they are never shown,
+ * however special the kill, unless they won a 1v2 or harder. `#>> '{}'` unwraps jsonb that was
+ * stored as a JSON string.
+ */
+export const notOneKill = sql`(
+  jsonb_array_length((${schema.highlight.kills} #>> '{}')::jsonb) <> 1
+  or (((${schema.highlight.clutch} #>> '{}')::jsonb ->> 'opponents')::int >= 2)
+)`
 
 type HighlightRow = typeof schema.highlight.$inferSelect
 type ClipRow = typeof schema.clip.$inferSelect

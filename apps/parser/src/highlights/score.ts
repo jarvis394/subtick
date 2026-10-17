@@ -125,7 +125,7 @@ export const momentTitle = (
     case 'ace':
       return `Ace with the ${weapon}`
     case 'clutch': {
-      const suffix = n ? ` · ${n}K` : moment.defuse ? ' · defuse' : ''
+      const suffix = n > 1 ? ` · ${n}K` : moment.defuse ? ' · defuse' : ''
       return `1v${moment.clutch!.opponents} clutch${suffix}`
     }
     case 'quad':
