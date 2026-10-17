@@ -28,5 +28,5 @@
 	"setting.videocfg_particle_detail"		"0"
 	"setting.videocfg_ao_detail"		"0"
 	"setting.videocfg_hdr_detail"		"3"
-	"setting.videocfg_fsr_detail"		"3"
+	"setting.videocfg_fsr_detail"		"0"
 }

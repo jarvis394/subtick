@@ -26,6 +26,14 @@ const FFMPEG_EXIT_POLLS = 120
  */
 const SLOW_RENDER_RATIO = 12
 const CLIPS_PER_SESSION = 4
+/**
+ * What the mirv_pov fork prints when its HUD hooks don't match the CS2 build, or what CS2 prints
+ * when the loaded AfxHookSource2.dll has no mirv_pov at all. Side features failing (radio, kill
+ * reward text) don't change the HUD and are ignored.
+ */
+const POV_FAILURE =
+  /Unknown command.*mirv_pov|\[mirv_pov_hud\].*(?:not found|not available|not loaded)|pov-target-unavailable/i
+const POV_CHECK_MS = 1500
 /** Offline rendering on a weak GPU runs well below real time; scale the timeout with the clip. */
 const RENDER_TIMEOUT_PER_DEMO_SECOND_MS = 30_000
 /** H.264 that browsers stream directly; `{QUOTE}` and `\\` are HLAE's escapes. */
@@ -42,6 +50,12 @@ export interface Cs2RecorderOptions {
   prefix: string
   /** Where HLAE writes takes; must be inside the prefix so the Windows side can reach it. */
   takesDir: string
+  /**
+   * Render the player's own HUD instead of CS2's spectator HUD, with `mirv_pov` from the
+   * WangChuDi/advancedfx fork's AfxHookSource2.dll (official HLAE has it for CS:GO only; the
+   * bootstrap installs the fork when HLAE_POV=1).
+   */
+  mirvPov?: boolean
   log: Logger<unknown>
 }
 
@@ -55,6 +69,8 @@ export class Cs2Recorder implements Recorder {
   #matchId: string | null = null
   #takes = 0
   #sessionClips = 0
+  /** `mirv_pov` failed in this game session; tried again after a restart. */
+  #povBroken = false
 
   constructor(private readonly options: Cs2RecorderOptions) {}
 
@@ -162,6 +178,7 @@ export class Cs2Recorder implements Recorder {
     await seeked
     // After the seek: a seek resets the spectated player.
     netcon.send(`spec_player "${playerName}"`)
+    await this.#enablePov(netcon)
 
     // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
     // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
@@ -194,7 +211,31 @@ export class Cs2Recorder implements Recorder {
     return { path, audioPath: wav && join(dirname(path), wav), renderMs }
   }
 
+  /**
+   * Switches to the spectated player's own HUD. POV follows whoever is spectated when it turns
+   * on, so it is re-enabled after every `spec_player`. When the hook can't find what it needs (a
+   * CS2 update moved it, or the DLL is official HLAE's), clips keep the spectator HUD instead.
+   */
+  async #enablePov(netcon: NetCon) {
+    if (!this.options.mirvPov || this.#povBroken) return
+    await Bun.sleep(500)
+    const failed = netcon.waitFor(POV_FAILURE, POV_CHECK_MS).then(
+      (line) => line,
+      () => null,
+    )
+    netcon.send('mirv_pov 0', 'mirv_pov 1')
+    const line = await failed
+    if (!line) return
+    this.#povBroken = true
+    netcon.send('mirv_pov 0')
+    this.options.log.warn(
+      { line },
+      "mirv_pov can't hook this CS2 build; recording the spectator HUD",
+    )
+  }
+
   async reset() {
+    this.#povBroken = false
     this.#matchId = null
     this.#sessionClips = 0
     this.#netcon?.close()

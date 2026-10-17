@@ -3,6 +3,7 @@ import {
   RECORDER_HEARTBEAT_FAST_MS,
   RECORDER_HEARTBEAT_MS,
   type RecorderState,
+  type SteamMode,
 } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
 import type { SteamCredentials } from './cs2/steam-login'
@@ -11,6 +12,7 @@ import type { SteamAccountSource } from './cs2/wine'
 /** What this machine reports in every heartbeat. Kept current by the worker as it goes. */
 export interface RecorderStatus {
   state: RecorderState
+  steamMode: SteamMode
   signedInAs: string | null
   currentMatchId: string | null
   lastError: string | null
@@ -25,8 +27,9 @@ export interface RecorderSettings {
   steamAccount: { username: string; updatedAt: string } | null
 }
 
-export const createStatus = (): RecorderStatus => ({
+export const createStatus = (steamMode: SteamMode): RecorderStatus => ({
   state: 'starting',
+  steamMode,
   signedInAs: null,
   currentMatchId: null,
   lastError: null,

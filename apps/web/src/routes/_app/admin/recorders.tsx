@@ -208,7 +208,10 @@ function RecorderCard({
         : state
           ? 'success'
           : 'neutral'
+  // gbe_fork stands in for Steam: no client, no account to assign, no Steam Guard.
+  const emulated = recorder.steamMode === 'emulator'
   const accountMismatch =
+    !emulated &&
     recorder.online &&
     recorder.steamAccount &&
     recorder.signedInAs !== recorder.steamAccount.username
@@ -258,7 +261,11 @@ function RecorderCard({
       )}
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-        <Detail label="Signed in as">{recorder.signedInAs ?? '—'}</Detail>
+        {emulated ? (
+          <Detail label="Steam">Emulated (gbe_fork)</Detail>
+        ) : (
+          <Detail label="Signed in as">{recorder.signedInAs ?? '—'}</Detail>
+        )}
         <Detail label="Recording">
           {recorder.currentMatchId ? (
             <Link
@@ -287,34 +294,41 @@ function RecorderCard({
       )}
 
       <div className="flex flex-wrap items-end gap-3 border-t pt-4">
-        <Field
-          label="Steam account"
-          className="min-w-56 flex-1"
-          description={
-            accountMismatch ? 'Switches between jobs, once the machine is idle.' : undefined
-          }
-        >
-          <select
-            className={inputClass}
-            value={recorder.steamAccount?.id ?? ''}
-            disabled={update.isPending}
-            onChange={(event) => update.mutate({ steamAccountId: event.target.value || null })}
+        {emulated ? (
+          <p className="min-w-56 flex-1 text-[13px] text-muted">
+            CS2 runs on an emulated Steam, so this machine needs no Steam account. An assigned
+            account is kept for when it switches back to the Steam client (STEAM_MODE=client).
+          </p>
+        ) : (
+          <Field
+            label="Steam account"
+            className="min-w-56 flex-1"
+            description={
+              accountMismatch ? 'Switches between jobs, once the machine is idle.' : undefined
+            }
           >
-            <option value="">None (sign in over VNC or with env vars)</option>
-            {accounts.data?.map((account) => (
-              <option
-                key={account.id}
-                value={account.id}
-                disabled={account.recorder !== null && account.recorder.id !== recorder.id}
-              >
-                {account.username}
-                {account.recorder && account.recorder.id !== recorder.id
-                  ? ` (on ${account.recorder.name})`
-                  : ''}
-              </option>
-            ))}
-          </select>
-        </Field>
+            <select
+              className={inputClass}
+              value={recorder.steamAccount?.id ?? ''}
+              disabled={update.isPending}
+              onChange={(event) => update.mutate({ steamAccountId: event.target.value || null })}
+            >
+              <option value="">None (sign in over VNC or with env vars)</option>
+              {accounts.data?.map((account) => (
+                <option
+                  key={account.id}
+                  value={account.id}
+                  disabled={account.recorder !== null && account.recorder.id !== recorder.id}
+                >
+                  {account.username}
+                  {account.recorder && account.recorder.id !== recorder.id
+                    ? ` (on ${account.recorder.name})`
+                    : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <div className="flex flex-wrap gap-2 pb-px">
           <Button
             size="sm"

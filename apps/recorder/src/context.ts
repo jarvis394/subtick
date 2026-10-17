@@ -26,7 +26,7 @@ export const createContext = () => {
   if (Boolean(env.SUBTICK_URL) !== Boolean(env.RECORDER_TOKEN))
     throw new Error('SUBTICK_URL and RECORDER_TOKEN go together: set both to join the fleet')
 
-  const health = createStatus()
+  const health = createStatus(env.STEAM_MODE)
   const fleet =
     env.SUBTICK_URL && env.RECORDER_TOKEN
       ? createFleetLink({
@@ -57,6 +57,7 @@ export const createContext = () => {
     netconPort: env.CS2_NETCON_PORT,
     configDir,
     steamAccount: fleet?.steamAccount ?? envAccount,
+    steam: env.STEAM_MODE,
     log: log.getSubLogger({ name: 'cs2' }),
   })
   const recorder = new Cs2Recorder({
@@ -64,6 +65,7 @@ export const createContext = () => {
     cs2Dir: env.CS2_DIR,
     prefix: env.WINEPREFIX,
     takesDir: join(configDir, 'takes'),
+    mirvPov: env.HLAE_POV,
     log,
   })
 

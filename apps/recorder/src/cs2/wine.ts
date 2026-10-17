@@ -21,6 +21,8 @@ export interface WineGameOptions {
   configDir: string
   /** Signs a fresh prefix in without VNC; once signed in, Steam reuses its saved token. */
   steamAccount?: SteamAccountSource
+  /** `emulator`: the game files carry a Steam emulator, so the Steam client is never started. */
+  steam?: 'client' | 'emulator'
   log: Logger<unknown>
 }
 
@@ -88,6 +90,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  */
 export const createWineGame = (options: WineGameOptions) => {
   const { cs2Dir, prefix, netconPort, configDir, steamAccount, log } = options
+  const emulated = options.steam === 'emulator'
   const steamDir = join(prefix, 'drive_c/Program Files (x86)/Steam')
   const hlaeDir = join(prefix, 'drive_c/hlae')
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
@@ -296,8 +299,8 @@ export const createWineGame = (options: WineGameOptions) => {
     const running = await connectNetCon(netconPort, consoleLog).catch(() => null)
     if (running) return running
 
-    await ensureSteam()
-    log.info('starting CS2 through HLAE')
+    if (!emulated) await ensureSteam()
+    log.info({ steam: options.steam ?? 'client' }, 'starting CS2 through HLAE')
     spawnWine(
       [
         'C:\\hlae\\HLAE.exe',
@@ -356,7 +359,14 @@ export const createWineGame = (options: WineGameOptions) => {
     }
   }
 
-  return { connect, kill, signIn: ensureSteam, signOut, signedInAs }
+  return {
+    connect,
+    kill,
+    // An emulated Steam has no account to sign in or out of.
+    signIn: emulated ? async () => {} : ensureSteam,
+    signOut: emulated ? async () => {} : signOut,
+    signedInAs: emulated ? async () => null : signedInAs,
+  }
 }
 
 export type WineGame = ReturnType<typeof createWineGame>

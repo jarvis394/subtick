@@ -18,6 +18,13 @@ export const RECORDER_STATES = [
 ] as const
 export type RecorderState = (typeof RECORDER_STATES)[number]
 
+/**
+ * How a recorder's CS2 gets Steam: the Windows Steam client signed in to an account, or gbe_fork
+ * emulating it (no client, no account, no Steam Guard).
+ */
+export const STEAM_MODES = ['client', 'emulator'] as const
+export type SteamMode = (typeof STEAM_MODES)[number]
+
 /** Recorders report every 15 s, faster while an admin is typing in a Steam Guard code. */
 export const RECORDER_HEARTBEAT_MS = 15_000
 export const RECORDER_HEARTBEAT_FAST_MS = 3000

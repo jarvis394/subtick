@@ -79,6 +79,19 @@ export const RecorderEnv = {
   STEAM_USERNAME: z.string().min(1).optional(),
   STEAM_PASSWORD: z.string().min(1).optional(),
   STEAM_SHARED_SECRET: z.string().min(1).optional(),
+  /**
+   * `client`: CS2 talks to the Windows Steam client, which has to be signed in. `emulator`: CS2's
+   * steam_api64.dll is a Steam emulator (gbe_fork) laid over the game files; no client, no account.
+   */
+  STEAM_MODE: z.enum(['client', 'emulator']).default('client'),
+  /**
+   * 1: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the
+   * `mirv_pov` fork of HLAE's AfxHookSource2.dll (installed by the bootstrap).
+   */
+  HLAE_POV: z
+    .enum(['0', '1'])
+    .default('0')
+    .transform((v) => v === '1'),
 }
 export const WorkerEnv = {
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(1),

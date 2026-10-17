@@ -32,6 +32,7 @@ export const recorderView = (
   state: row.state,
   steamAccount: account && { id: account.id, username: account.username },
   signedInAs: row.signedInAs,
+  steamMode: row.steamMode,
   awaitingGuardCode: row.guardCode !== null,
   currentMatchId: row.currentMatchId,
   lastError: row.lastError,

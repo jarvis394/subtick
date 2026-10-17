@@ -1,4 +1,4 @@
-import { RECORDER_STATES } from '@subtick/domain'
+import { RECORDER_STATES, type SteamMode } from '@subtick/domain'
 import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { user } from './auth'
 
@@ -50,6 +50,8 @@ export const recorder = pgTable('recorder', {
   // Last heartbeat. All null until the machine first connects.
   state: recorderState(),
   signedInAs: text(),
+  /** Null until a recorder that reports it connects. */
+  steamMode: text().$type<SteamMode>(),
   currentMatchId: text(),
   lastError: text(),
   hostname: text(),

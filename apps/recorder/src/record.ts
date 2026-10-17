@@ -12,7 +12,7 @@ import type { RecordedFile } from './recorder'
 const { match, highlight, matchPlayer, clip } = schema
 
 /** Bumped when clips should be re-rendered (look, resolution, capture changes). */
-export const RECORDER_VERSION = 3
+export const RECORDER_VERSION = 4
 
 type Highlight = typeof highlight.$inferSelect
 

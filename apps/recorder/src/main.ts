@@ -28,7 +28,8 @@ const exclusive = <T>(task: () => Promise<T>): Promise<T> => {
 const syncSteamAccount = async () => {
   const wanted = fleet?.settings?.steamAccount?.username
   status.signedInAs = await game.signedInAs()
-  if (!wanted || status.signedInAs === wanted) return
+  // An emulated Steam has no accounts to switch between.
+  if (env.STEAM_MODE === 'emulator' || !wanted || status.signedInAs === wanted) return
   log.info({ from: status.signedInAs, to: wanted }, 'switching Steam account')
   status.state = 'signing_in'
   await recorder.reset()
@@ -110,6 +111,7 @@ if (fleet) {
     // A new account is signed in right away when idle, so the admin sees it work (or the code
     // prompt) without waiting for a job.
     const wanted = settings.steamAccount?.username
+    if (env.STEAM_MODE === 'emulator') return
     if (!wanted || wanted === status.signedInAs || switching || status.state !== 'idle') return
     switching = true
     void exclusive(syncSteamAccount)

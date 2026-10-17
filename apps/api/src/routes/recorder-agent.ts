@@ -1,5 +1,5 @@
 import { and, eq, schema } from '@subtick/db'
-import { RECORDER_STATES } from '@subtick/domain'
+import { RECORDER_STATES, STEAM_MODES } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
@@ -10,6 +10,8 @@ const { recorder, recorderSteamAccount: account } = schema
 const Heartbeat = z.object({
   state: z.enum(RECORDER_STATES),
   signedInAs: z.string().max(64).nullable(),
+  /** Optional: recorders built before Steam emulation don't send it. */
+  steamMode: z.enum(STEAM_MODES).optional(),
   currentMatchId: z.string().max(32).nullable(),
   lastError: z.string().max(2000).nullable(),
   hostname: z.string().max(255).nullable(),

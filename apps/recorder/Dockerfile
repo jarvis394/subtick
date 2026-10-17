@@ -3,6 +3,35 @@
 #   docker build -f apps/recorder/Dockerfile -t subtick-recorder .
 # Run with the NVIDIA runtime; see apps/recorder/README.md for volumes and environment. On start,
 # docker/bootstrap.sh sets up the Wine prefix and the game files, then the worker runs.
+
+# Pinned third-party binaries the bootstrap lays over the game and HLAE when their toggles are on.
+# A changed release fails the checksum and the build: bumping one is an edit of version and hash.
+FROM alpine:3.20 AS binaries
+RUN apk add --no-cache curl 7zip
+# gbe_fork (LGPL-3.0, https://github.com/Detanup01/gbe_fork): a Steam API emulator, so CS2 runs
+# without the Steam client (STEAM_MODE=emulator). Only its regular x64 steam_api64.dll is kept.
+ARG GBE_RELEASE=release-2026_09_27
+ARG GBE_SHA256=300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85
+RUN curl -fsSLo /tmp/gbe.7z "https://github.com/Detanup01/gbe_fork/releases/download/$GBE_RELEASE/emu-win-release-vs22.7z" \
+ && echo "$GBE_SHA256  /tmp/gbe.7z" | sha256sum -c - \
+ && 7z x -y -o/tmp/gbe /tmp/gbe.7z >/dev/null \
+ && mkdir -p /out/gbe \
+ && cp /tmp/gbe/release/regular/x64/steam_api64.dll /tmp/gbe/release/CREDITS.md /out/gbe/ \
+ && echo "$GBE_RELEASE" > /out/gbe/.release
+# The mirv_pov fork of HLAE's AfxHookSource2.dll (AGPL-3.0, source in the same release:
+# https://github.com/WangChuDi/advancedfx), built on HLAE 2.192.8: the player's own HUD in CS2
+# demos (HLAE_POV=1). Must match the HLAE_VERSION the bootstrap installs.
+ARG HLAE_POV_RELEASE=prerelease-92-fc35fdaddc2129dcf730d9a197fe63e7263e4aa7
+ARG HLAE_POV_ASSET=AfxHookSource2-fc35fdaddc21-windows-x64.zip
+ARG HLAE_POV_SHA256=d0af4209c97dacf29af9a65f0dfea63be0c9a5a0c2a3916b8449188c53382bb1
+ARG HLAE_POV_HLAE_VERSION=2.192.8
+RUN curl -fsSLo /tmp/pov.zip "https://github.com/WangChuDi/advancedfx/releases/download/$HLAE_POV_RELEASE/$HLAE_POV_ASSET" \
+ && echo "$HLAE_POV_SHA256  /tmp/pov.zip" | sha256sum -c - \
+ && mkdir -p /out/hlae-pov && unzip -q /tmp/pov.zip -d /out/hlae-pov \
+ && test -f /out/hlae-pov/AfxHookSource2.dll \
+ && echo "$HLAE_POV_RELEASE" > /out/hlae-pov/.release \
+ && echo "$HLAE_POV_HLAE_VERSION" > /out/hlae-pov/.hlae-version
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -25,6 +54,9 @@ RUN for v in 1.10.3 2.7.1; do \
       mkdir -p /opt/dxvk-$v && curl -fsSL https://github.com/doitsujin/dxvk/releases/download/v$v/dxvk-$v.tar.gz \
         | tar -xz -C /opt/dxvk-$v --strip-components=1; \
     done
+
+COPY --from=binaries /out/gbe /opt/gbe
+COPY --from=binaries /out/hlae-pov /opt/hlae-pov
 
 COPY --from=oven/bun:1.3.14 /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
