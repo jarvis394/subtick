@@ -4,6 +4,7 @@ import { type QueryClient, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
+import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
 import { MapIcon } from '@/components/map-icon'
@@ -14,6 +15,7 @@ import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
 import { Skeleton } from '@/components/ui/surface'
 import { formatDate } from '@/lib/format'
+import { clipMask, clipViewerSearch } from '@/lib/highlights'
 import { type MatchDetail, type MatchListItem, matchQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -72,6 +74,7 @@ export const Route = createFileRoute('/_app/matches/$id')({
     void context.queryClient.prefetchQuery(matchQuery(params.id))
     return { preview: cachedHead(context.queryClient, params.id) }
   },
+  validateSearch: clipViewerSearch,
   component: MatchPage,
 })
 
@@ -81,6 +84,8 @@ const tabClass =
 function MatchPage() {
   const { id } = Route.useParams()
   const { preview } = Route.useLoaderData()
+  const { clip } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const { data, error } = useQuery(matchQuery(id))
   if (error) throw error
   const head = data ? headFromDetail(data) : preview
@@ -91,6 +96,19 @@ function MatchPage() {
       <FadeSwap swapKey={data ? 'ready' : 'loading'} enterDelay={data ? 0 : 120}>
         {data ? <MatchBody data={data} /> : <BodySkeleton />}
       </FadeSwap>
+      <ClipViewerDialog
+        clipId={clip}
+        source={{ match: id }}
+        onSelect={(next) =>
+          navigate({
+            search: { clip: next },
+            mask: clipMask(next),
+            replace: true,
+            resetScroll: false,
+          })
+        }
+        onClose={() => navigate({ search: {}, resetScroll: false })}
+      />
     </div>
   )
 }

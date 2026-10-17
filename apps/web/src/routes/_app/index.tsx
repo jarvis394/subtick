@@ -4,7 +4,7 @@ import { mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronDown, Clapperboard, SearchX } from 'lucide-react'
-import { z } from 'zod'
+import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
@@ -12,18 +12,14 @@ import { MapIcon } from '@/components/map-icon'
 import { isProcessing } from '@/components/match-status'
 import { Button } from '@/components/ui/button'
 import { Skeleton, Spinner } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
 import { dayLabel } from '@/lib/format'
-import { KIND_FILTERS, type KindFilter } from '@/lib/highlights'
+import { KIND_FILTERS, type KindFilter, clipListSearch, clipMask } from '@/lib/highlights'
 import { type Clip, clipFacetsQuery, clipsQuery, recentMatchesQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
-const Search = z.object({
-  kind: z.enum(KIND_FILTERS.map((f) => f.id) as [KindFilter, ...KindFilter[]]).optional(),
-  map: z.string().optional(),
-})
-
 export const Route = createFileRoute('/_app/')({
-  validateSearch: Search,
+  validateSearch: clipListSearch,
   component: HighlightsPage,
 })
 
@@ -47,18 +43,18 @@ function HighlightsPage() {
   const kind = search.kind ?? 'all'
   const kinds = [...KIND_FILTERS.find((f) => f.id === kind)!.kinds]
 
-  const clips = useInfiniteQuery(clipsQuery({ kinds, map: search.map }))
+  const clips = useInfiniteQuery(clipsQuery({ kinds, map: search.map, mine: search.mine }))
   const facets = useQuery(clipFacetsQuery)
   const recent = useQuery(recentMatchesQuery)
   const processing = recent.data?.items.filter((m) => isProcessing(m.status)).length ?? 0
 
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
-  const filtered = kind !== 'all' || Boolean(search.map)
+  const filtered = kind !== 'all' || Boolean(search.map) || Boolean(search.mine)
   // One view per filter, so switching between cached filters crossfades too. Loading stays a
   // single view: skeletons don't refade when the filter changes again mid-load.
   const view = clips.isPending
     ? 'loading'
-    : `${items.length === 0 ? 'empty' : 'results'}:${kind}:${search.map ?? ''}`
+    : `${items.length === 0 ? 'empty' : 'results'}:${kind}:${search.map ?? ''}:${search.mine ? 'mine' : ''}`
   const mapItems = [
     { value: ALL_MAPS, label: 'All maps' },
     ...(facets.data?.maps ?? []).map((m) => ({ value: m, label: mapName(m) })),
@@ -150,6 +146,16 @@ function HighlightsPage() {
             </Select.Positioner>
           </Select.Portal>
         </Select.Root>
+
+        <Switch
+          checked={Boolean(search.mine)}
+          onCheckedChange={(mine) =>
+            navigate({ search: (s) => ({ ...s, mine: mine || undefined }) })
+          }
+          className="ml-auto"
+        >
+          Only mine
+        </Switch>
       </div>
 
       <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0}>
@@ -165,8 +171,8 @@ function HighlightsPage() {
             title={filtered ? 'Nothing matches these filters' : 'No clips yet'}
             description={
               filtered
-                ? 'Try another kind or map.'
-                : 'Your best moments are clipped automatically after each match. They show up here once recorded.'
+                ? `Try another kind or map${search.mine ? ', or turn off Only mine' : ''}.`
+                : 'The best moments of every match are clipped automatically. They show up here once recorded.'
             }
           />
         ) : (
@@ -201,6 +207,20 @@ function HighlightsPage() {
           </div>
         )}
       </FadeSwap>
+
+      <ClipViewerDialog
+        clipId={search.clip}
+        source={{ kinds, map: search.map, mine: search.mine }}
+        onSelect={(clip) =>
+          navigate({
+            search: (s) => ({ ...s, clip }),
+            mask: clipMask(clip),
+            replace: true,
+            resetScroll: false,
+          })
+        }
+        onClose={() => navigate({ search: (s) => ({ ...s, clip: undefined }), resetScroll: false })}
+      />
     </div>
   )
 }

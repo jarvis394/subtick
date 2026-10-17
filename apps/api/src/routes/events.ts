@@ -1,4 +1,3 @@
-import { and, eq, schema } from '@subtick/db'
 import { type MatchEvent, createMatchEventHub } from '@subtick/queue'
 import { Elysia, sse } from 'elysia'
 import type { Context } from '../context'
@@ -7,26 +6,15 @@ import { authGuard } from './guard'
 const HEARTBEAT_MS = 25_000
 
 /**
- * Server-sent pipeline progress for the user's matches. Workers publish to Redis; each api process
- * holds one subscription and forwards only events for matches the user is linked to.
+ * Server-sent pipeline progress. Workers publish to Redis; each api process holds one subscription
+ * and forwards every match's events, since any match and clip is viewable by anyone signed in.
  */
-export const eventRoutes = ({ db, auth, env }: Context) => {
+export const eventRoutes = ({ auth, env }: Context) => {
   const listen = createMatchEventHub(env.REDIS_URL)
 
   return new Elysia().use(authGuard(auth)).get(
     '/events',
-    async function* ({ user, request }) {
-      const known = new Set<string>()
-      const isMine = async (matchId: string) => {
-        if (known.has(matchId)) return true
-        const [row] = await db
-          .select({ matchId: schema.userMatch.matchId })
-          .from(schema.userMatch)
-          .where(and(eq(schema.userMatch.userId, user.id), eq(schema.userMatch.matchId, matchId)))
-        if (row) known.add(matchId)
-        return Boolean(row)
-      }
-
+    async function* ({ request }) {
       // Bridge the push-based hub into this pull-based generator.
       const pending: MatchEvent[] = []
       let wake: (() => void) | null = null
@@ -51,9 +39,7 @@ export const eventRoutes = ({ db, auth, env }: Context) => {
               yield sse({ event: 'ping', data: {} })
             continue
           }
-          const event = pending.shift()!
-          // oxlint-disable-next-line no-await-in-loop -- events are forwarded in order
-          if (await isMine(event.matchId)) yield sse({ event: 'match', data: event })
+          yield sse({ event: 'match', data: pending.shift()! })
         }
       } finally {
         clearInterval(heartbeat)

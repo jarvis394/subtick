@@ -6,6 +6,8 @@ import { clearStoredMe, readStoredMe, writeStoredMe } from './stored-me'
 export interface ClipFilters {
   kinds?: HighlightKind[]
   map?: string
+  /** Only the signed-in user's own plays. */
+  mine?: boolean
 }
 
 const fetchMe = async () => {
@@ -22,9 +24,15 @@ const fetchMatch = (id: string) => unwrap(api.matches({ id }).get())
 const fetchClips = (offset: number, filters: ClipFilters) =>
   unwrap(
     api.highlights.get({
-      query: { offset, kinds: filters.kinds?.join(',') || undefined, map: filters.map },
+      query: {
+        offset,
+        kinds: filters.kinds?.join(',') || undefined,
+        map: filters.map,
+        mine: filters.mine || undefined,
+      },
     }),
   )
+const fetchClip = (id: string) => unwrap(api.highlights({ id }).get())
 const fetchFacets = () => unwrap(api.highlights.facets.get())
 
 export type Me = Awaited<ReturnType<typeof fetchMe>>
@@ -69,6 +77,10 @@ export const clipsQuery = (filters: ClipFilters) =>
     initialPageParam: 0,
     getNextPageParam: (page) => page.nextOffset ?? undefined,
   })
+
+/** One recorded clip, for opening the viewer straight from a link. */
+export const clipQuery = (id: string) =>
+  queryOptions({ queryKey: ['highlights', 'clip', id], queryFn: () => fetchClip(id) })
 
 export const clipFacetsQuery = queryOptions({
   queryKey: ['highlights', 'facets'],

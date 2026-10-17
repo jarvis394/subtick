@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, or, schema, sql } from '@subtick/db'
+import { and, desc, eq, exists, inArray, or, schema, sql } from '@subtick/db'
 import { HIGHLIGHT_KINDS, type HighlightKind } from '@subtick/domain'
 import { enqueue } from '@subtick/queue'
 import { Elysia } from 'elysia'
@@ -17,42 +17,71 @@ const playedAt = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`.mapW
 const isHighlightKind = (value: string): value is HighlightKind =>
   HIGHLIGHT_KINDS.includes(value as HighlightKind)
 
-/** Joins `user_match` so only the user's own player's highlights remain. */
-const ownHighlight = (userId: string) =>
-  and(
-    eq(userMatch.userId, userId),
-    eq(userMatch.matchId, highlight.matchId),
-    eq(userMatch.steamId, highlight.steamId),
-  )
+/** Elysia may already have split a comma-separated query value into an array. */
+const listParam = (value: string | string[] | undefined) =>
+  typeof value === 'string' ? value.split(',') : (value ?? [])
 
+/** Every user's recorded clips are shared with everyone signed in. */
 export const highlightRoutes = (ctx: Context) => {
   const { db, auth, queues } = ctx
+
+  /** Recorded clips with what a card shows: the match's map and date, and who made the play. */
+  const selectClips = () =>
+    db
+      .select({ highlight, clip, map: match.map, playedAt, playerName: matchPlayer.name })
+      .from(highlight)
+      .innerJoin(match, eq(match.id, highlight.matchId))
+      .innerJoin(clip, eq(clip.highlightId, highlight.id))
+      .innerJoin(
+        matchPlayer,
+        and(eq(matchPlayer.matchId, highlight.matchId), eq(matchPlayer.steamId, highlight.steamId)),
+      )
+      .$dynamic()
+
+  const present = async (rows: Awaited<ReturnType<typeof selectClips>>) => {
+    const withUrls = withClipUrls(ctx, rows)
+    const profiles = await getProfiles(
+      ctx,
+      rows.map((row) => row.highlight.steamId),
+    )
+    return rows.map((row, i) => ({
+      ...withUrls[i]!,
+      map: row.map,
+      playedAt: row.playedAt,
+      player: {
+        name: row.playerName,
+        avatarUrl: profiles.get(row.highlight.steamId)?.avatarUrl ?? null,
+      },
+    }))
+  }
 
   return new Elysia({ prefix: '/highlights' })
     .use(authGuard(auth))
     .get(
       '/',
       async ({ user, query }) => {
-        const kinds = query.kinds?.split(',').filter(isHighlightKind) ?? []
-        const rows = await db
-          .select({ highlight, clip, map: match.map, playedAt, playerName: matchPlayer.name })
-          .from(highlight)
-          .innerJoin(userMatch, ownHighlight(user.id))
-          .innerJoin(match, eq(match.id, highlight.matchId))
-          .innerJoin(clip, eq(clip.highlightId, highlight.id))
-          .innerJoin(
-            matchPlayer,
-            and(
-              eq(matchPlayer.matchId, highlight.matchId),
-              eq(matchPlayer.steamId, highlight.steamId),
-            ),
-          )
+        const kinds = listParam(query.kinds).filter(isHighlightKind)
+        const rows = await selectClips()
           .where(
             and(
               eq(highlight.status, 'recorded'),
               notOneKill,
               kinds.length ? inArray(highlight.kind, kinds) : undefined,
               query.map ? eq(match.map, query.map) : undefined,
+              query.mine === true || query.mine === 'true'
+                ? exists(
+                    db
+                      .select({ one: sql`1` })
+                      .from(userMatch)
+                      .where(
+                        and(
+                          eq(userMatch.userId, user.id),
+                          eq(userMatch.matchId, highlight.matchId),
+                          eq(userMatch.steamId, highlight.steamId),
+                        ),
+                      ),
+                  )
+                : undefined,
             ),
           )
           // Newest match first; within a match, best moment first.
@@ -60,22 +89,8 @@ export const highlightRoutes = (ctx: Context) => {
           .limit(PAGE_SIZE + 1)
           .offset(query.offset)
 
-        const page = rows.slice(0, PAGE_SIZE)
-        const withUrls = withClipUrls(ctx, page)
-        const profiles = await getProfiles(
-          ctx,
-          page.map((row) => row.highlight.steamId),
-        )
         return {
-          items: page.map((row, i) => ({
-            ...withUrls[i]!,
-            map: row.map,
-            playedAt: row.playedAt,
-            player: {
-              name: row.playerName,
-              avatarUrl: profiles.get(row.highlight.steamId)?.avatarUrl ?? null,
-            },
-          })),
+          items: await present(rows.slice(0, PAGE_SIZE)),
           nextOffset: rows.length > PAGE_SIZE ? query.offset + PAGE_SIZE : null,
         }
       },
@@ -84,24 +99,37 @@ export const highlightRoutes = (ctx: Context) => {
         query: z.object({
           offset: z.coerce.number().int().min(0).default(0),
           /** Comma-separated highlight kinds. */
-          kinds: z.string().optional(),
+          kinds: z.union([z.string(), z.array(z.string())]).optional(),
           map: z.string().optional(),
+          /** Only the signed-in user's own plays. */
+          mine: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
         }),
       },
     )
     .get(
       '/facets',
-      async ({ user }) => {
-        // Maps the user has clips on, for the filter bar.
+      async () => {
+        // Maps with clips, for the filter bar.
         const maps = await db
           .selectDistinct({ map: match.map })
           .from(highlight)
-          .innerJoin(userMatch, ownHighlight(user.id))
           .innerJoin(match, eq(match.id, highlight.matchId))
           .where(and(eq(highlight.status, 'recorded'), notOneKill))
         return { maps: maps.flatMap((m) => (m.map ? [m.map] : [])).toSorted() }
       },
       { auth: true },
+    )
+    .get(
+      '/:id',
+      async ({ params, status }) => {
+        const rows = await selectClips().where(
+          and(eq(highlight.id, params.id), eq(highlight.status, 'recorded')),
+        )
+        if (!rows.length) return status(404, { error: 'not_found' as const })
+        const [item] = await present(rows)
+        return item!
+      },
+      { auth: true, params: z.object({ id: z.uuid() }) },
     )
     .post(
       '/:id/record',

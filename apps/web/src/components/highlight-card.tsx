@@ -5,7 +5,7 @@ import { memo, useRef, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/surface'
 import { clipSeconds, clock } from '@/lib/format'
-import { KIND_LABEL, tagSummary } from '@/lib/highlights'
+import { KIND_LABEL, clipMask, tagSummary } from '@/lib/highlights'
 import type { Clip } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -28,7 +28,8 @@ const shallowEqual = <T extends object>(a: T, b: T) => {
 }
 
 /**
- * A recorded highlight: thumbnail that plays on hover, then who made it and where.
+ * A recorded highlight: thumbnail that plays on hover and opens the viewer (the page's `clip`
+ * search param), then who made it and where.
  * Memoized on the *contents* of its props: callers build `highlight`/`player` objects inline, so
  * reference equality would never hit and every card would re-render with its parent.
  */
@@ -51,8 +52,13 @@ export const HighlightCard = memo(
 
     return (
       <article>
-        <div
-          className="relative aspect-video cursor-pointer overflow-hidden rounded-xl bg-surface-2"
+        <Link
+          to="."
+          search={(s) => ({ ...s, clip: highlight.id })}
+          mask={clipMask(highlight.id)}
+          resetScroll={false}
+          aria-label={`Watch ${highlight.title}`}
+          className="relative block aspect-video overflow-hidden rounded-xl bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={() => void video.current?.play().catch(() => {})}
           onMouseLeave={() => {
             const el = video.current
@@ -61,7 +67,6 @@ export const HighlightCard = memo(
             el.currentTime = 0
             setElapsed(0)
           }}
-          onClick={() => (video.current?.paused ? video.current.play() : video.current?.pause())}
         >
           <video
             ref={video}
@@ -97,11 +102,21 @@ export const HighlightCard = memo(
               <Play className="ml-0.5 size-4 fill-white text-white" />
             </span>
           </span>
-        </div>
+        </Link>
         <div className="mt-3 flex gap-3">
           <Avatar src={player.avatarUrl} name={player.name} className="mt-0.5 size-8" />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[15px] font-medium">{highlight.title}</h3>
+            <h3 className="truncate text-[15px] font-medium">
+              <Link
+                to="."
+                search={(s) => ({ ...s, clip: highlight.id })}
+                mask={clipMask(highlight.id)}
+                resetScroll={false}
+                className="hover:text-foreground/80"
+              >
+                {highlight.title}
+              </Link>
+            </h3>
             <p className="mt-0.5 truncate text-[13px] text-muted">
               <span className="text-foreground/80">{player.name}</span>
               {' · '}

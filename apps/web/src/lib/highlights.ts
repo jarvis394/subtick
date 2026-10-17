@@ -1,4 +1,5 @@
 import type { HighlightKind, KillTag } from '@subtick/domain'
+import { z } from 'zod'
 
 export const KIND_LABEL: Record<HighlightKind, string> = {
   ace: 'Ace',
@@ -45,3 +46,20 @@ export const KIND_FILTERS = [
   { id: 'special', label: 'Special', kinds: ['special', 'collateral', 'single'] },
 ] as const satisfies { id: string; label: string; kinds: readonly HighlightKind[] }[]
 export type KindFilter = (typeof KIND_FILTERS)[number]['id']
+
+/** The clip open in the viewer, as a URL search param on any page that lists clips. */
+export const clipViewerSearch = z.object({ clip: z.uuid().optional() })
+
+/** The highlights page's filters and open clip, as URL search params. */
+export const clipListSearch = clipViewerSearch.extend({
+  kind: z.enum(KIND_FILTERS.map((f) => f.id) as [KindFilter, ...KindFilter[]]).optional(),
+  map: z.string().optional(),
+  mine: z.boolean().optional(),
+})
+
+/**
+ * Shows a clip opened in a page's viewer as its own `/clips/$id` URL. Unmasked on reload, so a
+ * reload or a shared link opens the clip page rather than the page the dialog was over.
+ */
+export const clipMask = (id: string) =>
+  ({ to: '/clips/$id', params: { id }, unmaskOnReload: true }) as const
