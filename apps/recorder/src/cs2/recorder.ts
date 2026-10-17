@@ -128,10 +128,13 @@ export class Cs2Recorder implements Recorder {
     // After the seek: a seek resets the spectated player.
     netcon.send(`spec_player "${clip.playerName}"`)
 
-    const started = netcon.waitFor(new RegExp(`^subtick_start_${take}$`), SEEK_TIMEOUT_MS)
+    // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
+    // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
+    const marker = (name: string) => new RegExp(`(?:^|\\W)${name}_${take}(?!\\d)`)
+    const started = netcon.waitFor(marker('subtick_start'), SEEK_TIMEOUT_MS)
     const demoSeconds = (clip.endTick - clip.startTick) / TICKRATE
     const done = netcon.waitFor(
-      new RegExp(`^subtick_done_${take}$`),
+      marker('subtick_done'),
       SEEK_TIMEOUT_MS + demoSeconds * RENDER_TIMEOUT_PER_DEMO_SECOND_MS,
     )
     done.catch(() => {})
