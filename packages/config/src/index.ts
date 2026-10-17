@@ -30,6 +30,8 @@ export const DatabaseEnv = { DATABASE_URL: z.url() }
 export const RedisEnv = { REDIS_URL: z.url() }
 export const S3Env = {
   S3_ENDPOINT: z.url(),
+  /** Public origin of the S3 gateway for presigned URLs, when browsers can't reach S3_ENDPOINT. */
+  S3_PUBLIC_ENDPOINT: z.url().optional(),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY_ID: z.string().min(1),
   S3_SECRET_ACCESS_KEY: z.string().min(1),

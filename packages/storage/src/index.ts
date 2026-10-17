@@ -17,11 +17,20 @@ export interface S3StorageOptions {
   accessKeyId: string
   secretAccessKey: string
   bucket: string
+  /** Origin browsers reach the S3 gateway at, when it differs from `endpoint`. Used for presigned URLs. */
+  publicEndpoint?: string
 }
 
 /** S3-compatible adapter (SeaweedFS S3 gateway in dev and self-hosted prod). */
-export const createS3Storage = (options: S3StorageOptions): ObjectStorage => {
+export const createS3Storage = ({
+  publicEndpoint,
+  ...options
+}: S3StorageOptions): ObjectStorage => {
   const client = new S3Client(options)
+  // A presigned URL signs its host, so it has to be made for the origin the browser will request.
+  const publicClient = publicEndpoint
+    ? new S3Client({ ...options, endpoint: publicEndpoint })
+    : client
 
   return {
     async put(key, data, contentType) {
@@ -30,7 +39,7 @@ export const createS3Storage = (options: S3StorageOptions): ObjectStorage => {
     download: (key, path) => Bun.write(path, client.file(key)),
     exists: (key) => client.exists(key),
     delete: (key) => client.delete(key),
-    presign: (key, expiresIn = 3600) => client.presign(key, { expiresIn }),
+    presign: (key, expiresIn = 3600) => publicClient.presign(key, { expiresIn }),
   }
 }
 

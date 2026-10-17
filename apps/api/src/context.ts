@@ -23,7 +23,11 @@ export const createContext = async (env: Env) => {
     steamApi,
     log: createLogger('api'),
     secrets: await createSecretBox(env.SECRETS_KEY),
-    clips: createS3Storage({ ...s3, bucket: env.S3_BUCKET_CLIPS }),
+    clips: createS3Storage({
+      ...s3,
+      bucket: env.S3_BUCKET_CLIPS,
+      publicEndpoint: env.S3_PUBLIC_ENDPOINT,
+    }),
     queues: {
       syncUser: createQueue('steam.sync-user', env.REDIS_URL),
       resolveMatch: createQueue('steam.resolve-match', env.REDIS_URL),

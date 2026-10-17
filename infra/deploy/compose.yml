@@ -1,0 +1,93 @@
+name: subtick
+
+# Self-hosted production stack (homelab). Configuration lives in infra/deploy/.env, see
+# .env.example next to this file. The recorder runs separately (apps/recorder/README.md) with
+# --network host and reaches Postgres, Redis, S3 and the api on the loopback ports below.
+#
+#   docker compose -f infra/deploy/compose.yml up -d --build
+
+x-server: &server
+  image: subtick-server
+  build: { context: ../.., dockerfile: infra/deploy/server.Dockerfile }
+  env_file: .env
+  environment: &server-env
+    DATABASE_URL: postgres://subtick:${POSTGRES_PASSWORD}@postgres:5432/subtick
+    REDIS_URL: redis://redis:6379
+    S3_ENDPOINT: http://seaweedfs:8333
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: subtick
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: subtick
+    ports: ['127.0.0.1:${POSTGRES_PORT:-55432}:5432']
+    volumes: ['${DATA_DIR:?}/postgres:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U subtick']
+      interval: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports: ['127.0.0.1:${REDIS_PORT:-56379}:6379']
+    volumes: ['${DATA_DIR}/redis:/data']
+    restart: unless-stopped
+
+  # Published on all interfaces: the reverse proxy serves it as S3_PUBLIC_ENDPOINT for clip URLs.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.12
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    ports: ['${S3_PORT:-8333}:8333']
+    volumes:
+      - '${DATA_DIR}/seaweedfs:/data'
+      - '${S3_CONFIG_FILE:-../seaweedfs/s3.json}:/etc/seaweedfs/s3.json:ro'
+    restart: unless-stopped
+
+  seaweedfs-init:
+    image: chrislusf/seaweedfs:4.12
+    depends_on: [seaweedfs]
+    entrypoint: ['/bin/sh', '/init.sh']
+    volumes: ['../seaweedfs/init.sh:/init.sh:ro']
+    restart: on-failure
+
+  migrate:
+    <<: *server
+    command: ['bun', 'packages/db/src/migrate.ts']
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: on-failure
+
+  api:
+    <<: *server
+    command: ['bun', 'apps/api/src/index.ts']
+    environment:
+      <<: *server-env
+      API_PORT: 3000
+    ports: ['${API_PORT:-53000}:3000']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_started }
+
+  parser:
+    <<: *server
+    command: ['bun', 'apps/parser/src/main.ts']
+    volumes: ['${DATA_DIR}/scratch/parser:/data']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  steam:
+    <<: *server
+    command: ['bun', 'apps/steam/src/main.ts']
+    # Keeps the bot's Steam refresh token (steam-bot/) across restarts.
+    volumes: ['${DATA_DIR}/scratch/steam:/data']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    image: subtick-web
+    build: { context: ../.., dockerfile: infra/deploy/web.Dockerfile }
+    ports: ['${WEB_PORT:-53080}:80']
+    restart: unless-stopped
