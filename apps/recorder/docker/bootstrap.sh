@@ -56,6 +56,19 @@ setup_prefix() {
     touch "$marker"
   fi
 
+  # A Wine version change updates the prefix on the next wine run. On this prefix the 32-bit half
+  # of that update crashes behind a modal dialog nobody can click, and HLAE then waits on it
+  # forever. Run the update here and kill whatever hangs: the 64-bit half and the timestamp are
+  # done by then, and HLAE and CS2 start fine.
+  local wine_inf
+  wine_inf="$(dirname "$(readlink -f "$(command -v wine)")")/../share/wine/wine.inf"
+  if [ "$(cat "$WINEPREFIX/.update-timestamp" 2>/dev/null)" != "$(stat -c %Y "$wine_inf")" ]; then
+    log "updating the Wine prefix for $(wine --version)"
+    timeout 120 wineboot -u || true
+    wineserver -k || true
+    wineserver -w
+  fi
+
   # DXVK: copied on every version change. Its own setup script predates Wine 11's single binary.
   if [ "$(cat "$WINEPREFIX/.subtick-dxvk" 2>/dev/null)" != "$DXVK_VERSION" ]; then
     [ -d "/opt/dxvk-$DXVK_VERSION" ] || { log "DXVK $DXVK_VERSION is not in the image"; exit 1; }

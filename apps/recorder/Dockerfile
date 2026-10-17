@@ -44,8 +44,11 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-in
  && curl -fsSL https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key \
  && curl -fsSL -o /etc/apt/sources.list.d/winehq-noble.sources https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
  # Staging: first picked because wine-stable 11.0 couldn't draw the old Steam client's text
- # (Wine bug 58346); recording is verified on it.
- && apt-get update && apt-get install -y --install-recommends winehq-staging \
+ # (Wine bug 58346); recording is verified on it. Pinned: a new Wine updates the prefix on first
+ # launch, and 11.20's update crashes the 32-bit rundll32 behind a modal dialog, so CS2 never starts.
+ && WINE=11.19~noble-1 \
+ && apt-get update && apt-get install -y --install-recommends winehq-staging=$WINE \
+      wine-staging=$WINE wine-staging-amd64=$WINE wine-staging-i386:i386=$WINE \
  && curl -fsSL -o /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/20250102/src/winetricks \
  && chmod +x /usr/local/bin/winetricks \
  && rm -rf /var/lib/apt/lists/*
