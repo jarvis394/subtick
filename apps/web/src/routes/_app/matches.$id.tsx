@@ -76,7 +76,11 @@ function MatchPage() {
               {/* Equal side columns keep the colon (and the result under it) at the true center. */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-mono text-4xl tabular-nums">
                 <span
-                  className={cn('text-right', myPlayer && score.result === 'win' && 'text-success')}
+                  className={cn(
+                    'text-right',
+                    myPlayer && score.result === 'win' && 'text-success',
+                    myPlayer && score.result === 'loss' && 'text-danger',
+                  )}
                 >
                   {score.own}
                 </span>

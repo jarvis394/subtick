@@ -346,7 +346,7 @@ export const Scoreboard = ({
                 </span>
               </div>
 
-              <div className="-mx-4 overflow-x-auto select-text md:mx-0">
+              <div className="-mx-4 overflow-x-auto overscroll-x-none select-text md:mx-0">
                 {/* Fixed widths so both teams line up; rows are separated vertically only. */}
                 <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-[13px] tabular-nums">
                   <colgroup>

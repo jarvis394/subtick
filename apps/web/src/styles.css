@@ -88,6 +88,15 @@
   * {
     border-color: var(--color-border);
   }
+  /*
+   * The page doesn't rubber-band. Only the page: on an inner scroller `none` also stops scrolls it
+   * can't use (vertical over a sideways table) from reaching the page. Tables use
+   * `overscroll-x-none` instead.
+   */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;

@@ -1,7 +1,7 @@
 import { Tabs } from '@base-ui/react/tabs'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 import { z } from 'zod'
 import { SteamIcon } from '@/components/steam-icon'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Field, Input } from '@/components/ui/field'
 import { Wordmark } from '@/components/wordmark'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { meQuery } from '@/lib/queries'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({ redirect: z.string().optional(), error: z.string().optional() }),
@@ -21,6 +22,25 @@ export const Route = createFileRoute('/login')({
 
 const tabClass =
   'relative z-10 h-8 flex-1 cursor-pointer rounded-lg text-sm text-muted transition-colors outline-none select-none hover:text-foreground data-active:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+
+/**
+ * Grows from nothing to its content's height (a 0fr → 1fr grid row), so switching forms moves the
+ * card's edges instead of jumping. `gap` cancels the parent's gap while closed. Hidden content is
+ * inert; inputs in it still need `disabled` to skip form validation.
+ */
+const Reveal = ({ open, gap, children }: { open: boolean; gap: string; children: ReactNode }) => (
+  <div
+    inert={!open}
+    style={{ gridTemplateRows: open ? '1fr' : '0fr', marginBottom: open ? 0 : `calc(-1 * ${gap})` }}
+    className={cn(
+      'grid transition-[grid-template-rows,margin,opacity] duration-250 ease-out-quart motion-reduce:transition-none',
+      open ? 'opacity-100' : 'opacity-0',
+    )}
+  >
+    {/* Clipped only while closed, so an open input's focus ring isn't cut off. */}
+    <div className={cn('min-h-0', !open && 'overflow-hidden')}>{children}</div>
+  </div>
+)
 
 function LoginPage() {
   const search = Route.useSearch()
@@ -71,7 +91,8 @@ function LoginPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border bg-surface p-5 shadow-sm shadow-black/[0.03]">
+        {/* Concentric with the buttons inside: 12px radius + 20px padding. */}
+        <div className="rounded-[32px] border bg-surface p-5 shadow-sm shadow-black/[0.03]">
           <Button
             variant="secondary"
             size="lg"
@@ -102,25 +123,28 @@ function LoginPage() {
           </Tabs.Root>
 
           <form onSubmit={submit} className="grid gap-3.5">
-            {mode === 'sign-up' && (
+            <Reveal open={mode === 'sign-up'} gap="0.875rem">
               <Field label="Name">
-                <Input name="name" required autoComplete="nickname" />
+                <Input name="name" required disabled={mode !== 'sign-up'} autoComplete="nickname" />
               </Field>
-            )}
+            </Reveal>
             <Field label="Email">
               <Input name="email" type="email" required autoComplete="email" />
             </Field>
-            <Field
-              label="Password"
-              description={mode === 'sign-up' ? 'At least 8 characters.' : undefined}
-            >
+            <Field label="Password">
               <Input
                 name="password"
                 type="password"
                 required
                 minLength={8}
                 autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+                aria-describedby={mode === 'sign-up' ? 'password-hint' : undefined}
               />
+              <Reveal open={mode === 'sign-up'} gap="0.375rem">
+                <p id="password-hint" className="text-[13px] text-muted">
+                  At least 8 characters.
+                </p>
+              </Reveal>
             </Field>
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" size="lg" className="mt-1 w-full" disabled={pending !== null}>
