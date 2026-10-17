@@ -3,7 +3,7 @@
 # what is already there, so restarts are fast and only the first boot downloads.
 #
 #   1. Wine prefix: DXVK, .NET 4.8 (HLAE's launcher), HLAE + ffmpeg (with the mirv_pov hook when
-#      HLAE_POV=1), the Windows Steam client (STEAM_MODE=client only).
+#      HLAE_POV=1).
 #   2. CS2 game files, from CS2_SOURCE:
 #        download  steamcmd installs the Windows build into CS2_DIR (anonymous, ~65 GB) and keeps
 #                  it updated on every start. The default.
@@ -12,8 +12,8 @@
 #                  volume). Only the Windows binaries (~5 GB) are downloaded; CS2_DIR becomes a
 #                  tree of symlinks into the server install plus those binaries. The server is
 #                  never written to, and both must be on the same CS2 build.
-#   3. STEAM_MODE=emulator: gbe_fork's steam_api64.dll and settings over game/bin/win64, so CS2
-#      runs without the Steam client. STEAM_MODE=client puts Steam's own DLL back.
+#   3. gbe_fork's steam_api64.dll and settings over game/bin/win64, so CS2 runs without the Steam
+#      client or an account.
 set -euo pipefail
 
 : "${WINEPREFIX:=/wine/pfx}"
@@ -22,7 +22,6 @@ set -euo pipefail
 : "${DXVK_VERSION:=2.7.1}"
 : "${HLAE_VERSION:=2.192.8}"
 : "${STEAMCMD_DIR:=/steamcmd}"
-: "${STEAM_MODE:=client}"
 : "${HLAE_POV:=0}"
 : "${GBE_SETTINGS:=$(dirname "$0")/../gbe/steam_settings}"
 
@@ -48,24 +47,13 @@ installed_build() { awk -F'"' '/"buildid"/{print $4; exit}' "$1/steamapps/appman
 setup_prefix() {
   local marker="$WINEPREFIX/.subtick-prefix"
   if [ ! -f "$marker" ]; then
-    log "creating Wine prefix (first boot: .NET and Steam take a few minutes)"
+    log "creating Wine prefix (first boot: .NET takes a few minutes)"
     mkdir -p "$WINEPREFIX"
     # No Mono/Gecko: their installers open dialogs that block a headless boot.
     WINEDLLOVERRIDES="mscoree,mshtml=" wineboot -i && wineserver -w
     W_OPT_UNATTENDED=1 winetricks -q --force dotnet48 && wineserver -w
     winetricks -q win10 && wineserver -w
-    for d in d3d9 d3d10core d3d11 dxgi; do
-      # Steam's CEF crashes on DXVK; it keeps Wine's own D3D.
-      wine reg add 'HKCU\Software\Wine\AppDefaults\steamwebhelper.exe\DllOverrides' /v "$d" /d builtin /f >/dev/null
-    done
     touch "$marker"
-  fi
-
-  # The Steam client only when CS2 talks to it; an emulated Steam needs none.
-  if [ "$STEAM_MODE" = client ] && [ ! -f "$WINEPREFIX/drive_c/Program Files (x86)/Steam/steam.exe" ]; then
-    log "installing the Steam client"
-    curl -fsSLo /tmp/SteamSetup.exe https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe
-    wine /tmp/SteamSetup.exe /S && wineserver -w
   fi
 
   # DXVK: copied on every version change. Its own setup script predates Wine 11's single binary.
@@ -119,24 +107,16 @@ setup_hlae_pov() {
   fi
 }
 
-# STEAM_MODE=emulator: gbe_fork stands in for Steam. Steam's own steam_api64.dll is kept beside it
-# (and refreshed when a game update restores it) so STEAM_MODE=client can put it back.
+# gbe_fork stands in for Steam. Game updates restore Steam's own steam_api64.dll, so this runs
+# after them.
 setup_steam_api() {
   local bin="$CS2_DIR/game/bin/win64"
-  local dll="$bin/steam_api64.dll" steam="$bin/steam_api64.steam.dll"
-  if [ "$STEAM_MODE" = emulator ]; then
-    cmp -s /opt/gbe/steam_api64.dll "$dll" || cp "$dll" "$steam"
-    if ! cmp -s /opt/gbe/steam_api64.dll "$dll"; then
-      log "installing gbe_fork ($(cat /opt/gbe/.release)) in place of Steam"
-      cp /opt/gbe/steam_api64.dll "$dll"
-    fi
-    rm -rf "$bin/steam_settings" && cp -r "$GBE_SETTINGS" "$bin/steam_settings"
-    mkdir -p "$bin/gse_saves"
-  elif [ -f "$steam" ]; then
-    log "restoring Steam's own steam_api64.dll"
-    cp "$steam" "$dll" && rm "$steam"
-    rm -rf "$bin/steam_settings"
+  if ! cmp -s /opt/gbe/steam_api64.dll "$bin/steam_api64.dll"; then
+    log "installing gbe_fork ($(cat /opt/gbe/.release)) in place of Steam"
+    cp /opt/gbe/steam_api64.dll "$bin/steam_api64.dll"
   fi
+  rm -rf "$bin/steam_settings" && cp -r "$GBE_SETTINGS" "$bin/steam_settings"
+  mkdir -p "$bin/gse_saves"
 }
 
 setup_game() {

@@ -57,35 +57,22 @@ export const SteamBotEnv = {
 /** 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts stored match auth codes. */
 export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
 /**
- * The recorder runs CS2 (Windows build) under Wine next to a signed-in Steam client, injects HLAE
- * and drives it over the netcon console. Paths are as seen from the recorder's container.
+ * The recorder runs CS2 (Windows build) under Wine on gbe_fork's Steam emulator, injects HLAE and
+ * drives it over the netcon console. Paths are as seen from the recorder's container.
  */
 export const RecorderEnv = {
   /** CS2 install root, the folder that holds `game/`. */
   CS2_DIR: z.string().default('/cs2'),
-  /** Wine prefix with Steam, .NET and HLAE (apps/recorder/docker/bootstrap.sh sets it up). */
+  /** Wine prefix with .NET, DXVK and HLAE (apps/recorder/docker/bootstrap.sh sets it up). */
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),
   /**
    * Joins the instance's recorder fleet: the subtick origin (PUBLIC_URL) and the token an admin
-   * got when adding this machine. The machine then reports its health and takes its Steam account
-   * from there; without them it runs standalone with the STEAM_* variables below.
+   * got when adding this machine. The machine then reports its health and takes its settings from
+   * there; without them it runs standalone.
    */
   SUBTICK_URL: z.url().optional(),
   RECORDER_TOKEN: z.string().startsWith('strec_').optional(),
-  /**
-   * Standalone only: Steam account the game client signs in with, only needed until the first sign-in
-   * (the prefix keeps a token). Use a dedicated account: one account can't run CS2 here and play
-   * elsewhere, or be the steam worker's bot, at the same time.
-   */
-  STEAM_USERNAME: z.string().min(1).optional(),
-  STEAM_PASSWORD: z.string().min(1).optional(),
-  STEAM_SHARED_SECRET: z.string().min(1).optional(),
-  /**
-   * `client`: CS2 talks to the Windows Steam client, which has to be signed in. `emulator`: CS2's
-   * steam_api64.dll is a Steam emulator (gbe_fork) laid over the game files; no client, no account.
-   */
-  STEAM_MODE: z.enum(['client', 'emulator']).default('client'),
   /**
    * 1: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the
    * `mirv_pov` fork of HLAE's AfxHookSource2.dll (installed by the bootstrap).

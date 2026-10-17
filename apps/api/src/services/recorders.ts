@@ -17,23 +17,15 @@ export const hashRecorderToken = (token: string) =>
   new Bun.CryptoHasher('sha256').update(token).digest('hex')
 
 type RecorderRow = typeof schema.recorder.$inferSelect
-type AccountRow = typeof schema.recorderSteamAccount.$inferSelect
 
-/** A recorder as admins see it: never the token or a pending code, plus whether it's online. */
-export const recorderView = (
-  row: RecorderRow,
-  account: Pick<AccountRow, 'id' | 'username'> | null,
-) => ({
+/** A recorder as admins see it: never the token, plus whether it's online. */
+export const recorderView = (row: RecorderRow) => ({
   id: row.id,
   name: row.name,
   tokenHint: row.tokenHint,
   paused: row.paused,
   online: isRecorderOnline(row.lastSeenAt),
   state: row.state,
-  steamAccount: account && { id: account.id, username: account.username },
-  signedInAs: row.signedInAs,
-  steamMode: row.steamMode,
-  awaitingGuardCode: row.guardCode !== null,
   currentMatchId: row.currentMatchId,
   lastError: row.lastError,
   hostname: row.hostname,

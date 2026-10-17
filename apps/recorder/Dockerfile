@@ -9,7 +9,7 @@
 FROM alpine:3.20 AS binaries
 RUN apk add --no-cache curl 7zip
 # gbe_fork (LGPL-3.0, https://github.com/Detanup01/gbe_fork): a Steam API emulator, so CS2 runs
-# without the Steam client (STEAM_MODE=emulator). Only its regular x64 steam_api64.dll is kept.
+# without the Steam client or an account. Only its regular x64 steam_api64.dll is kept.
 ARG GBE_RELEASE=release-2026_09_27
 ARG GBE_SHA256=300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85
 RUN curl -fsSLo /tmp/gbe.7z "https://github.com/Detanup01/gbe_fork/releases/download/$GBE_RELEASE/emu-win-release-vs22.7z" \
@@ -37,13 +37,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg xz-utils unzip cabextract procps \
-      xserver-xorg-core x11-utils x11-xserver-utils xdotool x11vnc xauth imagemagick \
+      xserver-xorg-core x11-utils x11-xserver-utils x11vnc xauth \
       libvulkan1 libvulkan1:i386 winbind fonts-liberation fontconfig ffmpeg \
       lib32gcc-s1 lib32stdc++6 pulseaudio \
  && mkdir -pm755 /etc/apt/keyrings \
  && curl -fsSL https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key \
  && curl -fsSL -o /etc/apt/sources.list.d/winehq-noble.sources https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources \
- # Staging: wine-stable 11.0 can't draw the Steam client's text (Wine bug 58346).
+ # Staging: first picked because wine-stable 11.0 couldn't draw the old Steam client's text
+ # (Wine bug 58346); recording is verified on it.
  && apt-get update && apt-get install -y --install-recommends winehq-staging \
  && curl -fsSL -o /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/20250102/src/winetricks \
  && chmod +x /usr/local/bin/winetricks \

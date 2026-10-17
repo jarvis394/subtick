@@ -6,59 +6,27 @@ import { createContext } from './context'
 import { RECORDER_VERSION, recordMatch } from './record'
 
 const ctx = createContext()
-const { env, log, recorder, game, fleet, status } = ctx
+const { env, log, recorder, fleet, status } = ctx
 
 // The look of every clip (HUD, demo UI, video settings) ships with the code, not the prefix.
 await cp(new URL('../cfg', import.meta.url).pathname, join(ctx.configDir, 'cfg'), {
   recursive: true,
 })
 
-/** Jobs and account switches both drive the one game client: never at the same time. */
-let lane: Promise<unknown> = Promise.resolve()
-const exclusive = <T>(task: () => Promise<T>): Promise<T> => {
-  const run = lane.then(task)
-  lane = run.catch(() => {})
-  return run
-}
-
-/**
- * Signs Steam in with the account an admin assigned, switching accounts if another one is signed
- * in. Runs between jobs; a sign-in can wait several minutes for an emailed Steam Guard code.
- */
-const syncSteamAccount = async () => {
-  const wanted = fleet?.settings?.steamAccount?.username
-  status.signedInAs = await game.signedInAs()
-  // An emulated Steam has no accounts to switch between.
-  if (env.STEAM_MODE === 'emulator' || !wanted || status.signedInAs === wanted) return
-  log.info({ from: status.signedInAs, to: wanted }, 'switching Steam account')
-  status.state = 'signing_in'
-  await recorder.reset()
-  await game.signOut()
-  try {
-    await game.signIn()
-    status.lastError = null
-  } finally {
-    status.signedInAs = await game.signedInAs()
-  }
-}
-
 const worker = createWorker(
   'clip.record',
   env.REDIS_URL,
-  (job) =>
-    exclusive(async () => {
-      status.currentMatchId = job.data.matchId
-      try {
-        await syncSteamAccount()
-        status.state = 'recording'
-        await recordMatch(ctx, job)
-        status.lastError = null
-      } finally {
-        status.state = 'idle'
-        status.currentMatchId = null
-        status.signedInAs = await game.signedInAs()
-      }
-    }),
+  async (job) => {
+    status.currentMatchId = job.data.matchId
+    status.state = 'recording'
+    try {
+      await recordMatch(ctx, job)
+      status.lastError = null
+    } finally {
+      status.state = 'idle'
+      status.currentMatchId = null
+    }
+  },
   {
     // One game instance per GPU. Batches run for many minutes; BullMQ renews the lock meanwhile.
     concurrency: 1,
@@ -94,7 +62,6 @@ worker.on('failed', async (job, error) => {
 })
 
 if (fleet) {
-  let switching = false
   const run = () => {
     if (worker.isRunning()) return
     log.info('taking jobs')
@@ -108,27 +75,9 @@ if (fleet) {
       if (settings.paused) void worker.pause()
       else worker.resume()
     }
-    // A new account is signed in right away when idle, so the admin sees it work (or the code
-    // prompt) without waiting for a job.
-    const wanted = settings.steamAccount?.username
-    if (env.STEAM_MODE === 'emulator') return
-    if (!wanted || wanted === status.signedInAs || switching || status.state !== 'idle') return
-    switching = true
-    void exclusive(syncSteamAccount)
-      .catch((error: Error) => {
-        log.error('could not sign the new Steam account in', error)
-        status.lastError = error.message
-      })
-      .finally(() => {
-        switching = false
-        if (status.state === 'signing_in' || status.state === 'needs_guard_code')
-          status.state = status.lastError ? 'error' : 'idle'
-        void fleet.report()
-      })
   })
 }
 
-status.signedInAs = await game.signedInAs()
 status.state = 'idle'
 if (fleet) {
   await fleet.start()

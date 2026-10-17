@@ -17,7 +17,6 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSetupRouteImport } from './routes/_app/setup'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminRecordersRouteImport } from './routes/_app/admin/recorders'
-import { Route as AppAdminSteamAccountsRouteImport } from './routes/_app/admin/steam-accounts'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
 import { Route as AppMatchesIdRouteImport } from './routes/_app/matches.$id'
@@ -61,11 +60,6 @@ const AppAdminRecordersRoute = AppAdminRecordersRouteImport.update({
   path: '/recorders',
   getParentRoute: () => AppAdminRoute,
 } as any)
-const AppAdminSteamAccountsRoute = AppAdminSteamAccountsRouteImport.update({
-  id: '/steam-accounts',
-  path: '/steam-accounts',
-  getParentRoute: () => AppAdminRoute,
-} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -89,7 +83,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
   '/admin/recorders': typeof AppAdminRecordersRoute
-  '/admin/steam-accounts': typeof AppAdminSteamAccountsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin/': typeof AppAdminIndexRoute
@@ -101,7 +94,6 @@ export interface FileRoutesByTo {
   '/setup': typeof AppSetupRoute
   '/': typeof AppIndexRoute
   '/admin/recorders': typeof AppAdminRecordersRoute
-  '/admin/steam-accounts': typeof AppAdminSteamAccountsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin': typeof AppAdminIndexRoute
@@ -116,7 +108,6 @@ export interface FileRoutesById {
   '/_app/setup': typeof AppSetupRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/recorders': typeof AppAdminRecordersRoute
-  '/_app/admin/steam-accounts': typeof AppAdminSteamAccountsRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/matches/$id': typeof AppMatchesIdRoute
   '/_app/admin/': typeof AppAdminIndexRoute
@@ -131,7 +122,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/admin/recorders'
-    | '/admin/steam-accounts'
     | '/admin/users'
     | '/matches/$id'
     | '/admin/'
@@ -143,7 +133,6 @@ export interface FileRouteTypes {
     | '/setup'
     | '/'
     | '/admin/recorders'
-    | '/admin/steam-accounts'
     | '/admin/users'
     | '/matches/$id'
     | '/admin'
@@ -157,7 +146,6 @@ export interface FileRouteTypes {
     | '/_app/setup'
     | '/_app/'
     | '/_app/admin/recorders'
-    | '/_app/admin/steam-accounts'
     | '/_app/admin/users'
     | '/_app/matches/$id'
     | '/_app/admin/'
@@ -227,13 +215,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRecordersRouteImport
       parentRoute: typeof AppAdminRoute
     }
-    '/_app/admin/steam-accounts': {
-      id: '/_app/admin/steam-accounts'
-      path: '/steam-accounts'
-      fullPath: '/admin/steam-accounts'
-      preLoaderRoute: typeof AppAdminSteamAccountsRouteImport
-      parentRoute: typeof AppAdminRoute
-    }
     '/_app/admin/users': {
       id: '/_app/admin/users'
       path: '/users'
@@ -260,14 +241,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminRecordersRoute: typeof AppAdminRecordersRoute
-  AppAdminSteamAccountsRoute: typeof AppAdminSteamAccountsRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminRecordersRoute: AppAdminRecordersRoute,
-  AppAdminSteamAccountsRoute: AppAdminSteamAccountsRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }

@@ -1,6 +1,6 @@
 /**
  * One clip end to end, without the database or the queue: start CS2 the way the worker would
- * (same STEAM_MODE and HLAE_POV), load a demo, record a two-segment clip of one player, then
+ * (same HLAE_POV), load a demo, record a two-segment clip of one player, then
  * restart the game, load the demo again and record once more. Run it inside a
  * recorder container after a deploy, with the worker's container removed (they share the GPU):
  *   docker run --rm ... --env-file recorder.env -v <demos>:/demos:ro subtick-recorder \
@@ -20,11 +20,10 @@ const startTick = Number(tick)
 const log = createLogger('smoke')
 const prefix = process.env.WINEPREFIX ?? '/wine/pfx'
 const cs2Dir = process.env.CS2_DIR ?? '/cs2'
-const steam = process.env.STEAM_MODE === 'emulator' ? 'emulator' : 'client'
 const configDir = join(prefix, 'drive_c/subtick')
 await cp(new URL('../cfg', import.meta.url).pathname, join(configDir, 'cfg'), { recursive: true })
 
-const game = createWineGame({ cs2Dir, prefix, netconPort: 2121, configDir, steam, log })
+const game = createWineGame({ cs2Dir, prefix, netconPort: 2121, configDir, log })
 const recorder = new Cs2Recorder({
   game,
   cs2Dir,
@@ -43,7 +42,7 @@ const time = async <T>(label: string, task: () => Promise<T>) => {
 
 const second = 64
 try {
-  log.info({ steam, pov: process.env.HLAE_POV === '1', startTick, playerName }, 'smoke test')
+  log.info({ pov: process.env.HLAE_POV === '1', startTick, playerName }, 'smoke test')
   await time('demo loaded', () => recorder.prepare({ matchId: 'smoke', demoPath, map: '' }))
   // Two segments with a cut between them, like a highlight whose kills are far apart.
   const clip = await time('two-segment clip recorded', () =>

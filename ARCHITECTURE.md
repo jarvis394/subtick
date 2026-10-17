@@ -206,8 +206,8 @@ interface Recorder {
 
 **Primary adapter: `Cs2Recorder`** (`apps/recorder`, one Docker image, any Linux box with an NVIDIA GPU). Setup, environment and tuning are in `apps/recorder/README.md`.
 
-- CS2's **Windows build runs under Wine** (wine-staging, DXVK) on a headless Xorg on the NVIDIA driver, next to a signed-in Windows Steam client (CS2 won't start without SteamAPI). **HLAE** is injected with its command-line loader (`AfxHookSource2`). A PulseAudio null sink gives the engine an audio device.
-- The game files come from `CS2_SOURCE`: an anonymous steamcmd download, an existing Windows install, or a Linux dedicated-server install plus only the Windows binaries depot (symlinked; the server is never written). `docker/bootstrap.sh` prepares the prefix (DXVK, .NET 4.8, HLAE, Steam) and the files on start.
+- CS2's **Windows build runs under Wine** (wine-staging, DXVK) on a headless Xorg on the NVIDIA driver. CS2 won't start without SteamAPI, so gbe_fork's emulated `steam_api64.dll` is laid over the game files: no Steam client, no account. **HLAE** is injected with its command-line loader (`AfxHookSource2`). A PulseAudio null sink gives the engine an audio device.
+- The game files come from `CS2_SOURCE`: an anonymous steamcmd download, an existing Windows install, or a Linux dedicated-server install plus only the Windows binaries depot (symlinked; the server is never written). `docker/bootstrap.sh` prepares the prefix (DXVK, .NET 4.8, HLAE) and the files (plus gbe_fork) on start.
 - **Control** goes through the netcon TCP console. Readiness is read from console lines: `Signon traffic "server"` (menu up), `QueueNewRequest( Playing Demo` (playdemo taken; CS2 silently drops it while it changes host state, so it is retried), `Signon traffic "DEMO"` (demo loaded), `Demo Skipping finished` (seek done).
 - **Capture** is HLAE's `mirv_streams` screen recording, offline at a fixed 60 fps: a slow GPU renders slower, never choppier. `mirv_cmd addAtTick` starts and ends each take on the exact ticks; HLAE's ffmpeg writes H.264 (CRF 20) and `startMovieWav` the game audio.
 - **Per clip:** seek to `startTick − 5 s`, then `spec_player` (a seek resets the target; the player switch triggers a re-sync skip that must land before the start trigger), resume, wait for the end marker, wait for HLAE's ffmpeg to exit.
@@ -293,7 +293,7 @@ interface Recorder {
 
 1. ~~**demoparser2 under Bun.**~~ Verified: it works under Bun 1.3. A full analysis of a 250 MB demo takes about 1.5 s.
 2. ~~**`steam-user` / `globaloffensive` under Bun.**~~ Verified: login and `requestGame` work over the TCP transport (the WebSocket transport never connects under Bun 1.3). The GC client is also the most likely thing to break when Valve changes protos.
-3. ~~**Headless CS2 capture.**~~ Verified (Oct 2026) on a GTX 650: CS2's Windows build + HLAE under Wine with DXVK 1.10.3, headless Xorg on the NVIDIA driver. WineD3D crashes; DXVK 2.x needs Vulkan 1.3; wine-stable 11.0 can't draw the Steam client's text (staging can). Details in `apps/recorder/README.md`.
+3. ~~**Headless CS2 capture.**~~ Verified (Oct 2026) on a GTX 650: CS2's Windows build + HLAE under Wine with DXVK 1.10.3, headless Xorg on the NVIDIA driver. WineD3D crashes; DXVK 2.x needs Vulkan 1.3; wine-stable 11.0 couldn't draw the Steam client's text (staging could) back when it still ran one. Details in `apps/recorder/README.md`.
 4. **Valve rate limits and expiry.** Demos disappear after about 30 days and the GC throttles aggressively. Mitigations: one bot, a 1 req/s limiter, and backoff.
 
 ---

@@ -6,7 +6,7 @@ import { createLogger } from '@subtick/logger'
 import { type MatchEvent, createMatchEventPublisher } from '@subtick/queue'
 import { createS3Storage } from '@subtick/storage'
 import { Cs2Recorder } from './cs2/recorder'
-import { type SteamAccountSource, createWineGame } from './cs2/wine'
+import { createWineGame } from './cs2/wine'
 import { createFleetLink, createStatus } from './fleet'
 import { RECORDER_VERSION } from './record'
 
@@ -26,7 +26,7 @@ export const createContext = () => {
   if (Boolean(env.SUBTICK_URL) !== Boolean(env.RECORDER_TOKEN))
     throw new Error('SUBTICK_URL and RECORDER_TOKEN go together: set both to join the fleet')
 
-  const health = createStatus(env.STEAM_MODE)
+  const health = createStatus()
   const fleet =
     env.SUBTICK_URL && env.RECORDER_TOKEN
       ? createFleetLink({
@@ -37,27 +37,14 @@ export const createContext = () => {
           log: log.getSubLogger({ name: 'fleet' }),
         })
       : null
-  const envAccount: SteamAccountSource = {
-    credentials: async () =>
-      env.STEAM_USERNAME && env.STEAM_PASSWORD
-        ? {
-            username: env.STEAM_USERNAME,
-            password: env.STEAM_PASSWORD,
-            sharedSecret: env.STEAM_SHARED_SECRET,
-          }
-        : undefined,
-    takeGuardCode: async () => null,
-  }
 
-  /** HLAE's `USRLOCALCSGO`: our cfg folder, kept apart from the signed-in account's settings. */
+  /** HLAE's `USRLOCALCSGO`: our cfg folder, kept apart from the game's own settings. */
   const configDir = join(env.WINEPREFIX, 'drive_c/subtick')
   const game = createWineGame({
     cs2Dir: env.CS2_DIR,
     prefix: env.WINEPREFIX,
     netconPort: env.CS2_NETCON_PORT,
     configDir,
-    steamAccount: fleet?.steamAccount ?? envAccount,
-    steam: env.STEAM_MODE,
     log: log.getSubLogger({ name: 'cs2' }),
   })
   const recorder = new Cs2Recorder({

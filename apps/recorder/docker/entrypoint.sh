@@ -1,6 +1,6 @@
 #!/bin/sh
-# Headless Xorg on the GPU, a localhost-only VNC view of it (for watching, or signing in to Steam
-# by hand), the bootstrap, then the worker. VNC_PASSWORD protects the view; without it no VNC.
+# Headless Xorg on the GPU, a localhost-only VNC view of it (for watching the game), the
+# bootstrap, then the worker. VNC_PASSWORD protects the view; without it no VNC.
 set -e
 Xorg :0 -noreset -novtswitch -sharevts -nolisten tcp -logfile /tmp/Xorg.log vt7 &
 for _ in $(seq 40); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.5; done

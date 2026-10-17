@@ -85,6 +85,13 @@
       "when": 1792264420141,
       "tag": "0011_unwrap_jsonb",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792264901870,
+      "tag": "0012_drop_steam_client",
+      "breakpoints": true
     }
   ]
 }
