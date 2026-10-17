@@ -5,10 +5,21 @@ import { registerShareCode } from './matches'
 
 const { steamLink, userMatch } = schema
 
-/** How often a caught-up account is polled, and how often once it has been quiet for a while. */
-const ACTIVE_INTERVAL_MS = 15 * 60_000
-const IDLE_INTERVAL_MS = 60 * 60_000
-const IDLE_AFTER_MS = 3 * 24 * 3600_000
+const MINUTE = 60_000
+const HOUR = 60 * MINUTE
+/**
+ * How often a caught-up account is polled, by how long ago its latest match turned up: fast while
+ * the player is mid-session, backing off the longer they stay away. Valve's Web API allows ~100k
+ * calls a day, and an idle poll costs one, so 5 minutes for everyone would cap out near 340 accounts.
+ */
+const FALLOFF: { quietFor: number; every: number }[] = [
+  { quietFor: 2 * HOUR, every: 5 * MINUTE },
+  { quietFor: 24 * HOUR, every: 10 * MINUTE },
+  { quietFor: 3 * 24 * HOUR, every: 15 * MINUTE },
+]
+const IDLE_INTERVAL_MS = HOUR
+/** A failed sync is retried at the fastest rate. */
+const RETRY_INTERVAL_MS = 5 * MINUTE
 /** Codes walked per job; a long backlog continues on the next scheduler tick. */
 const MAX_CODES_PER_JOB = 25
 /** Links picked per scheduler tick. */
@@ -73,7 +84,7 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
     await update({
       syncState: 'error',
       lastError: error instanceof Error ? error.message : String(error),
-      nextSyncAt: new Date(Date.now() + ACTIVE_INTERVAL_MS),
+      nextSyncAt: new Date(Date.now() + RETRY_INTERVAL_MS),
     })
     throw error
   }
@@ -88,7 +99,7 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
   if (found) log.info({ steamId, found, backlog }, 'new matches found')
 }
 
-/** Accounts that haven't played for a few days are polled less often. */
+/** The poll interval for an account, per {@link FALLOFF}. */
 const nextInterval = async ({ db }: Context, steamId: string) => {
   const [latest] = await db
     .select({ at: userMatch.discoveredAt })
@@ -96,6 +107,7 @@ const nextInterval = async ({ db }: Context, steamId: string) => {
     .where(eq(userMatch.steamId, steamId))
     .orderBy(desc(userMatch.discoveredAt))
     .limit(1)
-  const quiet = !latest || Date.now() - latest.at.getTime() > IDLE_AFTER_MS
-  return quiet ? IDLE_INTERVAL_MS : ACTIVE_INTERVAL_MS
+  if (!latest) return IDLE_INTERVAL_MS
+  const quietFor = Date.now() - latest.at.getTime()
+  return FALLOFF.find((step) => quietFor < step.quietFor)?.every ?? IDLE_INTERVAL_MS
 }
