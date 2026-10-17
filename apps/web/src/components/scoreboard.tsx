@@ -1,6 +1,7 @@
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type Side, ROUNDS_PER_HALF, REGULATION_ROUNDS, SIDES } from '@subtick/domain'
-import { ChevronDown, Star } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronDown, Star, Users } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
 import { PartyMarker } from '@/components/party-marker'
 import { RankBadge } from '@/components/rank-badge'
 import { Avatar } from '@/components/ui/avatar'
@@ -149,6 +150,21 @@ const MD_CORNER_CAPS = cn(
   'md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-background)_6px)]',
 )
 
+/**
+ * Right end of the scroll area (md+; phones run edge to edge). A zero-width cell pinned to the
+ * right edge whose corner caps round the row where scrolled cells are cut by a straight line. At
+ * the true end of the table they sit exactly on the last cell's own rounded corners.
+ */
+const END_CAPS = cn(
+  'max-md:before:hidden max-md:after:hidden',
+  "before:pointer-events-none before:absolute before:top-0 before:right-0 before:size-1.5 before:content-['']",
+  'before:bg-[radial-gradient(circle_at_0_100%,transparent_5.5px,var(--color-background)_6px)]',
+  "after:pointer-events-none after:absolute after:right-0 after:bottom-0 after:size-1.5 after:content-['']",
+  'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-background)_6px)]',
+)
+const EndCap = () => <td aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
+const EndCapHead = () => <th aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
+
 const IDENTITY: Shape = {
   // Phones: square on the screen edge, rounded on the right. md+: left end of the avatar+name island.
   round: 'rounded-r-md md:rounded-l-md md:rounded-r-none',
@@ -228,6 +244,29 @@ const averagePremier = (team: Player[]) => {
   return ratings.length ? Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length) : null
 }
 
+/**
+ * Horizontal scroller with a Base UI scrollbar, shown while hovering or scrolling. The bar lives in
+ * padding below the table (only while it overflows), so it never covers a row.
+ */
+const ScrollTable = ({ className, children }: { className?: string; children: ReactNode }) => (
+  <ScrollArea.Root className={cn('data-has-overflow-x:pb-2', className)}>
+    <ScrollArea.Viewport className="overscroll-x-none select-text">
+      <ScrollArea.Content>{children}</ScrollArea.Content>
+    </ScrollArea.Viewport>
+    <ScrollArea.Scrollbar
+      orientation="horizontal"
+      className={cn(
+        'absolute inset-x-4 bottom-0 flex h-1.5 items-center rounded-full bg-foreground/[0.04] md:inset-x-0',
+        // Shown while the pointer is over the table or it's scrolling (touch has no hover).
+        'opacity-0 transition-opacity duration-150 data-hovering:opacity-100 data-scrolling:opacity-100',
+        'motion-reduce:transition-none',
+      )}
+    >
+      <ScrollArea.Thumb className="h-full rounded-full bg-foreground/20 transition-colors hover:bg-foreground/30 active:bg-foreground/40" />
+    </ScrollArea.Scrollbar>
+  </ScrollArea.Root>
+)
+
 const HeaderCell = ({
   column,
   shape,
@@ -291,6 +330,7 @@ export const Scoreboard = ({
 
   return (
     // min-w-0: grid items default to their content's width, and the wide table would push the page.
+    // min-w-0: grid items default to their content's width, and the wide table would push the page.
     <section className="min-w-0">
       <h2 className="mb-4 font-serif text-xl tracking-tight">Scoreboard</h2>
       <div className="grid min-w-0 gap-8">
@@ -346,7 +386,11 @@ export const Scoreboard = ({
                 </span>
               </div>
 
-              <div className="-mx-4 overflow-x-auto overscroll-x-none select-text md:mx-0">
+              {/* md+: only the table pokes out of the page's content width (headings stay put), by up to
+                  2rem a side, less where the content area has no room. Negative margins, not an
+                  explicit width: a wider grid item would stretch its auto track and push the table
+                  off-center. `100%` is the track's width and `cqw` the shell's `@container`. */}
+              <ScrollTable className="-mx-4 md:-mx-[clamp(0px,calc((100cqw_-_100%)_/_2),2rem)]">
                 {/* Fixed widths so both teams line up; rows are separated vertically only. */}
                 <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-[13px] tabular-nums">
                   <colgroup>
@@ -360,11 +404,16 @@ export const Scoreboard = ({
                         className={WIDE_COLUMNS.has(c.id) ? 'w-[5rem]' : 'w-[3.5rem]'}
                       />
                     ))}
+                    <col className="w-0" />
                   </colgroup>
                   <thead>
                     <tr className="text-left text-[12px] text-muted">
                       <th className={shell(IDENTITY)} aria-label="Party and avatar">
-                        <div className={block(IDENTITY, true)} />
+                        <div className={block(IDENTITY, true, 'pl-2.5')}>
+                          <span className="grid w-3 place-items-center" title="Party">
+                            <Users className="size-3" aria-hidden />
+                          </span>
+                        </div>
                       </th>
                       <th className={shell(NAME)}>
                         <div className={block(NAME, true, 'pl-3 font-medium md:pl-0')}>Player</div>
@@ -389,6 +438,7 @@ export const Scoreboard = ({
                           className="justify-end px-3"
                         />
                       ))}
+                      <EndCapHead />
                     </tr>
                   </thead>
                   <tbody>
@@ -444,11 +494,12 @@ export const Scoreboard = ({
                             </td>
                           )
                         })}
+                        <EndCap />
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollTable>
             </div>
           )
         })}

@@ -6,7 +6,8 @@
     "dev": "bun --watch src/main.ts",
     "start": "bun src/main.ts",
     "typecheck": "tsc --noEmit",
-    "enqueue": "bun scripts/enqueue.ts"
+    "enqueue": "bun scripts/enqueue.ts",
+    "backfill-parties": "bun scripts/backfill-parties.ts"
   },
   "dependencies": {
     "@subtick/config": "workspace:*",

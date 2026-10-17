@@ -22,6 +22,8 @@ export interface ResolvedMatch {
   /** Null when Valve no longer has the demo. */
   demoUrl: string | null
   playedAt: Date | null
+  /** steamId64 of every player the match was reserved for. */
+  players: string[]
   /**
    * steamId64 → party id; players who queued alone are left out. So far CS2's GC has sent
    * `party_ids` empty, so this is usually empty too.
@@ -140,6 +142,7 @@ export const createGameCoordinator = (
       return {
         demoUrl: last?.map || null,
         playedAt: info.matchtime ? new Date(info.matchtime * 1000) : null,
+        players: reservation?.account_ids.map(accountIdToSteamId) ?? [],
         parties: reservation ? partiesOf(reservation) : {},
       }
     },

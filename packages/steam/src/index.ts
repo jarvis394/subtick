@@ -38,6 +38,10 @@ const PlayerSummaries = z.object({
   }),
 })
 
+const FriendList = z.object({
+  friendslist: z.object({ friends: z.array(z.object({ steamid: z.string() })) }),
+})
+
 const NextMatchSharingCode = z.object({ result: z.object({ nextcode: z.string() }) })
 
 export const createSteamWebApi = (apiKey: string) => {
@@ -72,6 +76,15 @@ export const createSteamWebApi = (apiKey: string) => {
     async getProfile(steamId: string): Promise<SteamProfile | null> {
       const [profile] = await getProfiles([steamId])
       return profile ?? null
+    },
+
+    /** A player's Steam friends, or null when their friend list is private. */
+    async getFriendIds(steamId: string): Promise<string[] | null> {
+      const endpoint = '/ISteamUser/GetFriendList/v1/'
+      const response = await get(endpoint, { steamid: steamId, relationship: 'friend' })
+      if (response.status === 401 || response.status === 403) return null
+      if (!response.ok) throw new SteamApiError(endpoint, response.status)
+      return FriendList.parse(await response.json()).friendslist.friends.map((f) => f.steamid)
     },
 
     /** Walks a player's match history one share code at a time. */

@@ -3,6 +3,7 @@ import { decodeShareCode } from '@subtick/domain'
 import { enqueue, type TypedJob } from '@subtick/queue'
 import type { Context } from './context'
 import type { GameCoordinator } from './gc'
+import { friendParties } from './parties'
 
 /**
  * Asks the Game Coordinator where a match's demo is. Matches that already have a demo URL (or a
@@ -13,7 +14,7 @@ export const resolveMatch = async (
   gc: GameCoordinator,
   job: TypedJob<'steam.resolve-match'>,
 ) => {
-  const { db, queues, setStatus, log } = ctx
+  const { db, queues, setStatus, steamApi, log } = ctx
   const { shareCode } = job.data
   const matchId = decodeShareCode(shareCode).matchId.toString()
   const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
@@ -22,12 +23,18 @@ export const resolveMatch = async (
 
   await setStatus(matchId, 'resolving')
   const resolved = await gc.resolve(shareCode, matchId)
+  const parties = Object.keys(resolved.parties).length
+    ? resolved.parties
+    : await friendParties(steamApi, resolved.players).catch((error) => {
+        log.warn({ matchId, error }, 'could not read friend lists for parties')
+        return {}
+      })
   await db
     .update(schema.match)
     .set({
       demoUrl: resolved.demoUrl,
       playedAt: resolved.playedAt,
-      parties: Object.keys(resolved.parties).length ? resolved.parties : null,
+      parties: Object.keys(parties).length ? parties : null,
     })
     .where(eq(schema.match.id, matchId))
 
@@ -37,5 +44,5 @@ export const resolveMatch = async (
     return
   }
   await enqueue(queues.download, { matchId })
-  log.info({ matchId, parties: Object.keys(resolved.parties).length }, 'match resolved')
+  log.info({ matchId, parties: Object.keys(parties).length }, 'match resolved')
 }

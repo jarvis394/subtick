@@ -4,6 +4,7 @@ import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { importShareCode } from '../services/matches'
+import { withParties } from '../services/parties'
 import { getProfiles } from '../services/profiles'
 import { notOneKill, withClipUrls } from '../services/highlights'
 import { authGuard } from './guard'
@@ -97,16 +98,19 @@ export const matchRoutes = (ctx: Context) => {
             .where(and(eq(userMatch.matchId, row.id), eq(userMatch.userId, user.id))),
         ])
 
-        const profiles = await getProfiles(
-          ctx,
-          players.map((p) => p.steamId),
-        )
+        const [profiles, partied] = await Promise.all([
+          getProfiles(
+            ctx,
+            players.map((p) => p.steamId),
+          ),
+          withParties(ctx, row.id, players),
+        ])
         const { shareCode: _, demoKey: __, error: ___, parties: ____, ...publicMatch } = row
         return {
           match: publicMatch,
           /** The viewer's player in this match, if they played it. */
           viewerSteamId: viewer?.steamId ?? null,
-          players: players.map((p) => ({
+          players: partied.map((p) => ({
             ...p,
             avatarUrl: profiles.get(p.steamId)?.avatarUrl ?? null,
           })),
