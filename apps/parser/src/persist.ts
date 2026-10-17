@@ -61,7 +61,8 @@ export const persistAnalysis = async (
         startingSide: p.startingSide,
         stats: stats.get(p.steamId)!,
         rank: ranks.get(p.steamId) ?? null,
-        partyId: parties?.[p.steamId] ?? null,
+        // Friend-list parties can span both teams; a party only ever queues on one.
+        partyId: parties?.[p.steamId] ? `${parties[p.steamId]}:${p.startingSide}` : null,
       })),
     )
 
@@ -69,6 +70,9 @@ export const persistAnalysis = async (
       timeline.rounds.map((r) => {
         const equip = { CT: 0, T: 0 }
         for (const [id, side] of r.sides) equip[side] += r.equip.get(id) ?? 0
+        const plant = timeline.plants.find((e) => e.round === r.number)
+        const defuse = timeline.defuses.find((e) => e.round === r.number)
+        const explosion = timeline.explosions.find((e) => e.round === r.number)
         return {
           matchId,
           number: r.number,
@@ -80,6 +84,11 @@ export const persistAnalysis = async (
           endTick: r.endTick,
           ctEquipValue: equip.CT,
           tEquipValue: equip.T,
+          bombPlantTick: plant?.tick ?? null,
+          bombPlanterSteamId: plant?.steamId ?? null,
+          bombDefuseTick: defuse?.tick ?? null,
+          bombDefuserSteamId: defuse?.steamId ?? null,
+          bombExplodeTick: explosion?.tick ?? null,
         }
       }),
     )
@@ -113,6 +122,7 @@ export const persistAnalysis = async (
           score: h.score,
           startTick: h.startTick,
           endTick: h.endTick,
+          segments: h.segments,
           kills: h.kills,
           tags: h.tags,
           clutch: h.clutch,

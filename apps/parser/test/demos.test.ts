@@ -9,6 +9,7 @@ import {
   ROUNDS_PER_HALF,
   TEAM_SIZE,
   secondsToTicks,
+  segmentsTicks,
   ticksToSeconds,
   winsNeeded,
 } from '@subtick/domain'
@@ -120,20 +121,25 @@ for (const demo of DEMOS) {
 
     test('highlight windows are valid clips', () => {
       const rounds = new Map(a.timeline.rounds.map((r) => [r.number, r]))
-      const maxTicks = secondsToTicks(highlightConfig.window.maxLongClipSeconds)
+      const maxTicks = secondsToTicks(highlightConfig.window.maxClipSeconds)
 
       expect(a.highlights.length).toBeGreaterThan(0)
       for (const h of a.highlights) {
         const round = rounds.get(h.round)!
         expect(h.startTick).toBeGreaterThanOrEqual(round.freezeEndTick)
         expect(h.endTick).toBeLessThanOrEqual(round.lastTick)
-        expect(h.endTick - h.startTick).toBeGreaterThan(secondsToTicks(3))
-        expect(h.endTick - h.startTick).toBeLessThanOrEqual(maxTicks)
-        expect(h.score).toBeGreaterThanOrEqual(highlightConfig.select.minScore)
-        for (const k of h.kills) {
-          expect(k.tick).toBeGreaterThanOrEqual(h.startTick)
-          expect(k.tick).toBeLessThanOrEqual(h.endTick)
+        expect(h.startTick).toBe(h.segments[0]!.startTick)
+        expect(h.endTick).toBe(h.segments.at(-1)!.endTick)
+        for (const [i, s] of h.segments.entries()) {
+          expect(s.endTick).toBeGreaterThan(s.startTick)
+          if (i) expect(s.startTick).toBeGreaterThan(h.segments[i - 1]!.endTick)
         }
+        expect(segmentsTicks(h.segments)).toBeGreaterThan(secondsToTicks(3))
+        expect(segmentsTicks(h.segments)).toBeLessThanOrEqual(maxTicks)
+        expect(h.score).toBeGreaterThanOrEqual(highlightConfig.select.minScore)
+        // Every kill is on screen.
+        for (const k of h.kills)
+          expect(h.segments.some((s) => k.tick >= s.startTick && k.tick <= s.endTick)).toBe(true)
         // Every highlight kill is a real, credited kill by this player in this round.
         for (const k of h.kills) {
           const kill = a.timeline.kills.find(

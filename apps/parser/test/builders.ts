@@ -101,6 +101,7 @@ export const buildTestTimeline = (specs: RoundSpec[]): MatchTimeline => {
         ? [{ round: i + 1, tick: roundTick(i + 1, s.defuse.at), steamId: s.defuse.steamId }]
         : [],
     ),
+    explosions: [],
     finalScore: { CT: 0, T: 0 },
     durationTicks: specs.length * ROUND_LENGTH,
   }

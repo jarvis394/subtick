@@ -1,24 +1,24 @@
 import type { HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
 import { Crown, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/surface'
-import { SKULL_ICON } from '@/lib/killfeed'
+import { DEFUSE_ICON, HEADSHOT_ICON } from '@/lib/killfeed'
 import { cn } from '@/lib/utils'
 
-/** The CS2 skull, tinted with the current text color. */
-const Skull = () => (
+/** A killfeed icon, tinted with the current text color. */
+const Icon = ({ src, className }: { src: string; className?: string }) => (
   <span
     aria-hidden
-    className="size-3 bg-current"
+    className={cn('size-3 bg-current', className)}
     style={{
-      WebkitMask: `url("${SKULL_ICON}") center / contain no-repeat`,
-      mask: `url("${SKULL_ICON}") center / contain no-repeat`,
+      WebkitMask: `url("${src}") center / contain no-repeat`,
+      mask: `url("${src}") center / contain no-repeat`,
     }}
   />
 )
 
 /**
- * What a moment is at a glance: a crown for an ace, "1vN" for a clutch, one skull per kill
- * otherwise, plus sparkles when a knife was involved.
+ * What a moment is at a glance: a crown for an ace, "1vN" for a clutch, the defuse kit for a
+ * defuse, one headshot icon per kill otherwise, plus sparkles when a knife was involved.
  */
 export const MomentBadge = ({
   moment,
@@ -49,10 +49,14 @@ export const MomentBadge = ({
         <>
           <Crown className="size-3.5" /> Ace
         </>
-      ) : moment.kind === 'clutch' || n === 0 ? (
+      ) : moment.kind === 'clutch' ? (
         label
+      ) : n === 0 ? (
+        <Icon src={DEFUSE_ICON} className="size-4" />
       ) : (
-        Array.from({ length: n }, (_, i) => <Skull key={i} />)
+        Array.from({ length: n }, (_, i) => (
+          <Icon key={i} src={HEADSHOT_ICON} className="size-3.5" />
+        ))
       )}
       {knife && <Sparkles className="ml-0.5 size-3" />}
     </Badge>

@@ -47,9 +47,9 @@ export const match = pgTable(
     scoreStartedCt: smallint(),
     scoreStartedT: smallint(),
     /**
-     * steamId64 → party id from the Game Coordinator's match reservation (`party_ids`), written
-     * by the steam worker when it resolves the match. Demos don't record parties, and CS2's GC
-     * has so far sent `party_ids` empty, so this is usually null.
+     * steamId64 → party id, written by the steam worker when it resolves the match: from the Game
+     * Coordinator's reservation (`party_ids`) when it has them, which CS2's GC so far never has,
+     * otherwise from Steam friendships between the players. Demos don't record parties.
      */
     parties: jsonb().$type<Record<string, string>>(),
     demoKey: text(),
@@ -115,6 +115,12 @@ export const round = pgTable(
     endTick: integer().notNull(),
     ctEquipValue: integer().notNull(),
     tEquipValue: integer().notNull(),
+    /** Bomb plant, defuse and explosion; null when it didn't happen this round. */
+    bombPlantTick: integer(),
+    bombPlanterSteamId: text(),
+    bombDefuseTick: integer(),
+    bombDefuserSteamId: text(),
+    bombExplodeTick: integer(),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.number] })],
 )

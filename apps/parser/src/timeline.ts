@@ -98,6 +98,8 @@ export interface MatchTimeline {
   blinds: Blind[]
   plants: BombEvent[]
   defuses: BombEvent[]
+  /** `steamId` is the planter. */
+  explosions: BombEvent[]
   /** Final score, keyed by the side each team started on. */
   finalScore: Record<Side, number>
   durationTicks: number
@@ -313,6 +315,7 @@ export const buildTimeline = (input: {
     blinds,
     plants: events.bombPlants.flatMap(assignRound),
     defuses: events.bombDefuses.flatMap(assignRound),
+    explosions: events.bombExplosions.flatMap(assignRound),
     finalScore,
     durationTicks: rounds.at(-1)?.lastTick ?? 0,
   }

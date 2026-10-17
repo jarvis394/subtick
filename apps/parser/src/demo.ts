@@ -91,6 +91,7 @@ export interface DemoEvents {
   blinds: DemoBlind[]
   bombPlants: DemoBombEvent[]
   bombDefuses: DemoBombEvent[]
+  bombExplosions: DemoBombEvent[]
   /** Sent once per player at the end of the match. */
   rankUpdates: DemoRankUpdate[]
 }
@@ -130,6 +131,7 @@ const EVENTS = [
   'player_blind',
   'bomb_planted',
   'bomb_defused',
+  'bomb_exploded',
   'rank_update',
 ] as const
 
@@ -158,6 +160,7 @@ const groupEvents = (rows: Row[]): DemoEvents => {
     blinds: [],
     bombPlants: [],
     bombDefuses: [],
+    bombExplosions: [],
     rankUpdates: [],
   }
 
@@ -226,6 +229,9 @@ const groupEvents = (rows: Row[]): DemoEvents => {
         break
       case 'bomb_defused':
         events.bombDefuses.push({ tick, steamId: str(row.user_steamid) })
+        break
+      case 'bomb_exploded':
+        events.bombExplosions.push({ tick, steamId: str(row.user_steamid) })
         break
       case 'rank_update': {
         const steamId = str(row.user_steamid)
