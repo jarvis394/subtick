@@ -1,4 +1,4 @@
-import { TICKRATE } from '@subtick/domain'
+import { TICKRATE, clipOffsetTicks, clipSegments, segmentsTicks } from '@subtick/domain'
 
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -63,9 +63,18 @@ export const dayLabel = (date: Date | string | null | undefined) => {
   return d.getFullYear() === new Date().getFullYear() ? WEEKDAY.format(d) : LONG_DATE.format(d)
 }
 
-export const clipLength = (startTick: number, endTick: number) => {
-  const seconds = Math.round((endTick - startTick) / TICKRATE)
-  return `0:${String(seconds).padStart(2, '0')}`
-}
+type ClipWindow = Parameters<typeof clipSegments>[0]
+
+/** Length of a highlight's clip: its segments played back to back. */
+export const clipSeconds = (h: ClipWindow) => Math.round(segmentsTicks(clipSegments(h)) / TICKRATE)
+
+export const clock = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+export const clipLength = (h: ClipWindow) => clock(clipSeconds(h))
+
+/** Where a demo tick plays in the highlight's clip, as "0:07". */
+export const clipTime = (h: ClipWindow, tick: number) =>
+  clock(Math.round(clipOffsetTicks(clipSegments(h), tick) / TICKRATE))
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : String(n))

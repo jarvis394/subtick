@@ -1,5 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
-import type { HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
+import type { ClipSegment, HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
@@ -20,6 +20,7 @@ export interface Moment {
   round: number
   startTick: number
   endTick: number
+  segments: ClipSegment[]
   status: 'candidate' | 'queued' | 'recorded' | 'skipped' | 'failed'
   kills: { tags: KillTag[] }[]
   clutch: HighlightClutch | null
@@ -47,7 +48,7 @@ export const MomentRow = ({
   const details = [
     player?.name,
     `Round ${moment.round}`,
-    clipLength(moment.startTick, moment.endTick),
+    clipLength(moment),
     ...tagSummary(moment.kills),
   ]
     .filter(Boolean)

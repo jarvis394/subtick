@@ -6,21 +6,17 @@ import type { KillTag } from '@subtick/domain'
  */
 export const highlightConfig = {
   window: {
-    /** Footage before the first kill / after the last kill of a moment. */
-    preRollSeconds: 4,
-    postRollSeconds: 2.5,
-    /** Kills further apart than this start a new moment, unless the whole round fits in one clip. */
-    mergeGapSeconds: 8,
-    maxClipSeconds: 40,
-    /** Moments with this many kills (and clutches) may run up to `maxLongClipSeconds`. */
-    longClipMinKills: 4,
-    maxLongClipSeconds: 60,
-    /** Footage before a defuse that has no kills around it. */
+    /**
+     * A moment is every kill of one player's round. Each kill gets this much footage on both
+     * sides; the clip cuts from one kill to the next.
+     */
+    killPaddingSeconds: 3,
+    /** Cuts shorter than this are played through instead: close kills stay one continuous shot. */
+    minCutSeconds: 4,
+    /** Footage before a defuse. */
     defuseLeadInSeconds: 10,
-    /** Footage before the clutch situation starts… */
-    clutchLeadInSeconds: 2,
-    /** …but never more than this before the first clutch kill (skips the walking). */
-    clutchMaxLeadSeconds: 12,
+    /** Longer moments lose their earliest segments: endings matter more. */
+    maxClipSeconds: 60,
   },
   tags: {
     /** View rotation (degrees) within `flickTicks` before the kill that counts as a flick. */

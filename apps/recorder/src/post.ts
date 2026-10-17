@@ -70,6 +70,31 @@ export const finishClip = (
     output,
   )
 
+/**
+ * Plays finished parts back to back in one file. They come from the same capture settings, so
+ * the streams are copied, never re-encoded.
+ */
+export const joinParts = async (parts: string[], output: string) => {
+  if (parts.length === 1)
+    return ffmpeg('-i', parts[0]!, '-c', 'copy', '-movflags', '+faststart', output)
+  const list = `${output}.txt`
+  // The concat demuxer's list escapes `'` as `'\''`.
+  await Bun.write(list, parts.map((p) => `file '${p.replaceAll("'", "'\\''")}'\n`).join(''))
+  await ffmpeg(
+    '-f',
+    'concat',
+    '-safe',
+    '0',
+    '-i',
+    list,
+    '-c',
+    'copy',
+    '-movflags',
+    '+faststart',
+    output,
+  )
+}
+
 export const thumbnail = async (input: string, output: string, atSeconds: number) => {
   // Past the end, ffmpeg writes nothing and still exits 0.
   const { durationMs } = await probe(input)

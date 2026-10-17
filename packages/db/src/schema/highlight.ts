@@ -1,6 +1,7 @@
 import {
   HIGHLIGHT_KINDS,
   HIGHLIGHT_STATUSES,
+  type ClipSegment,
   type HighlightClutch,
   type HighlightKill,
   type MomentTag,
@@ -37,6 +38,8 @@ export const highlight = pgTable(
     score: real().notNull(),
     startTick: integer().notNull(),
     endTick: integer().notNull(),
+    /** Empty for highlights stored before clips were cut: those are one window. */
+    segments: jsonb().$type<ClipSegment[]>().notNull().default([]),
     kills: jsonb().$type<HighlightKill[]>().notNull(),
     tags: text().array().$type<MomentTag[]>().notNull().default([]),
     clutch: jsonb().$type<HighlightClutch>(),

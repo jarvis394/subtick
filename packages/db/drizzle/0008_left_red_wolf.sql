@@ -1,0 +1,1 @@
+ALTER TABLE "highlight" ADD COLUMN "segments" jsonb DEFAULT '[]'::jsonb NOT NULL;

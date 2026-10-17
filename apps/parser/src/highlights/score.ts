@@ -105,11 +105,20 @@ const TAG_LABELS: Partial<Record<KillTag, string>> = {
   long_shot: 'Long shot',
 }
 
-/** Most-used weapon in the moment, as a display name. */
-const mainWeapon = (moment: Moment) => {
-  const counts = Map.groupBy(moment.kills, (k) => k.weapon)
-  const [weapon] = [...counts].toSorted((a, b) => b[1].length - a[1].length)[0] ?? ['']
-  return weaponName(weapon)
+/**
+ * The weapons of a moment as the end of "… with <this>". One weapon: "the AK-47". Two: both, so a
+ * knife finisher isn't hidden behind the rifle ("the M4A1-S and the knife"). Three or more: the
+ * weapon behind most of the kills, else "multiple weapons".
+ */
+const the = (name: string) => `the ${name === 'Knife' ? 'knife' : name}`
+
+const weaponPhrase = (moment: Moment) => {
+  const counts = Map.groupBy(moment.kills, (k) => weaponName(k.weapon))
+  const ranked = [...counts].toSorted((a, b) => b[1].length - a[1].length)
+  if (ranked.length === 1) return the(ranked[0]![0])
+  if (ranked.length === 2) return `${the(ranked[0]![0])} and ${the(ranked[1]![0])}`
+  const [top, kills] = ranked[0] ?? ['', []]
+  return kills.length * 2 > moment.kills.length ? the(top) : 'multiple weapons'
 }
 
 export const momentTitle = (
@@ -118,12 +127,12 @@ export const momentTitle = (
   killTags: Map<number, KillTag[]>,
 ) => {
   const n = moment.kills.length
-  const weapon = mainWeapon(moment)
+  const weapons = weaponPhrase(moment)
   const firstTag = moment.kills.flatMap((k) => killTags.get(k.id) ?? []).find((t) => TAG_LABELS[t])
 
   switch (kind) {
     case 'ace':
-      return `Ace with the ${weapon}`
+      return `Ace with ${weapons}`
     case 'clutch': {
       const suffix = n > 1 ? ` · ${n}K` : moment.defuse ? ' · defuse' : ''
       return `1v${moment.clutch!.opponents} clutch${suffix}`
@@ -131,13 +140,13 @@ export const momentTitle = (
     case 'quad':
     case 'triple':
     case 'double':
-      return `${n}K with the ${weapon}`
+      return `${n}K with ${weapons}`
     case 'collateral':
-      return `Collateral with the ${weapon}`
+      return `Collateral with ${weapons}`
     case 'special':
       if (!firstTag) return moment.ninjaDefuse ? 'Ninja defuse' : 'Bomb defuse'
-      return `${TAG_LABELS[firstTag]} with the ${weapon}`
+      return `${TAG_LABELS[firstTag]} with ${weapons}`
     case 'single':
-      return `${killTags.get(moment.kills[0]!.id)?.includes('headshot') ? 'Headshot' : 'Kill'} with the ${weapon}`
+      return `${killTags.get(moment.kills[0]!.id)?.includes('headshot') ? 'Headshot' : 'Kill'} with ${weapons}`
   }
 }

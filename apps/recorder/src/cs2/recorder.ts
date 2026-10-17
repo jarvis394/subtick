@@ -1,8 +1,9 @@
-/* oxlint-disable no-await-in-loop -- polls for HLAE's file to appear */
+/* oxlint-disable no-await-in-loop -- segments render one after another; polls for HLAE's file */
 import { mkdir, readdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { type ClipSegment, segmentsTicks } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
-import type { ClipPlan, MatchToRecord, RecordedFile, Recorder } from '../recorder'
+import type { ClipPlan, MatchToRecord, RecordedFile, RecordedPart, Recorder } from '../recorder'
 import type { NetCon } from './netcon'
 import { type WineGame, findProcesses, windowsPath } from './wine'
 
@@ -108,31 +109,65 @@ export class Cs2Recorder implements Recorder {
     if (!netcon || !this.loadedMatchId) throw new Error('no demo loaded')
     if (/["\n;]/.test(clip.playerName))
       throw new Error(`can't spectate "${clip.playerName}" by name`)
+    if (!clip.segments.length) throw new Error(`${clip.highlightId} has no segments`)
 
-    const { prefix, takesDir } = this.options
-    const dir = join(takesDir, clip.highlightId)
+    const dir = join(this.options.takesDir, clip.highlightId)
     await rm(dir, { recursive: true, force: true })
+    const parts: RecordedPart[] = []
+    let renderMs = 0
+    // Segments are in demo order, so each seek is a short skip forward.
+    for (const [index, segment] of clip.segments.entries()) {
+      const part = await this.#recordSegment(
+        netcon,
+        join(dir, `segment${index}`),
+        clip.playerName,
+        segment,
+      )
+      parts.push(part)
+      renderMs += part.renderMs
+    }
+
+    const demoSeconds = segmentsTicks(clip.segments) / TICKRATE
+    const ratio = renderMs / 1000 / demoSeconds
+    if (++this.#sessionClips >= CLIPS_PER_SESSION || ratio > SLOW_RENDER_RATIO) {
+      this.options.log.info(
+        { clips: this.#sessionClips, ratio: +ratio.toFixed(1) },
+        'restarting CS2',
+      )
+      await this.reset()
+    }
+    return { parts: parts.map(({ path, audioPath }) => ({ path, audioPath })), dir, renderMs }
+  }
+
+  /** Seeks to one segment, spectates the player, and lets HLAE capture it into `dir`. */
+  async #recordSegment(
+    netcon: NetCon,
+    dir: string,
+    playerName: string,
+    segment: ClipSegment,
+  ): Promise<RecordedPart & { renderMs: number }> {
+    const { prefix } = this.options
     await mkdir(dir, { recursive: true })
     const take = ++this.#takes
 
     netcon.send(
       `mirv_streams record name "${windowsPath(prefix, dir)}"`,
       'mirv_cmd clear',
-      `mirv_cmd addAtTick ${clip.startTick} "echo subtick_start_${take}; mirv_streams record start"`,
-      `mirv_cmd addAtTick ${clip.endTick} "mirv_streams record end; demo_pause; echo subtick_done_${take}"`,
+      `mirv_cmd addAtTick ${segment.startTick} "echo subtick_start_${take}; mirv_streams record start"`,
+      `mirv_cmd addAtTick ${segment.endTick} "mirv_streams record end; demo_pause; echo subtick_done_${take}"`,
     )
     const seeked = netcon.waitFor(/Demo Skipping finished/, SEEK_TIMEOUT_MS)
     seeked.catch(() => {})
-    netcon.send(`demo_gototick ${Math.max(0, clip.startTick - PREROLL_TICKS)}`)
+    netcon.send(`demo_gototick ${Math.max(0, segment.startTick - PREROLL_TICKS)}`)
     await seeked
     // After the seek: a seek resets the spectated player.
-    netcon.send(`spec_player "${clip.playerName}"`)
+    netcon.send(`spec_player "${playerName}"`)
 
     // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
     // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
     const marker = (name: string) => new RegExp(`(?:^|\\W)${name}_${take}(?!\\d)`)
     const started = netcon.waitFor(marker('subtick_start'), SEEK_TIMEOUT_MS)
-    const demoSeconds = (clip.endTick - clip.startTick) / TICKRATE
+    const demoSeconds = (segment.endTick - segment.startTick) / TICKRATE
     const done = netcon.waitFor(
       marker('subtick_done'),
       SEEK_TIMEOUT_MS + demoSeconds * RENDER_TIMEOUT_PER_DEMO_SECOND_MS,
@@ -149,23 +184,13 @@ export class Cs2Recorder implements Recorder {
     for (let i = 0; i < FFMPEG_EXIT_POLLS && (await findProcesses(takeDir)).length; i++)
       await Bun.sleep(1000)
     if ((await findProcesses(takeDir)).length)
-      throw new Error(`HLAE's ffmpeg is still writing ${clip.highlightId}`)
+      throw new Error(`HLAE's ffmpeg is still writing ${dir}`)
 
     // If the trigger fired twice anyway, the last take is the complete one.
     const takes = (await readdir(dir)).filter((t) => t.startsWith('take')).toSorted()
     const path = join(dir, takes.at(-1) ?? 'take0000', 'video.mp4')
-    if (!(await Bun.file(path).exists()))
-      throw new Error(`HLAE wrote no video for ${clip.highlightId}`)
+    if (!(await Bun.file(path).exists())) throw new Error(`HLAE wrote no video in ${dir}`)
     const wav = (await readdir(dirname(path))).find((f) => f.endsWith('.wav'))
-
-    const ratio = renderMs / 1000 / demoSeconds
-    if (++this.#sessionClips >= CLIPS_PER_SESSION || ratio > SLOW_RENDER_RATIO) {
-      this.options.log.info(
-        { clips: this.#sessionClips, ratio: +ratio.toFixed(1) },
-        'restarting CS2',
-      )
-      await this.reset()
-    }
     return { path, audioPath: wav && join(dirname(path), wav), renderMs }
   }
 

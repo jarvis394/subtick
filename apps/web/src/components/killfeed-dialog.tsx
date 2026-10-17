@@ -1,10 +1,21 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { type Side, weaponName } from '@subtick/domain'
+import { type ClipSegment, type Side, weaponName } from '@subtick/domain'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { mapPreviewUrl } from '@/components/map-icon'
-import { clipLength } from '@/lib/format'
-import { BLIND_ICON, type FeedEntry, modifierIcons, momentFeed, weaponIcon } from '@/lib/killfeed'
+import { clipTime } from '@/lib/format'
+import {
+  BLIND_ICON,
+  BOMB_EXPLODED_ICON,
+  BOMB_ICON,
+  type BombEntry,
+  DEFUSE_ICON,
+  type FeedEntry,
+  type KillEntry,
+  modifierIcons,
+  momentFeed,
+  weaponIcon,
+} from '@/lib/killfeed'
 import type { MatchDetail } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -15,16 +26,49 @@ const Name = ({ side, children }: { side: Side; children: ReactNode }) => (
   <span className={cn('max-w-[11rem] truncate', SIDE_COLOR[side])}>{children}</span>
 )
 
-/** One killfeed line, drawn like CS2's: red outline when the moment's player is involved. */
-const FeedLine = ({ entry, own }: { entry: FeedEntry; own: boolean }) => {
+/** How a line involves the moment's player: something they did, or their death. */
+type Own = 'action' | 'death' | null
+
+/**
+ * A killfeed line's box, drawn like CS2's: red outline for the moment's player's own kills and
+ * bomb events, a faint red fill for their death.
+ */
+const Line = ({ own, children }: { own: Own; children: ReactNode }) => (
+  <div
+    className={cn(
+      'flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-[4px] px-2.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-sm',
+      own === 'action'
+        ? 'bg-black/80 ring-2 ring-[#e0261f] ring-inset'
+        : own === 'death'
+          ? 'bg-[#e0261f]/35'
+          : 'bg-black/60',
+    )}
+  >
+    {children}
+  </div>
+)
+
+const BOMB: Record<BombEntry['type'], { icon: string; text: string }> = {
+  planted: { icon: BOMB_ICON, text: 'planted the bomb' },
+  defused: { icon: DEFUSE_ICON, text: 'defused the bomb' },
+  exploded: { icon: BOMB_EXPLODED_ICON, text: 'Bomb exploded' },
+}
+
+const BombLine = ({ entry, own }: { entry: BombEntry; own: Own }) => {
+  const { icon, text } = BOMB[entry.type]
+  return (
+    <Line own={own}>
+      <img src={icon} alt="" className="h-[18px]" />
+      {entry.player && <Name side={entry.player.side}>{entry.player.name}</Name>}
+      <span className="text-white/80">{text}</span>
+    </Line>
+  )
+}
+
+const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
   const icon = weaponIcon(entry.weapon)
   return (
-    <div
-      className={cn(
-        'flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-[4px] px-2.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-sm',
-        own ? 'bg-black/80 ring-2 ring-[#e0261f] ring-inset' : 'bg-black/60',
-      )}
-    >
+    <Line own={own}>
       {entry.attacker && entry.attacker.steamId !== entry.victim.steamId && (
         <>
           {entry.tags.includes('blind') && (
@@ -53,11 +97,17 @@ const FeedLine = ({ entry, own }: { entry: FeedEntry; own: boolean }) => {
         <img key={tag} src={src} alt={tag} title={tag} className="-ml-0.5 h-[18px]" />
       ))}
       <Name side={entry.victim.side}>{entry.victim.name}</Name>
-    </div>
+    </Line>
   )
 }
 
-/** A moment's kills as CS2 showed them: every kill of the round inside the clip window. */
+const involves = (entry: FeedEntry, steamId: string): Own => {
+  if (entry.type !== 'kill') return entry.player?.steamId === steamId ? 'action' : null
+  if (entry.victim.steamId === steamId) return 'death'
+  return entry.attacker?.steamId === steamId ? 'action' : null
+}
+
+/** A moment's killfeed as CS2 showed it: every kill and bomb event of the round inside the clip. */
 export const KillfeedDialog = ({
   match,
   moment,
@@ -65,7 +115,14 @@ export const KillfeedDialog = ({
   trigger,
 }: {
   match: MatchDetail
-  moment: { title: string; steamId: string; round: number; startTick: number; endTick: number }
+  moment: {
+    title: string
+    steamId: string
+    round: number
+    startTick: number
+    endTick: number
+    segments: ClipSegment[]
+  }
   subtitle: string
   trigger: ReactNode
 }) => {
@@ -105,23 +162,23 @@ export const KillfeedDialog = ({
             <ol className="grid max-h-[60vh] gap-1.5 overflow-y-auto p-4">
               {feed.map((entry) => (
                 <li
-                  key={`${entry.tick}:${entry.victim.steamId}`}
+                  key={`${entry.tick}:${entry.type === 'kill' ? entry.victim.steamId : entry.type}`}
                   className="flex min-w-0 items-center gap-3"
                 >
                   <span className="w-8 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
-                    {clipLength(moment.startTick, entry.tick)}
+                    {clipTime(moment, entry.tick)}
                   </span>
-                  <FeedLine
-                    entry={entry}
-                    own={
-                      entry.attacker?.steamId === moment.steamId ||
-                      entry.victim.steamId === moment.steamId
-                    }
-                  />
+                  {entry.type === 'kill' ? (
+                    <KillLine entry={entry} own={involves(entry, moment.steamId)} />
+                  ) : (
+                    <BombLine entry={entry} own={involves(entry, moment.steamId)} />
+                  )}
                 </li>
               ))}
               {feed.length === 0 && (
-                <li className="py-6 text-center text-sm text-white/60">No kills in this moment.</li>
+                <li className="py-6 text-center text-sm text-white/60">
+                  Nothing happened in this moment.
+                </li>
               )}
             </ol>
           </div>

@@ -43,6 +43,7 @@ export const detectHighlights = (
       score: scoreMoment(moment, killTags, tags, config),
       startTick: moment.startTick,
       endTick: moment.endTick,
+      segments: moment.segments,
       kills: moment.kills.map((k) => ({
         tick: k.tick,
         victimSteamId: k.victim,

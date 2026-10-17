@@ -23,7 +23,7 @@ const ecoRound = (): RoundSpec => ({
 })
 
 describe('detectHighlights', () => {
-  test('an ace is one clip from first kill − pre-roll to last kill + post-roll', () => {
+  test('close kills play as one continuous segment, padded on both ends', () => {
     const [ace, ...rest] = detect([
       {
         winner: 'CT',
@@ -38,11 +38,13 @@ describe('detectHighlights', () => {
       round: 1,
     })
     expect(ace!.kills).toHaveLength(5)
-    expect(ace!.startTick).toBe(roundTick(1, 5) - secondsToTicks(w.preRollSeconds))
-    expect(ace!.endTick).toBe(roundTick(1, 26) + secondsToTicks(w.postRollSeconds))
+    const pad = secondsToTicks(w.killPaddingSeconds)
+    expect(ace!.segments).toEqual([
+      { startTick: roundTick(1, 5) - pad, endTick: roundTick(1, 26) + pad },
+    ])
   })
 
-  test('kills spread over a long round are split at large gaps', () => {
+  test('kills spread over a long round are one moment, cut at large gaps', () => {
     const highlights = detect([
       {
         winner: 'CT',
@@ -55,13 +57,12 @@ describe('detectHighlights', () => {
         endsAt: 90,
       },
     ])
-    expect(highlights.map((h) => [h.kind, h.kills.length])).toEqual([
-      ['double', 2],
-      ['double', 2],
+    expect(highlights.map((h) => [h.kind, h.kills.length, h.segments.length])).toEqual([
+      ['quad', 4, 2],
     ])
   })
 
-  test('kills that fit in one clip stay together even with gaps', () => {
+  test('each kill far from the others gets its own segment', () => {
     const [triple] = detect([
       {
         winner: 'CT',
@@ -70,6 +71,46 @@ describe('detectHighlights', () => {
       },
     ])
     expect(triple).toMatchObject({ kind: 'triple', title: '3K with the AK-47' })
+    expect(triple!.segments).toHaveLength(3)
+    expect(triple!.startTick).toBe(triple!.segments[0]!.startTick)
+    expect(triple!.endTick).toBe(triple!.segments.at(-1)!.endTick)
+  })
+
+  test('a title names both weapons when a knife finishes a rifle kill', () => {
+    const [double] = detect([
+      {
+        winner: 'CT',
+        kills: [
+          { at: 4, attacker: 'ct1', victim: 't1', weapon: 'm4a1_silencer' },
+          { at: 6, attacker: 'ct1', victim: 't2', weapon: 'knife' },
+        ],
+        endsAt: 90,
+      },
+    ])
+    expect(double).toMatchObject({ kind: 'double', title: '2K with the M4A1-S and the knife' })
+  })
+
+  test('kills before a clutch count toward it: 2 kills, then a 1v3 for 3 more, is an ace', () => {
+    const highlights = detect([
+      {
+        winner: 'CT',
+        kills: [
+          { at: 5, attacker: 'ct1', victim: 't1' },
+          { at: 6, attacker: 'ct1', victim: 't2' },
+          { at: 20, attacker: 't3', victim: 'ct2' },
+          { at: 21, attacker: 't3', victim: 'ct3' },
+          { at: 22, attacker: 't4', victim: 'ct4' },
+          { at: 23, attacker: 't5', victim: 'ct5' },
+          { at: 40, attacker: 'ct1', victim: 't3' },
+          { at: 45, attacker: 'ct1', victim: 't4' },
+          { at: 50, attacker: 'ct1', victim: 't5' },
+        ],
+      },
+    ]).filter((h) => h.steamId === 'ct1')
+    expect(highlights).toHaveLength(1)
+    expect(highlights[0]).toMatchObject({ kind: 'ace', clutch: { opponents: 3, won: true } })
+    expect(highlights[0]!.kills).toHaveLength(5)
+    expect(highlights[0]!.segments).toHaveLength(2)
   })
 
   test('clutch clips skip the walking before the first clutch kill', () => {
@@ -90,7 +131,7 @@ describe('detectHighlights', () => {
       },
     ]).find((h) => h.steamId === 'ct5')
     expect(clutch).toMatchObject({ kind: 'ace', clutch: { opponents: 5, won: true } })
-    expect(clutch!.startTick).toBe(roundTick(1, 40) - secondsToTicks(w.clutchMaxLeadSeconds))
+    expect(clutch!.startTick).toBe(roundTick(1, 40) - secondsToTicks(w.killPaddingSeconds))
   })
 
   test('a clutch ace is the best moment of the match', () => {

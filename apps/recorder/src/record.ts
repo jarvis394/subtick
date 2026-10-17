@@ -1,18 +1,18 @@
-/* oxlint-disable no-await-in-loop -- one game instance records clips one after another */
+/* oxlint-disable no-await-in-loop -- one game instance records clips (and their parts) one after another */
 import { mkdir, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { and, asc, eq, inArray, schema } from '@subtick/db'
-import { ticksToSeconds } from '@subtick/domain'
+import { clipOffsetTicks, clipSegments, segmentsTicks, ticksToSeconds } from '@subtick/domain'
 import type { TypedJob } from '@subtick/queue'
 import { keys } from '@subtick/storage'
 import type { Context } from './context'
-import { finishClip, probe, thumbnail } from './post'
+import { finishClip, joinParts, probe, thumbnail } from './post'
 import type { RecordedFile } from './recorder'
 
 const { match, highlight, matchPlayer, clip } = schema
 
 /** Bumped when clips should be re-rendered (look, resolution, capture changes). */
-export const RECORDER_VERSION = 2
+export const RECORDER_VERSION = 3
 
 type Highlight = typeof highlight.$inferSelect
 
@@ -76,8 +76,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           raw = await recorder.record({
             highlightId: h.id,
             playerName: playerName ?? '',
-            startTick: h.startTick,
-            endTick: h.endTick,
+            segments: clipSegments(h),
           })
         } catch (error) {
           await fail('capture', error)
@@ -86,8 +85,8 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           continue
         }
         await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
-        // The take folder (`<takes>/<highlightId>/takeNNNN/video.mp4`) is not needed either way.
-        await rm(dirname(dirname(raw.path)), { recursive: true, force: true })
+        // The takes are not needed either way.
+        await rm(raw.dir, { recursive: true, force: true })
       }
     }
   } finally {
@@ -100,19 +99,31 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
 const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: string) => {
   const { db, clips, log } = ctx
 
-  const planned = ticksToSeconds(h.endTick - h.startTick)
-  const captured = await probe(raw.path)
-  if (captured.durationMs < planned * 1000 * 0.9)
-    throw new Error(
-      `capture is ${captured.durationMs} ms, planned ${Math.round(planned * 1000)} ms`,
-    )
+  const segments = clipSegments(h)
+  if (raw.parts.length !== segments.length)
+    throw new Error(`${raw.parts.length} parts recorded for ${segments.length} segments`)
+  // Audio only when every part has it: parts with and without an audio stream don't join.
+  const withAudio = raw.parts.every((p) => p.audioPath)
+  const finished: string[] = []
+  for (const [i, part] of raw.parts.entries()) {
+    const planned = ticksToSeconds(segments[i]!.endTick - segments[i]!.startTick)
+    const captured = await probe(part.path)
+    if (captured.durationMs < planned * 1000 * 0.9)
+      throw new Error(
+        `segment ${i} is ${captured.durationMs} ms, planned ${Math.round(planned * 1000)} ms`,
+      )
+    const out = join(work, `${h.id}-${i}.mp4`)
+    await finishClip(part.path, withAudio ? part.audioPath : undefined, out, planned)
+    finished.push(out)
+  }
 
+  const planned = ticksToSeconds(segmentsTicks(segments))
   const video = join(work, `${h.id}.mp4`)
   const poster = join(work, `${h.id}.jpg`)
-  await finishClip(raw.path, raw.audioPath, video, planned)
+  await joinParts(finished, video)
   // The poster is the clip's last kill: the moment the highlight builds up to.
   const peak = h.kills.at(-1)?.tick ?? (h.startTick + h.endTick) / 2
-  await thumbnail(video, poster, ticksToSeconds(peak - h.startTick) + 0.25)
+  await thumbnail(video, poster, ticksToSeconds(clipOffsetTicks(segments, peak)) + 0.25)
   const info = await probe(video)
   await clips.put(keys.clip(h.id), Bun.file(video), 'video/mp4')
   await clips.put(keys.thumbnail(h.id), Bun.file(poster), 'image/jpeg')
@@ -136,7 +147,8 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
       highlightId: h.id,
       demoSeconds: planned,
       renderMs: raw.renderMs,
-      audio: Boolean(raw.audioPath),
+      segments: segments.length,
+      audio: withAudio,
       mb: +(Bun.file(video).size / 1e6).toFixed(1),
     },
     'clip recorded',

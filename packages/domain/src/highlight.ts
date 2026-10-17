@@ -60,6 +60,12 @@ export interface HighlightClutch {
   startTick: number
 }
 
+/** A stretch of the demo that goes into a clip. A clip plays its segments back to back. */
+export interface ClipSegment {
+  startTick: number
+  endTick: number
+}
+
 export interface Highlight {
   steamId: string
   playerName: string
@@ -67,9 +73,38 @@ export interface Highlight {
   kind: HighlightKind
   title: string
   score: number
+  /** First segment's start and last segment's end. */
   startTick: number
   endTick: number
+  /** In demo order, never overlapping. */
+  segments: ClipSegment[]
   kills: HighlightKill[]
   tags: MomentTag[]
   clutch: HighlightClutch | null
+}
+
+/** A highlight's segments; ones stored before segments existed are a single window. */
+export const clipSegments = (h: {
+  startTick: number
+  endTick: number
+  segments?: ClipSegment[] | null
+}): ClipSegment[] =>
+  h.segments?.length ? h.segments : [{ startTick: h.startTick, endTick: h.endTick }]
+
+/** How many ticks of footage the segments add up to. */
+export const segmentsTicks = (segments: ClipSegment[]) =>
+  segments.reduce((sum, s) => sum + s.endTick - s.startTick, 0)
+
+/**
+ * Where a demo tick lands in the clip, in ticks from its start. A tick between segments maps to
+ * the cut (the start of the next one).
+ */
+export const clipOffsetTicks = (segments: ClipSegment[], tick: number) => {
+  let offset = 0
+  for (const s of segments) {
+    if (tick < s.startTick) return offset
+    if (tick <= s.endTick) return offset + tick - s.startTick
+    offset += s.endTick - s.startTick
+  }
+  return offset
 }
