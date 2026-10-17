@@ -348,15 +348,19 @@ export const createWineGame = (options: WineGameOptions) => {
   const kill = async () => {
     const pids = await findProcesses('cs2.exe')
     for (const pid of pids) process.kill(pid, 'SIGKILL')
-    if (!pids.length) return
-    log.warn({ pids }, 'killed CS2')
-    // Until its console port closes, a dying game would still accept the next connection.
-    for (let i = 0; i < 30; i++) {
+    if (pids.length) log.warn({ pids }, 'killed CS2')
+    // Until its console port closes, a dying game would still accept the next connection, and
+    // `connect` would take it for a running one.
+    for (let i = 0; i < (pids.length ? 30 : 1); i++) {
       const netcon = await connectNetCon(netconPort).catch(() => null)
       if (!netcon) return
       netcon.close()
       await sleep(1000)
     }
+    // Still answering, or answering though no cs2.exe was found (seen after a timed-out clip):
+    // stop every Windows process in the prefix so the next start is a fresh game.
+    log.warn({ pids }, 'CS2 still answers after the kill; stopping all Windows processes')
+    await stopAll()
   }
 
   return {

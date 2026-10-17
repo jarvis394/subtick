@@ -71,6 +71,8 @@ export class Cs2Recorder implements Recorder {
   #sessionClips = 0
   /** `mirv_pov` failed in this game session; tried again after a restart. */
   #povBroken = false
+  /** `mirv_pov 1` was sent in this game session. */
+  #povOn = false
 
   constructor(private readonly options: Cs2RecorderOptions) {}
 
@@ -212,18 +214,19 @@ export class Cs2Recorder implements Recorder {
   }
 
   /**
-   * Switches to the spectated player's own HUD. POV follows whoever is spectated when it turns
-   * on, so it is re-enabled after every `spec_player`. When the hook can't find what it needs (a
-   * CS2 update moved it, or the DLL is official HLAE's), clips keep the spectator HUD instead.
+   * Switches to the spectated player's own HUD, once per game session: after that the hook
+   * follows `spec_player` by itself ("POV player changed"). Toggling it again makes CS2 re-sync
+   * the demo, a skip that can jump past a segment's start trigger. When the hook can't find what
+   * it needs (a CS2 update moved it, or the DLL is official HLAE's), clips keep the spectator HUD.
    */
   async #enablePov(netcon: NetCon) {
-    if (!this.options.mirvPov || this.#povBroken) return
-    await Bun.sleep(500)
+    if (!this.options.mirvPov || this.#povOn || this.#povBroken) return
+    this.#povOn = true
     const failed = netcon.waitFor(POV_FAILURE, POV_CHECK_MS).then(
       (line) => line,
       () => null,
     )
-    netcon.send('mirv_pov 0', 'mirv_pov 1')
+    netcon.send('mirv_pov 1')
     const line = await failed
     if (!line) return
     this.#povBroken = true
@@ -235,6 +238,7 @@ export class Cs2Recorder implements Recorder {
   }
 
   async reset() {
+    this.#povOn = false
     this.#povBroken = false
     this.#matchId = null
     this.#sessionClips = 0
