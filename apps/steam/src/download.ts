@@ -13,7 +13,7 @@ const VALVE_RETENTION_MS = 30 * 24 * 3600_000
  * then. A 404 this soon after the match means "not yet", so look again later.
  */
 const UPLOAD_WAIT_MS = 6 * 3600_000
-const UPLOAD_POLL_MS = 5 * 60_000
+const UPLOAD_POLL_MS = 30_000
 
 /**
  * Fetches a demo from Valve's replay servers and stores it as zstd (smaller, and far faster to
