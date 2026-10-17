@@ -4,7 +4,7 @@ import { Check, Copy, Plus } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, Input, inputClass } from '@/components/ui/field'
-import { Badge, Card, Skeleton } from '@/components/ui/surface'
+import { Badge, Card, Skeleton, Spinner } from '@/components/ui/surface'
 import { type AdminRecorder, recordersQuery, steamAccountsQuery } from '@/lib/admin'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { timeAgo } from '@/lib/format'
@@ -195,8 +195,11 @@ function RecorderCard({
     mutationFn: () => unwrap(api.admin.recorders({ id: recorder.id }).delete()),
     onSuccess: refresh,
   })
+  // Outlives the code form, which unmounts while the machine checks the code.
+  const [codeSentAt, setCodeSentAt] = useState<number | null>(null)
 
   const state = recorder.online && recorder.state ? recorder.state : null
+  const signingIn = state === 'signing_in' || state === 'needs_guard_code'
   const tone =
     state === 'error' || state === 'needs_guard_code'
       ? 'danger'
@@ -240,7 +243,18 @@ function RecorderCard({
 
       {token && <TokenNotice token={token} onDismiss={onDismissToken} />}
 
-      {state === 'needs_guard_code' && <GuardCodeForm recorder={recorder} />}
+      {state === 'needs_guard_code' && (
+        <GuardCodeForm
+          recorder={recorder}
+          sentAt={codeSentAt}
+          onSent={() => setCodeSentAt(Date.now())}
+        />
+      )}
+      {state === 'signing_in' && (
+        <SignInProgress
+          checkingCode={codeSentAt !== null && Date.now() - codeSentAt < CODE_CHECK_LABEL_MS}
+        />
+      )}
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
         <Detail label="Signed in as">{recorder.signedInAs ?? '—'}</Detail>
@@ -266,7 +280,8 @@ function RecorderCard({
         </Detail>
       </dl>
 
-      {recorder.lastError && (
+      {/* While signing in, the code form shows what went wrong with the last attempt. */}
+      {recorder.lastError && !signingIn && (
         <p className="rounded-lg bg-danger/8 px-3 py-2 text-sm text-danger">{recorder.lastError}</p>
       )}
 
@@ -337,29 +352,74 @@ function RecorderCard({
   )
 }
 
-function GuardCodeForm({ recorder }: { recorder: AdminRecorder }) {
+/** How long after sending a code "Signing in" reads as checking that code. */
+const CODE_CHECK_LABEL_MS = 2 * 60_000
+/** A sent code reads as on its way this long, covering the beat before the machine reports it. */
+const CODE_PICKUP_MS = 12_000
+
+function SignInProgress({ checkingCode }: { checkingCode: boolean }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border bg-surface-2/50 p-4 text-sm">
+      <Spinner className="size-4 shrink-0 text-accent" />
+      <div className="min-w-0">
+        <p className="font-medium">
+          {checkingCode ? 'Checking the code with Steam…' : 'Signing in to Steam…'}
+        </p>
+        <p className="text-[13px] text-muted">
+          {checkingCode
+            ? 'The machine typed it in. This takes up to half a minute.'
+            : 'Typing the account details into Steam.'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function GuardCodeForm({
+  recorder,
+  sentAt,
+  onSent,
+}: {
+  recorder: AdminRecorder
+  sentAt: number | null
+  onSent: () => void
+}) {
   const queryClient = useQueryClient()
   const send = useMutation({
     mutationFn: (code: string) =>
       unwrap(api.admin.recorders({ id: recorder.id })['guard-code'].post({ code })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'recorders'] }),
+    onSuccess: async () => {
+      onSent()
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'recorders'] })
+    },
   })
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    send.mutate(String(new FormData(event.currentTarget).get('code')))
-    event.currentTarget.reset()
+    const form = event.currentTarget
+    send.mutate(String(new FormData(form).get('code')).trim(), { onSuccess: () => form.reset() })
   }
+  // Sent, and the machine hasn't fetched it yet (it asks every few seconds) or hasn't yet said
+  // it is checking it.
+  const delivering =
+    send.isPending ||
+    recorder.awaitingGuardCode ||
+    (sentAt !== null && Date.now() - sentAt < CODE_PICKUP_MS)
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-danger/30 bg-danger/5 p-4">
       <Field
         label={`Steam is asking ${recorder.steamAccount?.username ?? 'this account'} for a Steam Guard code`}
         description={
-          recorder.awaitingGuardCode
-            ? 'Sent. The machine types it in within a few seconds.'
-            : "From the account's email or the Steam Guard mobile app. The machine types it in."
+          delivering ? (
+            <span className="flex items-center gap-2">
+              <Spinner className="size-3" />
+              {send.isPending ? 'Sending…' : 'Sent. Waiting for the machine to type it in…'}
+            </span>
+          ) : (
+            "From the account's email or the Steam Guard mobile app. Steam waits only about a minute, then emails a new one."
+          )
         }
-        error={send.error?.message}
+        error={send.error?.message ?? (delivering ? undefined : recorder.lastError)}
       >
         <div className="flex gap-2">
           <Input
@@ -371,10 +431,12 @@ function GuardCodeForm({ recorder }: { recorder: AdminRecorder }) {
             autoComplete="one-time-code"
             spellCheck={false}
             autoFocus
+            disabled={delivering}
             className="min-w-0 flex-1 font-mono uppercase"
           />
-          <Button type="submit" disabled={send.isPending} className="h-10">
-            Send code
+          <Button type="submit" disabled={delivering} className="h-10 min-w-28">
+            {send.isPending ? <Spinner className="size-3.5" /> : null}
+            {send.isPending ? 'Sending' : recorder.awaitingGuardCode ? 'Sent' : 'Send code'}
           </Button>
         </div>
       </Field>

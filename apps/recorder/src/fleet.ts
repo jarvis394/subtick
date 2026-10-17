@@ -73,6 +73,8 @@ export const createFleetLink = (options: {
   let failing = false
   /** What the machine was doing before Steam needed a sign-in, to go back to afterwards. */
   let beforeSignIn: RecorderState | null = null
+  /** Why a sign-in step is being repeated, while it is. */
+  let signInNote: string | null = null
 
   const request = async <T>(path: string, init: RequestInit = {}) => {
     const response = await fetch(new URL(`/api/recorder${path}`, url), { ...init, headers })
@@ -120,13 +122,17 @@ export const createFleetLink = (options: {
       guardCode = null
       return code
     },
-    onSigningIn(phase) {
+    onSigningIn(phase, note) {
+      // The note rides in `lastError`, which the admin sees next to the code form.
+      if (status.lastError === signInNote) status.lastError = null
+      signInNote = null
       if (phase === 'done') {
         if (beforeSignIn) status.state = beforeSignIn
         beforeSignIn = null
         return
       }
       beforeSignIn ??= status.state
+      if (note) status.lastError = signInNote = note
       status.state = phase === 'needs_guard_code' ? 'needs_guard_code' : 'signing_in'
       // Tell the admin right away rather than on the next tick.
       void heartbeat()

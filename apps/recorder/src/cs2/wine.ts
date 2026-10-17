@@ -6,6 +6,7 @@ import { type NetCon, connectNetCon } from './netcon'
 import {
   type SteamCredentials,
   findLoginWindow,
+  clearSteamGuardCode,
   steamGuardCode,
   typeSteamGuardCode,
   typeSteamLogin,
@@ -27,12 +28,22 @@ export interface SteamAccountSource {
   credentials(): Promise<SteamCredentials | undefined>
   /** A Steam Guard code (emailed or from the mobile app) someone handed over since the last call. */
   takeGuardCode(): Promise<string | null>
-  onSigningIn?(phase: 'credentials' | 'needs_guard_code' | 'done'): void
+  /**
+   * Sign-in progress, for the admin. `note` says why a step is repeated (a code Steam didn't take,
+   * a sign-in Steam dropped); it is cleared by the next step without one.
+   */
+  onSigningIn?(phase: SignInPhase, note?: string): void
 }
+
+export type SignInPhase = 'credentials' | 'needs_guard_code' | 'checking_guard_code' | 'done'
 
 const STEAM_LOGIN_TIMEOUT_MS = 3 * 60_000
 /** Time for a person to fetch an emailed Steam Guard code and hand it over. */
 const STEAM_EMAIL_CODE_TIMEOUT_MS = 15 * 60_000
+/** A typed code that hasn't signed Steam in by now was not taken (mistyped, expired, used). */
+const GUARD_CODE_CHECK_MS = 30_000
+/** Sign-ins Steam drops (it loses its connection, the code step times out) are started over. */
+const STEAM_SIGN_IN_ATTEMPTS = 3
 const GAME_START_TIMEOUT_MS = 4 * 60_000
 /** The menu line may come before we connect; playdemo's retries cover a still-booting game. */
 const MENU_WAIT_MS = 60_000
@@ -98,6 +109,22 @@ export const createWineGame = (options: WineGameOptions) => {
     return (await file.text()).match(/\[Logged On,/g)?.length ?? 0
   }
 
+  /**
+   * Steam's sign-in log from `offset` on. It says when Steam gives up on a sign-in ("Received
+   * logon failure response") and resets its window to the empty form, code step and all. Under
+   * Wine that happens about a minute after the credentials go in: Steam's servers drop a
+   * connection that hasn't logged on by then. An emailed code has to beat it.
+   */
+  const loginLog = async (offset = 0) => {
+    const file = Bun.file(join(steamDir, 'logs/steamui_login.txt'))
+    if (!(await file.exists())) return ''
+    return file.slice(offset).text()
+  }
+  const loginLogSize = async () => {
+    const file = Bun.file(join(steamDir, 'logs/steamui_login.txt'))
+    return (await file.exists()) ? file.size : 0
+  }
+
   /** Kills every Windows process in the prefix (Steam, CS2, HLAE) through its wineserver. */
   const stopAll = async () => {
     await Bun.spawn(['wineserver', '-k'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
@@ -145,30 +172,68 @@ export const createWineGame = (options: WineGameOptions) => {
     spawnWine([windowsPath(prefix, join(steamDir, 'steam.exe')), '-no-cef-sandbox', '-silent'])
     let deadline = Date.now() + STEAM_LOGIN_TIMEOUT_MS
     let typed = false
+    let attempts = 0
+    let dropped = false
     let awaitingEmailCode = false
+    /** Where Steam's sign-in log stood when the credentials were typed. */
+    let logOffset = 0
+    let codeTypedAt: number | null = null
     try {
       while (Date.now() < deadline) {
         await sleep(3000)
         if ((await steamLogins()) > before) return log.info('Steam signed in')
         const window = await findLoginWindow()
         if (!window) continue
+
+        // Steam dropped this sign-in and is back at the empty form: anything typed now (a code
+        // above all) lands in the account name. Start over; Steam sends a new code.
+        if (typed && /Received logon failure response/.test(await loginLog(logOffset))) {
+          if (attempts >= STEAM_SIGN_IN_ATTEMPTS) {
+            dropped = true
+            break
+          }
+          log.warn({ attempts }, 'Steam dropped the sign-in; typing the credentials again')
+          await takeGuardCode()
+          typed = false
+          awaitingEmailCode = false
+          codeTypedAt = null
+          steamAccount?.onSigningIn?.(
+            'credentials',
+            'Steam gave up waiting for the code (it waits about a minute) and is signing in ' +
+              'again. Enter the new code it emails as soon as it arrives.',
+          )
+        }
+
         if (awaitingEmailCode) {
+          if (codeTypedAt !== null && Date.now() - codeTypedAt > GUARD_CODE_CHECK_MS) {
+            codeTypedAt = null
+            steamAccount?.onSigningIn?.(
+              'needs_guard_code',
+              "Steam didn't accept that code. Check it (or use a newer one) and send it again.",
+            )
+          }
           const code = await takeGuardCode()
           if (!code) continue
-          log.info('typing the emailed Steam Guard code')
+          log.info('typing the Steam Guard code')
+          // A code step that showed an error keeps the old characters: clear them first.
+          await clearSteamGuardCode(window)
           await typeSteamGuardCode(window, code)
+          codeTypedAt = Date.now()
+          steamAccount?.onSigningIn?.('checking_guard_code')
           continue
         }
         if (typed) continue
         typed = true
+        attempts++
         const credentials = await steamAccount?.credentials()
         if (!credentials) {
           log.warn('Steam is waiting for a sign-in: assign it an account, or sign in over VNC')
           continue
         }
         log.info({ username: credentials.username }, 'signing Steam in')
-        steamAccount?.onSigningIn?.('credentials')
+        if (attempts === 1) steamAccount?.onSigningIn?.('credentials')
         await rm(guardCodeFile, { force: true })
+        logOffset = await loginLogSize()
         await typeSteamLogin(window, credentials)
         if (credentials.sharedSecret) {
           await sleep(8000)
@@ -177,7 +242,13 @@ export const createWineGame = (options: WineGameOptions) => {
         }
         awaitingEmailCode = true
         deadline = Date.now() + STEAM_EMAIL_CODE_TIMEOUT_MS
-        steamAccount?.onSigningIn?.('needs_guard_code')
+        // Keeps the "signing in again" note up until a code is needed.
+        steamAccount?.onSigningIn?.(
+          'needs_guard_code',
+          attempts > 1
+            ? 'Steam sent a new code. Enter it within about a minute; the old one no longer works.'
+            : undefined,
+        )
         log.warn(
           { file: guardCodeFile },
           'if Steam asks for a Steam Guard code (email or mobile app), enter it in subtick (Manage instance → Recorders) or write ' +
@@ -188,9 +259,11 @@ export const createWineGame = (options: WineGameOptions) => {
       steamAccount?.onSigningIn?.('done')
     }
     throw new Error(
-      awaitingEmailCode
-        ? 'Steam did not sign in: no Steam Guard code arrived in time'
-        : 'Steam did not sign in: check the account and its password',
+      dropped
+        ? `Steam dropped the sign-in ${attempts} times: check the account, its password and the network`
+        : awaitingEmailCode
+          ? 'Steam did not sign in: no Steam Guard code it accepted arrived in time'
+          : 'Steam did not sign in: check the account and its password',
     )
   }
 

@@ -39,14 +39,25 @@ const xdotool = async (...args: string[]) => {
 export const findLoginWindow = async () =>
   (await xdotool('search', '--onlyvisible', '--name', '^Sign in to Steam$')).split('\n')[0] || null
 
-/** Types the credentials into the login window (its username field has focus when it opens). */
+/**
+ * Types the credentials into the login window (its username field has focus when it opens). Each
+ * field is selected first: a form Steam reset after a dropped sign-in keeps what was typed.
+ */
 export const typeSteamLogin = async (window: string, credentials: SteamCredentials) => {
   await xdotool('windowactivate', '--sync', window)
   await Bun.sleep(1000)
+  await xdotool('key', 'ctrl+a')
   await xdotool('type', '--delay', '40', credentials.username)
   await xdotool('key', 'Tab')
+  await xdotool('key', 'ctrl+a')
   await xdotool('type', '--delay', '40', credentials.password)
   await xdotool('key', 'Return')
+}
+
+/** Empties the code boxes after a rejected code: each Backspace clears one box and steps back. */
+export const clearSteamGuardCode = async (window: string) => {
+  await xdotool('windowactivate', '--sync', window)
+  await xdotool('key', '--delay', '40', ...Array<string>(5).fill('BackSpace'))
 }
 
 /** Types a Steam Guard code: the code step replaces the form and focuses its first box. */
