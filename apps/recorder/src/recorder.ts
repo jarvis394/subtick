@@ -9,8 +9,8 @@ export interface Recorder {
   record(clip: ClipPlan): Promise<RecordedFile>
   /** Forgets the loaded demo (and, for game adapters, restarts the game on next use). */
   reset(): Promise<void>
-  /** Whether a demo is loaded and `record` can be called. */
-  readonly ready: boolean
+  /** The match whose demo is loaded, so `record` can be called; `null` when none is. */
+  readonly loadedMatchId: string | null
 }
 
 export interface MatchToRecord {

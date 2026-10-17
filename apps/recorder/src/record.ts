@@ -64,7 +64,9 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
 
       for (const [index, { highlight: h, playerName }] of pending.entries()) {
         await ctx.progress(matchId, index / pending.length)
-        if (!recorder.ready) await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
+        // The game keeps the previous job's demo loaded; never record this match's ticks from it.
+        if (recorder.loadedMatchId !== matchId)
+          await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
         const fail = async (stage: string, error: unknown) => {
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
           await db.update(highlight).set({ status: 'failed' }).where(eq(highlight.id, h.id))

@@ -1,5 +1,6 @@
 import { cp } from 'node:fs/promises'
 import { join } from 'node:path'
+import { and, eq, inArray, schema } from '@subtick/db'
 import { closeOnSignal, createWorker } from '@subtick/queue'
 import { createContext } from './context'
 import { RECORDER_VERSION, recordMatch } from './record'
@@ -76,9 +77,19 @@ worker.on('failed', async (job, error) => {
     job && (job.attemptsMade >= (job.opts.attempts ?? 1) || error.name === 'UnrecoverableError')
   // Event handlers aren't awaited: a rejection here (e.g. Redis briefly gone) would kill the process.
   if (matchId && exhausted)
-    await ctx
-      .setStatus(matchId, 'failed', error.message)
-      .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
+    await Promise.all([
+      ctx.setStatus(matchId, 'failed', error.message),
+      // Left `queued`, they would show as recording forever and could not be retried.
+      ctx.db
+        .update(schema.highlight)
+        .set({ status: 'failed' })
+        .where(
+          and(
+            inArray(schema.highlight.id, job.data.highlightIds),
+            eq(schema.highlight.status, 'queued'),
+          ),
+        ),
+    ]).catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
 })
 
 if (fleet) {

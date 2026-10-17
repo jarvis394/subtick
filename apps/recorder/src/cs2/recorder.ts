@@ -51,19 +51,19 @@ export interface Cs2RecorderOptions {
  */
 export class Cs2Recorder implements Recorder {
   #netcon: NetCon | null = null
-  #ready = false
+  #matchId: string | null = null
   #takes = 0
   #sessionClips = 0
 
   constructor(private readonly options: Cs2RecorderOptions) {}
 
-  get ready() {
-    return this.#ready && !this.#netcon?.closed
+  get loadedMatchId() {
+    return this.#netcon?.closed === false ? this.#matchId : null
   }
 
   async prepare(match: MatchToRecord) {
     const { game, cs2Dir, log } = this.options
-    this.#ready = false
+    this.#matchId = null
     const netcon = (this.#netcon =
       this.#netcon?.closed === false ? this.#netcon : await game.connect())
 
@@ -99,13 +99,13 @@ export class Cs2Recorder implements Recorder {
       `mirv_streams settings add ffmpeg subtick "${CAPTURE_FFMPEG}"`,
       'mirv_streams settings edit afxDefault settings subtick',
     )
-    this.#ready = true
+    this.#matchId = match.matchId
     log.info({ matchId: match.matchId, map: match.map }, 'demo loaded')
   }
 
   async record(clip: ClipPlan): Promise<RecordedFile> {
     const netcon = this.#netcon
-    if (!netcon || !this.ready) throw new Error('no demo loaded')
+    if (!netcon || !this.loadedMatchId) throw new Error('no demo loaded')
     if (/["\n;]/.test(clip.playerName))
       throw new Error(`can't spectate "${clip.playerName}" by name`)
 
@@ -167,7 +167,7 @@ export class Cs2Recorder implements Recorder {
   }
 
   async reset() {
-    this.#ready = false
+    this.#matchId = null
     this.#sessionClips = 0
     this.#netcon?.close()
     this.#netcon = null
