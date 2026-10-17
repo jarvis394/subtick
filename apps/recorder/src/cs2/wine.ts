@@ -45,10 +45,12 @@ const STEAM_EMAIL_CODE_TIMEOUT_MS = 15 * 60_000
 const GUARD_CODE_CHECK_MS = 30_000
 /** Sign-ins Steam drops (it loses its connection, the code step times out) are started over. */
 const STEAM_SIGN_IN_ATTEMPTS = 3
+/** Pending this long, a sign-in is most likely waiting for approval in the Steam Mobile App. */
+const APPROVAL_HINT_MS = 8000
 /** The form can still show for a moment after Sign in is pressed. */
 const FORM_SETTLE_MS = 6000
-/** Sign in pending this long means Steam can't reach its servers; it won't recover by waiting. */
-const SIGN_IN_PENDING_MS = 3 * 60_000
+/** Sign in pending this long means Steam is stuck; shorter than STEAM_LOGIN_TIMEOUT_MS to say so. */
+const SIGN_IN_PENDING_MS = 2 * 60_000
 const GAME_START_TIMEOUT_MS = 4 * 60_000
 /** The menu line may come before we connect; playdemo's retries cover a still-booting game. */
 const MENU_WAIT_MS = 60_000
@@ -168,6 +170,7 @@ export const createWineGame = (options: WineGameOptions) => {
     /** When Steam's code step showed up for this attempt. */
     let codeStepAt: number | null = null
     let codeTypedAt: number | null = null
+    let approvalAsked = false
     try {
       while (Date.now() < deadline) {
         await sleep(3000)
@@ -189,6 +192,7 @@ export const createWineGame = (options: WineGameOptions) => {
           await takeGuardCode()
           const hadCodeStep = codeStepAt !== null
           typedAt = codeStepAt = codeTypedAt = null
+          approvalAsked = false
           steamAccount?.onSigningIn?.(
             'credentials',
             hadCodeStep
@@ -218,10 +222,19 @@ export const createWineGame = (options: WineGameOptions) => {
         }
 
         if (screen === 'pending') {
+          // Accounts with the Steam Mobile Authenticator wait here for the sign-in to be approved
+          // in the app; under Wine that screen still looks like Sign in spinning.
+          if (!approvalAsked && Date.now() - typedAt > APPROVAL_HINT_MS) {
+            approvalAsked = true
+            steamAccount?.onSigningIn?.(
+              'credentials',
+              'Approve the sign-in in the Steam Mobile App (tap Yes on the request).',
+            )
+          }
           if (Date.now() - typedAt > SIGN_IN_PENDING_MS) {
             failure =
-              "Steam couldn't finish signing in (stuck on Sign in): its servers keep dropping " +
-              'the connection. Check the network, then retry.'
+              "Steam didn't finish signing in: the sign-in wasn't approved in the Steam Mobile " +
+              "App in time, or Steam can't reach its servers. It tries again on the next job."
             break
           }
           continue

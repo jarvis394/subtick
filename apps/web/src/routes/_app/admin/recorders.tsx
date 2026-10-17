@@ -253,6 +253,7 @@ function RecorderCard({
       {state === 'signing_in' && (
         <SignInProgress
           checkingCode={codeSentAt !== null && Date.now() - codeSentAt < CODE_CHECK_LABEL_MS}
+          note={recorder.lastError}
         />
       )}
 
@@ -357,7 +358,7 @@ const CODE_CHECK_LABEL_MS = 2 * 60_000
 /** A sent code reads as on its way this long, covering the beat before the machine reports it. */
 const CODE_PICKUP_MS = 12_000
 
-function SignInProgress({ checkingCode }: { checkingCode: boolean }) {
+function SignInProgress({ checkingCode, note }: { checkingCode: boolean; note: string | null }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border bg-surface-2/50 p-4 text-sm">
       <Spinner className="size-4 shrink-0 text-accent" />
@@ -366,9 +367,10 @@ function SignInProgress({ checkingCode }: { checkingCode: boolean }) {
           {checkingCode ? 'Checking the code with Steam…' : 'Signing in to Steam…'}
         </p>
         <p className="text-[13px] text-muted">
-          {checkingCode
-            ? 'The machine typed it in. This takes up to half a minute.'
-            : 'Typing the account details into Steam.'}
+          {note ??
+            (checkingCode
+              ? 'The machine typed it in. This takes up to half a minute.'
+              : 'Typing the account details into Steam.')}
         </p>
       </div>
     </div>
