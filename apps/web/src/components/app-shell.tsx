@@ -70,7 +70,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </Dialog.Root>
           <Wordmark />
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 [view-transition-name:page] md:px-8 md:py-10">
+          {children}
+        </main>
       </div>
     </div>
   )

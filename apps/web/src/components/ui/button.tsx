@@ -14,7 +14,11 @@ const variants = {
   outline:
     'text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)] [--layer-border:var(--color-border-strong)]',
   ghost: 'text-muted hover:text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
-  danger: 'text-white [--bg:var(--color-danger)] [--bg-hover:var(--color-danger)]',
+  danger:
+    'text-white [--bg:var(--color-danger-solid)] [--bg-hover:var(--color-danger-solid-hover)]',
+  /** The page's own foreground as the fill: white on dark, black on light. */
+  contrast:
+    'text-background [--bg:var(--color-foreground)] [--bg-hover:color-mix(in_oklab,var(--color-foreground)_88%,var(--color-background))]',
   /** Destructive but low-key (sign out, unlink): red text, no fill until hover. */
   'danger-ghost': 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
 }

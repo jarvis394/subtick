@@ -19,6 +19,9 @@
   --accent-foreground: #ffffff;
   --brand: rgb(227 135 23);
   --danger: #c8442f;
+  /* Fill for solid danger buttons: deep enough for white text (>= 4.5:1) in both themes. */
+  --danger-solid: #bf2f1d;
+  --danger-solid-hover: #cc3824;
   --success: #3f8f4a;
   --ct: #3f78bd;
   --t: #b9852a;
@@ -77,6 +80,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-brand: var(--brand);
   --color-danger: var(--danger);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: var(--danger-solid-hover);
   --color-success: var(--success);
   /* Not `t`/`ct`: `border-t` would read as a border color. */
   --color-side-ct: var(--ct);
@@ -155,5 +160,97 @@
       translate: 0 0;
       opacity: 0.5;
     }
+  }
+}
+
+/*
+ * Page changes, YouTube-style: the old page lifts a little and fades out completely, and only
+ * then does the new one fade in as it settles. Only <main> is named, so the sidebar and header
+ * stay put.
+ */
+/*
+ * Outside <main> (sidebar, header) nothing animates: show only the live new state. Leaving the old
+ * snapshot in place would stack it under the new one with the default plus-lighter blend, adding
+ * the two together and flashing the sidebar brighter for the transition's length.
+ */
+::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/*
+ * No size/position morph either: pages differ wildly in height (Matches ~400px, Highlights
+ * ~2700px), and the default group animation stretches a page-sized snapshot between them, which
+ * reads as the transition jumping to its end.
+ */
+::view-transition-group(root),
+::view-transition-group(page) {
+  animation: none;
+}
+/* Exit as YouTube does it: a linear fade, and a slide that starts slow and speeds away. */
+::view-transition-old(page) {
+  animation:
+    page-fade-out 125ms linear both,
+    page-slide-to-top 125ms cubic-bezier(0.25, 0.01, 1, 1) both;
+}
+::view-transition-new(page) {
+  /* Starts once the old page has fully gone: a linear fade, and a slide that snaps into place. */
+  animation:
+    page-fade-in 125ms linear 125ms both,
+    page-slide-from-bottom 125ms cubic-bezier(0, 0, 0.05, 1) 125ms both;
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-slide-to-top {
+  to {
+    translate: 0 -10px;
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-slide-from-bottom {
+  from {
+    translate: 0 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(page),
+  ::view-transition-new(page) {
+    animation: none;
+  }
+}
+
+/*
+ * Sign in <-> sign up: every piece of the screen (logo, subtitle, card outline, each field and
+ * button) has its own name and the `auth` class, so each slides to its new place; a piece only one
+ * screen has (the name field) fades in or out. The card is captured without its children, so its
+ * snapshot is just the outline, stretched to the new height.
+ */
+::view-transition-group(.auth) {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-out-quart);
+}
+::view-transition-old(.auth),
+::view-transition-new(.auth) {
+  animation-duration: 200ms;
+}
+::view-transition-old(auth-card),
+::view-transition-new(auth-card) {
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

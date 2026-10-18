@@ -158,7 +158,7 @@ function HighlightsPage() {
         </Switch>
       </div>
 
-      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0}>
+      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0} appear={false}>
         {clips.isPending ? (
           <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => (

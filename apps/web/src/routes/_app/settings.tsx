@@ -1,4 +1,5 @@
 import { Collapsible } from '@base-ui/react/collapsible'
+import { Dialog } from '@base-ui/react/dialog'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
@@ -7,6 +8,7 @@ import { MatchAuthForm } from '@/components/match-auth-form'
 import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
 import { Badge, Card } from '@/components/ui/surface'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
@@ -61,6 +63,12 @@ function SettingsPage() {
               >
                 Sign out
               </Button>
+            </Row>
+            <Row
+              label="Delete account"
+              description="Removes your account and linked Steam accounts. This can't be undone"
+            >
+              <DeleteAccountDialog />
             </Row>
           </Group>
         </Section>
@@ -219,5 +227,97 @@ function SteamLinkGroup({ link }: { link: Me['steamLinks'][number] }) {
         </Collapsible.Panel>
       </Collapsible.Root>
     </Group>
+  )
+}
+
+const CONFIRMATION = 'i am sure'
+
+/**
+ * Deletes the account after the user types the confirmation phrase. The input's native `pattern`
+ * gates the button and the submit, so there's no hand-rolled check to drift from the copy.
+ */
+function DeleteAccountDialog() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.deleteUser({})
+      if (error) throw error
+    },
+    onSuccess: async () => {
+      clearStoredMe()
+      queryClient.clear()
+      await navigate({ to: '/login' })
+    },
+  })
+
+  const error = remove.error as { code?: string; message?: string } | null
+  const message =
+    error &&
+    (error.code === 'SESSION_EXPIRED'
+      ? 'For your safety, sign out and sign back in, then delete your account within a day'
+      : error.message || 'Could not delete your account. Please try again')
+
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) {
+          setConfirmed(false)
+          remove.reset()
+        }
+      }}
+    >
+      <Dialog.Trigger render={<Button size="sm" variant="danger-ghost" />}>Delete</Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
+          <Dialog.Title className="text-base font-medium">Delete your account?</Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm text-muted">
+            Your account, its linked Steam accounts and your place in their matches are removed for
+            good. Clips stay for the other players in those matches.
+          </Dialog.Description>
+          <form
+            className="mt-5 grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              remove.mutate()
+            }}
+          >
+            <Field
+              label={
+                <>
+                  Type{' '}
+                  <span className="mx-0.5 rounded bg-danger/12 px-1 py-px text-danger">
+                    {CONFIRMATION}
+                  </span>{' '}
+                  to confirm
+                </>
+              }
+            >
+              <Input
+                name="confirmation"
+                required
+                // Native validation: the whole value must match, nothing more.
+                pattern={CONFIRMATION}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(event) => setConfirmed(event.currentTarget.validity.valid)}
+              />
+            </Field>
+            {message && <p className="text-[13px] text-danger">{message}</p>}
+            <div className="flex justify-end gap-2">
+              <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
+              <Button type="submit" variant="danger" disabled={!confirmed || remove.isPending}>
+                {remove.isPending ? 'Deleting…' : 'Delete account'}
+              </Button>
+            </div>
+          </form>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }

@@ -14,12 +14,12 @@ export const startSteamFlow = async (mode: 'sign-in' | 'link', callbackURL: stri
 }
 
 const STEAM_ERRORS: Record<string, string> = {
-  steam_state_invalid: 'The Steam sign-in expired. Please try again.',
-  steam_assertion_invalid: 'Steam could not confirm the sign-in. Please try again.',
-  steam_session_mismatch: 'You were signed out while linking Steam. Sign in and try again.',
-  steam_account_in_use: 'That Steam account is already linked to another subtick account.',
-  steam_account_orphaned: 'That Steam account is in a broken state. Contact the admin.',
+  steam_state_invalid: 'The Steam sign-in expired. Please try again',
+  steam_assertion_invalid: 'Steam could not confirm the sign-in. Please try again',
+  steam_session_mismatch: 'You were signed out while linking Steam. Sign in and try again',
+  steam_account_in_use: 'That Steam account is already linked to another subtick account',
+  steam_account_orphaned: 'That Steam account is in a broken state. Contact the admin',
 }
 
 export const describeAuthError = (code: string | undefined) =>
-  code ? (STEAM_ERRORS[code] ?? 'Something went wrong. Please try again.') : null
+  code ? (STEAM_ERRORS[code] ?? 'Something went wrong. Please try again') : null
