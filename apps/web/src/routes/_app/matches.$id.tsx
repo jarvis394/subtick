@@ -254,7 +254,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 className={buttonClass('contrast', 'sm')}
               >
                 <ButtonLayer />
-                <Plus /> Create more
+                <Plus /> Create<span className="max-sm:hidden"> more</span>
               </Link>
             )}
             {myPlayer && (

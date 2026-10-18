@@ -35,9 +35,14 @@ const router = createRouter({
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
   // Page changes only: not the first load or its redirects, and not filters (search params) or
-  // the clip dialog, which keep the page in place.
+  // the clip dialog, which keep the page in place. Switching between highlights stays on the same
+  // dialog, so it doesn't transition either.
   defaultViewTransition: {
-    types: ({ pathChanged }) => (firstPageShown && pathChanged ? ['page'] : false),
+    types: ({ pathChanged, fromLocation, toLocation }) => {
+      const isClip = (path?: string) => !!path && /^\/clips\/[^/]+\/?$/.test(path)
+      if (isClip(fromLocation?.pathname) && isClip(toLocation.pathname)) return false
+      return firstPageShown && pathChanged ? ['page'] : false
+    },
   },
 })
 
