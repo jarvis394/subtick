@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { and, asc, eq, inArray, schema } from '@subtick/db'
 import { clipOffsetTicks, clipSegments, segmentsTicks, ticksToSeconds } from '@subtick/domain'
-import type { TypedJob } from '@subtick/queue'
+import type { ClipPhase, TypedJob } from '@subtick/queue'
 import { keys } from '@subtick/storage'
 import type { Context } from './context'
 import { finishClip, joinParts, probe, thumbnail } from './post'
@@ -15,6 +15,9 @@ const { match, highlight, matchPlayer, clip } = schema
 export const RECORDER_VERSION = 4
 
 type Highlight = typeof highlight.$inferSelect
+
+/** Of a clip's time in the batch, the share spent capturing frames rather than encoding them. */
+const CAPTURE_SHARE = 0.85
 
 /**
  * One job per match batch: load the demo once, then record its highlights in demo order, so each
@@ -37,7 +40,11 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
   }
 
   const todo = await db
-    .select({ highlight, playerName: matchPlayer.name, recordedBy: clip.recorderVersion })
+    .select({
+      highlight,
+      playerName: matchPlayer.name,
+      recordedBy: clip.recorderVersion,
+    })
     .from(highlight)
     .leftJoin(
       matchPlayer,
@@ -56,24 +63,43 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
   if (current.length)
     await db.update(highlight).set({ status: 'recorded' }).where(inArray(highlight.id, current))
 
+  /**
+   * Where the batch is, for the Queue page: the match's share of clips done (a clip's capture is
+   * most of its time; encoding and upload the rest), and the clip's own phase and frames.
+   */
+  const report = (index: number, id: string, phase: ClipPhase, progress?: number) => {
+    const within =
+      phase === 'recording'
+        ? CAPTURE_SHARE * (progress ?? 0)
+        : phase === 'rendering'
+          ? CAPTURE_SHARE
+          : 0
+    const value = (index + within) / pending.length
+    const onClip = { id, phase, progress }
+    return Promise.all([
+      ctx.progress(matchId, value, onClip),
+      job.updateProgress({ value, clip: onClip }),
+    ])
+  }
+
   const work = join(env.SCRATCH_DIR, 'recorder', matchId)
   await mkdir(work, { recursive: true })
   try {
     if (pending.length) {
       await ctx.setStatus(matchId, 'recording')
+      await report(0, pending[0]!.highlight.id, 'loading')
       const demoPath = join(work, 'demo.dem')
       await Bun.write(demoPath, await Bun.zstdDecompress(await demos.bytes(keys.demo(matchId))))
 
       for (const [index, { highlight: h, playerName }] of pending.entries()) {
         // Cancelled while earlier clips recorded: it went back to being a candidate.
         if (!(await stillQueued(ctx, h.id))) continue
-        await Promise.all([
-          ctx.progress(matchId, index / pending.length),
-          job.updateProgress(index / pending.length),
-        ])
         // The game keeps the previous job's demo loaded; never record this match's ticks from it.
-        if (recorder.loadedMatchId !== matchId)
+        if (recorder.loadedMatchId !== matchId) {
+          await report(index, h.id, 'loading')
           await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
+        }
+        await report(index, h.id, 'recording', 0)
         const fail = async (stage: string, error: unknown) => {
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
           await db.update(highlight).set({ status: 'failed' }).where(eq(highlight.id, h.id))
@@ -84,6 +110,8 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
             highlightId: h.id,
             playerName: playerName ?? '',
             segments: clipSegments(h),
+            onProgress: (progress) =>
+              void report(index, h.id, 'recording', progress).catch(() => {}),
           })
         } catch (error) {
           await fail('capture', error)
@@ -91,6 +119,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           await recorder.reset()
           continue
         }
+        await report(index, h.id, 'rendering')
         await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
         // The takes are not needed either way.
         await rm(raw.dir, { recursive: true, force: true })

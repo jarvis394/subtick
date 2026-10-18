@@ -3,7 +3,7 @@ import { DatabaseEnv, RecorderEnv, RedisEnv, S3Env, WorkerEnv, loadEnv } from '@
 import { and, createDb, eq, notCancelled, schema } from '@subtick/db'
 import type { MatchStatus } from '@subtick/domain'
 import { createLogger } from '@subtick/logger'
-import { type MatchEvent, createMatchEventPublisher } from '@subtick/queue'
+import { type ClipProgress, type MatchEvent, createMatchEventPublisher } from '@subtick/queue'
 import { createS3Storage } from '@subtick/storage'
 import { Cs2Recorder } from './cs2/recorder'
 import { createWineGame } from './cs2/wine'
@@ -76,8 +76,8 @@ export const createContext = () => {
     status: health,
     configDir,
     setStatus,
-    progress: (matchId: string, progress: MatchEvent['progress']) =>
-      publish({ matchId, status: 'recording', progress }),
+    progress: (matchId: string, progress: MatchEvent['progress'], clip?: ClipProgress) =>
+      publish({ matchId, status: 'recording', progress, clip }),
     demos: createS3Storage({ ...s3, bucket: env.S3_BUCKET_DEMOS }),
     clips: createS3Storage({ ...s3, bucket: env.S3_BUCKET_CLIPS }),
   }

@@ -36,13 +36,35 @@ const POV_FAILURE =
 const POV_CHECK_MS = 1500
 /** Offline rendering on a weak GPU runs well below real time; scale the timeout with the clip. */
 const RENDER_TIMEOUT_PER_DEMO_SECOND_MS = 30_000
-/** H.264 that browsers stream directly; `{QUOTE}` and `\\` are HLAE's escapes. */
+/** HLAE's offline capture rate (`mirv_streams record fps`). */
+const FPS = 60
+/** How often the frame count is read while a segment captures. */
+const PROGRESS_POLL_MS = 1000
+/**
+ * H.264 that browsers stream directly; `{QUOTE}` and `\\` are HLAE's escapes. `-progress` has
+ * ffmpeg append its frame count to a file in the take: how far the capture has got.
+ */
 const CAPTURE_FFMPEG = [
   '-c:v libx264 -preset faster -crf 20 -pix_fmt yuv420p',
+  '-progress {QUOTE}{AFX_STREAM_PATH}\\\\progress.txt{QUOTE}',
   '{QUOTE}{AFX_STREAM_PATH}\\\\video.mp4{QUOTE}',
 ].join(' ')
 /** Demos are copied here, relative to `game/csgo`, as `playdemo` only reads from the game tree. */
 const DEMO_NAME = 'subtick/demo'
+
+const segmentFrames = (segment: ClipSegment) =>
+  Math.max(1, Math.round(((segment.endTick - segment.startTick) / TICKRATE) * FPS))
+
+/** Frames HLAE's ffmpeg has encoded so far in the segment's latest take, from its `-progress` file. */
+const capturedFrames = async (dir: string) => {
+  const takes = (await readdir(dir).catch(() => [])).filter((t) => t.startsWith('take')).toSorted()
+  if (!takes.length) return null
+  const text = await Bun.file(join(dir, takes.at(-1)!, 'progress.txt'))
+    .text()
+    .catch(() => '')
+  const frames = [...text.matchAll(/^frame=(\d+)/gm)].at(-1)?.[1]
+  return frames === undefined ? null : Number(frames)
+}
 
 export interface Cs2RecorderOptions {
   game: WineGame
@@ -117,7 +139,7 @@ export class Cs2Recorder implements Recorder {
     netcon.send(
       'demo_pause',
       'mirv_streams record screen enabled 1',
-      'mirv_streams record fps 60',
+      `mirv_streams record fps ${FPS}`,
       // Game audio as a WAV next to the video, rendered in step with the frames.
       'mirv_streams record startMovieWav 1',
       // The delivery encode happens here, once: browsers play it as is after a trim.
@@ -140,14 +162,19 @@ export class Cs2Recorder implements Recorder {
     await rm(dir, { recursive: true, force: true })
     const parts: RecordedPart[] = []
     let renderMs = 0
+    const total = clip.segments.reduce((sum, s) => sum + segmentFrames(s), 0)
+    let before = 0
     // Segments are in demo order, so each seek is a short skip forward.
     for (const [index, segment] of clip.segments.entries()) {
+      const base = before
       const part = await this.#recordSegment(
         netcon,
         join(dir, `segment${index}`),
         clip.playerName,
         segment,
+        (frames) => clip.onProgress?.(Math.min((base + frames) / total, 1)),
       )
+      before += segmentFrames(segment)
       parts.push(part)
       renderMs += part.renderMs
     }
@@ -170,6 +197,7 @@ export class Cs2Recorder implements Recorder {
     dir: string,
     playerName: string,
     segment: ClipSegment,
+    onFrames: (frames: number) => void,
   ): Promise<RecordedPart & { renderMs: number }> {
     const { prefix } = this.options
     await mkdir(dir, { recursive: true })
@@ -202,7 +230,15 @@ export class Cs2Recorder implements Recorder {
     netcon.send('demo_resume')
     await started
     const renderStart = performance.now()
-    await done
+    const watching = setInterval(() => {
+      void capturedFrames(dir).then((frames) => frames !== null && onFrames(frames))
+    }, PROGRESS_POLL_MS)
+    try {
+      await done
+    } finally {
+      clearInterval(watching)
+    }
+    onFrames(segmentFrames(segment))
     const renderMs = Math.round(performance.now() - renderStart)
 
     // HLAE reports the end before its ffmpeg.exe has encoded the tail and closed the file.

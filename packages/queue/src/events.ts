@@ -8,6 +8,18 @@ export interface MatchEvent {
   status: MatchStatus
   /** 0..1 within the current status, when the stage can report it. */
   progress?: number
+  /** While recording: the clip the recorder is on and how far it is. */
+  clip?: ClipProgress
+}
+
+/** Where one clip is in the recorder: loading the demo, capturing frames, or encoding them. */
+export type ClipPhase = 'loading' | 'recording' | 'rendering'
+
+export interface ClipProgress {
+  id: string
+  phase: ClipPhase
+  /** 0..1 of the clip's frames captured, while `recording`. */
+  progress?: number
 }
 
 /** Pipeline progress, fanned out to browsers by the api over SSE. */

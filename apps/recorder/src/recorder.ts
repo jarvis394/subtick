@@ -28,6 +28,8 @@ export interface ClipPlan {
   playerName: string
   /** In demo order, never overlapping. */
   segments: ClipSegment[]
+  /** Called as frames are captured, with the share of the clip's frames done (0..1). */
+  onProgress?: (progress: number) => void
 }
 
 export interface RecordedPart {

@@ -9,9 +9,16 @@ import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Collapse, Presence, usePresence } from '@/components/ui/presence'
-import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
+import {
+  ProgressRing,
+  clipState,
+  phaseLabel,
+  stageLabel,
+  useLiveProgress,
+} from '@/components/queue-ring'
+import { Badge, Skeleton } from '@/components/ui/surface'
 import { useCancelMatch, useCancelMoment } from '@/hooks/use-match-actions'
-import { percent, useMatchProgress } from '@/hooks/use-match-events'
+import { type ClipProgress, percent } from '@/hooks/use-match-events'
 import { clipLength, shortAge } from '@/lib/format'
 import { type QueueItem, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -21,23 +28,14 @@ export const Route = createFileRoute('/_app/queue')({
   component: QueuePage,
 })
 
-const STAGE_LABELS: Record<QueueItem['stage'], string> = {
-  resolving: 'Finding demo',
-  downloading: 'Downloading demo',
-  parsing: 'Analyzing demo',
-  recording: 'Recording',
-}
-
-const stageLabel = (item: QueueItem) =>
-  item.stage === 'recording' && item.clips
-    ? `Recording ${item.clips} ${item.clips === 1 ? 'clip' : 'clips'}`
-    : STAGE_LABELS[item.stage]
-
 function QueuePage() {
   const { data, isError, refetch } = useQuery(queueQuery)
   const items = data?.items ?? []
   const running = items.filter((item) => item.state === 'active')
   const waiting = items.filter((item) => item.state !== 'active')
+  // Matches the recorders take before this one: recording work earlier in line.
+  const recordingAhead = (item: QueueItem) =>
+    items.slice(0, items.indexOf(item)).filter((other) => other.stage === 'recording').length
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -58,10 +56,15 @@ function QueuePage() {
           ) : (
             <div className="grid">
               <Presence show={running.length > 0}>
-                <Group title="Running" items={running} className="pb-8" />
+                <Group
+                  title="Running"
+                  items={running}
+                  recordingAhead={recordingAhead}
+                  className="pb-8"
+                />
               </Presence>
               <Presence show={waiting.length > 0}>
-                <Group title="Up next" items={waiting} numbered />
+                <Group title="Up next" items={waiting} recordingAhead={recordingAhead} numbered />
               </Presence>
             </div>
           )
@@ -84,11 +87,13 @@ const Group = ({
   title,
   items,
   numbered,
+  recordingAhead,
   className,
 }: {
   title: string
   items: QueueItem[]
   numbered?: boolean
+  recordingAhead: (item: QueueItem) => number
   className?: string
 }) => {
   // Finished and cancelled matches collapse out instead of the list jumping.
@@ -110,7 +115,7 @@ const Group = ({
                   position={numbered && !exiting ? items.indexOf(item) + 1 : undefined}
                 />
                 <Presence show={item.moments.length > 0}>
-                  <ClipGroups item={item} />
+                  <ClipGroups item={item} ahead={recordingAhead(item)} />
                 </Presence>
               </div>
             </div>
@@ -123,10 +128,7 @@ const Group = ({
 
 const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) => {
   const cancel = useCancelMatch()
-  // Streamed progress is fresher than the poll; the job's own value covers the gap after a reload.
-  const streamed = useMatchProgress(item.matchId, item.stage)
-  const progress =
-    item.state === 'active' ? Math.max(streamed ?? 0, item.progress ?? 0) || undefined : undefined
+  const { progress } = useLiveProgress(item)
 
   const detail =
     item.state === 'active'
@@ -168,7 +170,9 @@ const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) =>
             {item.mine && <Badge className="shrink-0">Yours</Badge>}
           </p>
           <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
-            {item.state === 'active' && <Spinner className="size-2.5 border-[1.5px] text-accent" />}
+            {item.state === 'active' && (
+              <ProgressRing progress={progress} size={12} className="text-accent" />
+            )}
             <span className="truncate">
               {stageLabel(item)} · <span className="tabular-nums">{detail}</span>
             </span>
@@ -226,7 +230,20 @@ const byRequester = (moments: QueueClip[]) => {
  * Once a match is analyzed and recording, its card opens up to show the clips being recorded,
  * under who asked for them.
  */
-const ClipGroups = ({ item }: { item: QueueItem }) => {
+const ClipGroups = ({ item, ahead }: { item: QueueItem; ahead: number }) => {
+  const { clip: current } = useLiveProgress(item)
+  /** What a waiting clip waits for: a recorder, matches in line before it, or its batch's clips. */
+  const waitingFor = (clip: QueueClip) => {
+    if (item.state === 'delayed') return 'Retrying shortly'
+    if (item.state !== 'active')
+      return ahead
+        ? `Waiting for ${ahead} ${ahead === 1 ? 'match' : 'matches'} ahead`
+        : 'Waiting for recorder'
+    const before = item.moments
+      .slice(0, item.moments.indexOf(clip))
+      .filter((m) => m.state === 'waiting' || m.state === 'recording').length
+    return before <= 1 ? 'Up next' : `After ${before} clips`
+  }
   // A group whose last clip was cancelled collapses out with it.
   const groups = usePresence(byRequester(item.moments), (g) => g[0]!.requester?.id ?? 'auto')
   return (
@@ -249,7 +266,12 @@ const ClipGroups = ({ item }: { item: QueueItem }) => {
                   ? `Requested by ${requester.isViewer ? 'you' : requester.name}`
                   : 'Picked automatically'}
               </h3>
-              <ClipList matchId={item.matchId} moments={group} />
+              <ClipList
+                matchId={item.matchId}
+                moments={group}
+                current={current}
+                waitingFor={waitingFor}
+              />
             </section>
           </Collapse>
         )
@@ -258,43 +280,61 @@ const ClipGroups = ({ item }: { item: QueueItem }) => {
   )
 }
 
-const ClipList = ({ matchId, moments }: { matchId: string; moments: QueueClip[] }) => {
+const ClipList = ({
+  matchId,
+  moments,
+  current,
+  waitingFor,
+}: {
+  matchId: string
+  moments: QueueClip[]
+  current?: ClipProgress
+  waitingFor: (clip: QueueClip) => string
+}) => {
   // Cancelled clips collapse out of the grid.
   const entries = usePresence(moments, (m) => m.id)
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {entries.map(({ key, item, exiting, entering }) => (
         <Collapse key={key} exiting={exiting} entering={entering}>
-          <QueueClipCard matchId={matchId} clip={item} />
+          <QueueClipCard
+            matchId={matchId}
+            clip={item}
+            current={current}
+            waitingFor={waitingFor(item)}
+          />
         </Collapse>
       ))}
     </div>
   )
 }
 
-const CLIP_STATUS: Record<QueueClip['state'], { label: string; className: string }> = {
-  recorded: { label: 'Done', className: 'text-success' },
-  recording: { label: 'Recording', className: 'text-accent' },
-  waiting: { label: 'Waiting', className: 'text-muted' },
-  failed: { label: 'Failed', className: 'text-danger' },
-}
-
 /** A clip of a recording match: who made the play, what it is, and where recording is at. */
-const QueueClipCard = ({ matchId, clip }: { matchId: string; clip: QueueClip }) => {
+const QueueClipCard = ({
+  matchId,
+  clip,
+  current,
+  waitingFor,
+}: {
+  matchId: string
+  clip: QueueClip
+  current?: ClipProgress
+  waitingFor: string
+}) => {
   const cancel = useCancelMoment(matchId)
-  const status = CLIP_STATUS[clip.state]
+  const { state, phase } = clipState(clip, current)
 
   return (
     <div
       className={cn(
-        'flex min-h-14 min-w-0 items-center gap-3 rounded-xl border py-2 pr-2 pl-2.5',
+        'flex min-w-0 items-start gap-3 rounded-xl border py-2.5 pr-2 pl-2.5',
         'transition-[background-color,border-color,opacity] duration-200 ease-out',
         // The one being recorded right now stands out; finished ones step back.
-        clip.state === 'recording' && 'border-accent/45 bg-accent/6',
-        clip.state === 'recorded' && 'opacity-70',
+        state === 'recording' && 'border-foreground/25',
+        state === 'recorded' && 'opacity-70',
       )}
     >
-      <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
+      <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="mt-0.5 size-8" />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <p className="truncate text-[13px] font-medium">{clip.title}</p>
@@ -303,26 +343,8 @@ const QueueClipCard = ({ matchId, clip }: { matchId: string; clip: QueueClip }) 
         <p className="mt-0.5 truncate text-[12px] text-muted">
           {clip.player.name} · Round {clip.round} · {clipLength(clip)}
         </p>
+        <ClipStatus state={state} phase={phase} waitingFor={waitingFor} />
       </div>
-      <span
-        className={cn(
-          'flex shrink-0 items-center gap-1.5 text-[12px] font-medium',
-          status.className,
-        )}
-        title={status.label}
-      >
-        {clip.state === 'recording' ? (
-          <Spinner className="size-3 border-[1.5px]" />
-        ) : clip.state === 'recorded' ? (
-          <Check className="size-3.5" />
-        ) : clip.state === 'failed' ? (
-          <CircleAlert className="size-3.5" />
-        ) : (
-          <Clock className="size-3.5" />
-        )}
-        {/* Phones show the icon alone, leaving the title room. */}
-        <span className="max-sm:sr-only">{status.label}</span>
-      </span>
       {clip.canCancel && (
         <button
           type="button"
@@ -339,3 +361,51 @@ const QueueClipCard = ({ matchId, clip }: { matchId: string; clip: QueueClip }) 
     </div>
   )
 }
+
+/** The clip's third line: waiting, done, failed, or the recorder's phase with its progress. */
+const ClipStatus = ({
+  state,
+  phase,
+  waitingFor,
+}: {
+  state: QueueClip['state']
+  phase?: ClipProgress
+  waitingFor: string
+}) => (
+  <p
+    className={cn(
+      'mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] font-medium',
+      state === 'recording'
+        ? 'text-foreground'
+        : state === 'recorded'
+          ? 'text-success'
+          : state === 'failed'
+            ? 'text-danger'
+            : 'text-muted',
+    )}
+  >
+    {state === 'recording' ? (
+      <ProgressRing
+        // Loading and encoding report no frames: the ring sweeps.
+        progress={phase?.phase === 'recording' ? phase.progress : undefined}
+        size={12}
+        className="text-accent"
+      />
+    ) : state === 'recorded' ? (
+      <Check className="size-3.5" />
+    ) : state === 'failed' ? (
+      <CircleAlert className="size-3.5" />
+    ) : (
+      <Clock className="size-3.5" />
+    )}
+    <span className="truncate tabular-nums">
+      {state === 'recording' && phase
+        ? phaseLabel(phase)
+        : state === 'recorded'
+          ? 'Done'
+          : state === 'failed'
+            ? 'Failed'
+            : waitingFor}
+    </span>
+  </p>
+)

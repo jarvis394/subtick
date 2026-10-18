@@ -1,4 +1,5 @@
 import { and, eq, inArray, schema } from '@subtick/db'
+import type { ClipProgress } from '@subtick/queue'
 import type { Context } from '../context'
 import { type Actor, jobMatchId } from './matches'
 import { getProfiles } from './profiles'
@@ -18,15 +19,30 @@ interface QueuedJob {
   state: JobState
   matchId: string
   progress: number | null
+  /** The recorder's current clip, for a running record job. */
+  clip: ClipProgress | null
   highlightIds: string[]
   priority: number
   queuedAt: number
   startedAt: number | null
 }
 
-/** BullMQ stores whatever a worker reported; workers here report 0..1. */
-const progressOf = (job: { progress: unknown }) =>
-  typeof job.progress === 'number' && job.progress > 0 ? Math.min(job.progress, 1) : null
+/**
+ * BullMQ stores whatever a worker reported: 0..1, or the recorder's `{ value, clip }` (a number
+ * from recorders older than per-clip progress).
+ */
+const readProgress = (job: { progress: unknown }) => {
+  const raw = job.progress
+  const reported =
+    typeof raw === 'object' && raw !== null
+      ? (raw as { value?: unknown; clip?: ClipProgress })
+      : null
+  const value = reported ? reported.value : raw
+  return {
+    progress: typeof value === 'number' && value > 0 ? Math.min(value, 1) : null,
+    clip: reported?.clip ?? null,
+  }
+}
 
 const readJobs = async ({ queues }: Pick<Context, 'queues'>): Promise<QueuedJob[]> => {
   const byStage = [
@@ -54,7 +70,7 @@ const readJobs = async ({ queues }: Pick<Context, 'queues'>): Promise<QueuedJob[
               stage,
               state,
               matchId,
-              progress: state === 'active' ? progressOf(job) : null,
+              ...(state === 'active' ? readProgress(job) : { progress: null, clip: null }),
               highlightIds: data.highlightIds ?? [],
               priority: job.priority ?? 0,
               queuedAt: job.timestamp,
@@ -74,6 +90,8 @@ interface MatchRow extends QueuedJob {
   clipIds: Set<string>
   /** Clips in the record job a recorder is running now. */
   activeClipIds: Set<string>
+  /** What the running record job said about its current clip. */
+  activeClip: ClipProgress | null
 }
 
 /** What a clip in a recording match is doing. */
@@ -104,11 +122,14 @@ export const listQueue = async (
           ...job,
           clipIds: current?.clipIds ?? new Set(),
           activeClipIds: current?.activeClipIds ?? new Set(),
+          activeClip: current?.activeClip ?? null,
         }
       : current
     for (const id of job.highlightIds) row.clipIds.add(id)
-    if (job.stage === 'recording' && job.state === 'active')
+    if (job.stage === 'recording' && job.state === 'active') {
       for (const id of job.highlightIds) row.activeClipIds.add(id)
+      row.activeClip = job.clip ?? row.activeClip
+    }
     rows.set(job.matchId, row)
   }
 
@@ -176,11 +197,16 @@ export const listQueue = async (
       const m = info.get(row.matchId)!
       const owns = own.has(row.matchId)
       const matchClips = clipsByMatch.get(row.matchId) ?? []
-      // The recorder works through its batch in demo order: the first clip still queued is the
-      // one being recorded now.
-      const current = matchClips.find(
-        (c) => c.highlight.status === 'queued' && row.activeClipIds.has(c.highlight.id),
-      )?.highlight.id
+      // The recorder says which clip it is on; older ones don't, but work through their batch in
+      // demo order, so the first clip still queued is the one being recorded.
+      const reported = row.activeClip
+      const current =
+        reported &&
+        matchClips.some((c) => c.highlight.id === reported.id && c.highlight.status === 'queued')
+          ? reported.id
+          : matchClips.find(
+              (c) => c.highlight.status === 'queued' && row.activeClipIds.has(c.highlight.id),
+            )?.highlight.id
       const stateOf = (h: (typeof matchClips)[number]['highlight']): ClipState =>
         h.status === 'recorded'
           ? 'recorded'
@@ -200,6 +226,9 @@ export const listQueue = async (
         kills: h.kills.map((k) => ({ tags: k.tags })),
         clutch: h.clutch,
         state: stateOf(h),
+        /** For the clip being recorded: loading the demo, capturing (with progress), encoding. */
+        phase: h.id === current ? (reported?.id === current ? reported.phase : 'recording') : null,
+        progress: h.id === current && reported?.id === current ? (reported.progress ?? null) : null,
         steamId: h.steamId,
         player: {
           name: playerName ?? 'Unknown',

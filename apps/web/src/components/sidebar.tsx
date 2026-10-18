@@ -16,18 +16,25 @@ import type { ReactNode } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
-import { QueueRing } from '@/components/queue-ring'
+import { ProgressRing, QueueRing, liveProgress, useQueueSummary } from '@/components/queue-ring'
 import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
 import { ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Skeleton, Spinner } from '@/components/ui/surface'
+import { Tooltip } from '@/components/ui/tooltip'
 import { Wordmark } from '@/components/wordmark'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
-import { percent, useMatchProgress } from '@/hooks/use-match-events'
+import { percent, useMatchProgress, useProgressMap } from '@/hooks/use-match-events'
 import { authClient } from '@/lib/auth'
 import { shortAge } from '@/lib/format'
-import { type MatchListItem, meQuery, queueQuery, recentMatchesQuery } from '@/lib/queries'
+import {
+  type MatchListItem,
+  type QueueItem,
+  meQuery,
+  queueQuery,
+  recentMatchesQuery,
+} from '@/lib/queries'
 import { isSetUp } from '@/lib/setup'
 import { clearStoredMe } from '@/lib/stored-me'
 import { cn } from '@/lib/utils'
@@ -124,7 +131,14 @@ const RecentRow = ({
   viewTransition?: boolean
 }) => {
   const score = perspectiveScore(match, match.player?.startingSide)
-  const progress = useMatchProgress(match.id, match.status)
+  const streamed = useMatchProgress(match.id, match.status)
+  // The queue's poll covers what the stream hasn't said yet (e.g. right after a reload).
+  const { data: queued } = useQuery({
+    ...queueQuery,
+    select: (data) => data.items.find((item) => item.matchId === match.id),
+  })
+  const polled = useQueuedProgress(queued)
+  const progress = streamed ?? polled
 
   return (
     <div className="group/row relative">
@@ -153,14 +167,14 @@ const RecentRow = ({
             </span>
           </span>
           <span className={cn('flex items-center', swapTransition, swapOut)}>
-            {isProcessing(match.status) &&
-              (progress !== undefined ? (
-                <span className="mr-2 font-mono text-[11px] text-accent tabular-nums">
-                  {percent(progress)}
-                </span>
-              ) : (
-                <Spinner className="mr-2 size-3" />
-              ))}
+            {isProcessing(match.status) && (
+              <span
+                className="mr-2 flex text-accent"
+                title={progress !== undefined ? percent(progress) : 'Processing'}
+              >
+                <ProgressRing progress={progress} size={14} />
+              </span>
+            )}
             {match.cancelled ? (
               <span className="text-[11px] text-muted">Cancelled</span>
             ) : match.status === 'failed' || match.status === 'expired' ? (
@@ -218,25 +232,56 @@ const QueueButton = ({
   const items = data?.items ?? []
   const pending = usePendingPath() === '/queue'
   const label = items.length ? `Queue, ${items.length} in progress` : 'Queue'
+  const summary = useQueueSummary(items)
 
   return (
-    <Link
-      to="/queue"
-      onClick={onNavigate}
-      viewTransition={viewTransition}
-      aria-label={label}
-      title={label}
-      className={cn(
-        buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-[18px]'),
-        'data-[status=active]:text-foreground data-[status=active]:[--bg:var(--color-surface-2)]',
-        pending && 'shimmer',
-        className,
-      )}
-    >
-      <ButtonLayer />
-      <QueueRing items={items} />
-    </Link>
+    <Tooltip
+      side="top"
+      align="end"
+      content={
+        summary.running.length || summary.waiting ? (
+          <div className="grid gap-1.5">
+            {summary.running.map((task) => (
+              <div key={task.id} className="min-w-0">
+                <p className="font-medium">{task.map}</p>
+                <p className="text-muted tabular-nums">{task.task}</p>
+              </div>
+            ))}
+            {summary.waiting > 0 && (
+              <p className="text-muted">
+                {summary.waiting} {summary.running.length ? 'more ' : ''}waiting
+              </p>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted">Queue is empty</span>
+        )
+      }
+      trigger={
+        <Link
+          to="/queue"
+          onClick={onNavigate}
+          viewTransition={viewTransition}
+          aria-label={label}
+          className={cn(
+            buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-[18px]'),
+            'data-[status=active]:text-foreground data-[status=active]:[--bg:var(--color-surface-2)]',
+            pending && 'shimmer',
+            className,
+          )}
+        >
+          <ButtonLayer />
+          <QueueRing items={items} />
+        </Link>
+      }
+    />
   )
+}
+
+/** A queue item's progress, when the match is in the queue. */
+const useQueuedProgress = (item: QueueItem | undefined) => {
+  const streamed = useProgressMap()
+  return item ? liveProgress(item, streamed).progress : undefined
 }
 
 const SKELETON_WIDTHS = ['w-28', 'w-36', 'w-24', 'w-32', 'w-28']
