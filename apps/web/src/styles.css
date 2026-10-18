@@ -239,3 +239,11 @@
   animation-duration: 350ms;
   animation-timing-function: var(--ease-out-quart);
 }
+
+/* MorphLabel: the incoming text of a button whose label changes. */
+@keyframes morph-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}

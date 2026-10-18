@@ -78,7 +78,7 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
       </Field>
       {error && <p className="text-sm text-danger">{error}</p>}
       <div>
-        <Button type="submit" variant="contrast" disabled={save.isPending}>
+        <Button type="submit" variant="secondary" disabled={save.isPending}>
           {save.isPending ? 'Checking with Steam…' : 'Save and start syncing'}
         </Button>
       </div>

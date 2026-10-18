@@ -10,6 +10,7 @@ import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
+import { MorphLabel } from '@/components/ui/morph-label'
 import { Reveal } from '@/components/ui/reveal'
 import { Badge, Card } from '@/components/ui/surface'
 import { ApiError, api, unwrap } from '@/lib/api'
@@ -83,10 +84,10 @@ function SettingsPage() {
                   steamOnly ? 'Add one to sign in without Steam' : 'Where sign-in links are sent'
                 }
               >
-                <Collapsible.Trigger
-                  render={<Button size="sm" variant={editingEmail ? 'outline' : 'secondary'} />}
-                >
-                  {editingEmail ? 'Cancel' : steamOnly ? 'Add email' : 'Change'}
+                <Collapsible.Trigger render={<Button size="sm" variant="secondary" />}>
+                  <MorphLabel>
+                    {editingEmail ? 'Cancel' : steamOnly ? 'Add email' : 'Change'}
+                  </MorphLabel>
                 </Collapsible.Trigger>
               </Row>
               <Collapsible.Panel className="-mx-1 h-(--collapsible-panel-height) overflow-hidden px-1 transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
@@ -108,7 +109,7 @@ function SettingsPage() {
           title="Steam accounts"
           action={
             me.steamLinks.length > 0 && (
-              <Button size="sm" variant="ghost" onClick={linkSteam}>
+              <Button size="sm" variant="secondary" onClick={linkSteam}>
                 <SteamIcon /> Link another
               </Button>
             )
@@ -269,12 +270,10 @@ function SteamLinkGroup({
             )
           }
         >
-          <Collapsible.Trigger
-            render={
-              <Button size="sm" variant={editing || link.hasMatchAuth ? 'outline' : 'primary'} />
-            }
-          >
-            {editing ? 'Cancel' : link.hasMatchAuth ? 'Update code' : 'Connect'}
+          <Collapsible.Trigger render={<Button size="sm" variant="secondary" />}>
+            <MorphLabel>
+              {editing ? 'Cancel' : link.hasMatchAuth ? 'Update code' : 'Connect'}
+            </MorphLabel>
           </Collapsible.Trigger>
         </Row>
         <Collapsible.Panel className="-mx-1 h-(--collapsible-panel-height) overflow-hidden px-1 transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
@@ -367,7 +366,7 @@ function DeleteAccountDialog() {
             </Field>
             {message && <p className="text-[13px] text-danger">{message}</p>}
             <div className="flex justify-end gap-2">
-              <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
+              <Dialog.Close render={<Button variant="secondary" />}>Cancel</Dialog.Close>
               <Button type="submit" variant="danger" disabled={!confirmed || remove.isPending}>
                 {remove.isPending ? 'Deleting…' : 'Delete account'}
               </Button>
