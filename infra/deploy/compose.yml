@@ -4,7 +4,7 @@ name: subtick
 # .env.example next to this file. The recorder runs separately (apps/recorder/README.md) with
 # --network host and reaches Postgres, Redis, S3 and the api on the loopback ports below.
 #
-#   docker compose -f infra/deploy/compose.yml up -d --build
+#   infra/deploy/deploy.sh    # backup, pull, `docker compose … up -d --build`, health check
 
 x-server: &server
   image: subtick-server

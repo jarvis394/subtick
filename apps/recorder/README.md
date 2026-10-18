@@ -37,6 +37,8 @@ docker run -d --init --restart unless-stopped --name subtick-recorder --runtime 
 
 The first start creates the Wine prefix and installs .NET and HLAE (a few minutes), then the game files. Later starts take seconds.
 
+To update a running recorder to the latest `main`, run `apps/recorder/scripts/deploy.sh` from its checkout. It builds the new image while the old one keeps recording, waits for the current batch to finish (`--now` skips that), then recreates the container with the same flags. It expects `recorder.env` next to the checkout; the script's header lists the paths it assumes and how to override them.
+
 ## Environment
 
 | variable                            | default     | what                                                                                                                                 |
