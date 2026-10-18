@@ -109,42 +109,68 @@ export const ClipViewerDialog = ({
     <Dialog.Root open={Boolean(clipId)} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/70 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup
-          className={cn(
-            // From md up the side margins leave room for the close button beside the modal.
-            'fixed inset-0 z-50 flex flex-col bg-background outline-none md:top-12 md:right-16 md:bottom-6 md:left-16 md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
-            'transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
-            'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
-          )}
-        >
-          <header className="flex h-14 shrink-0 items-center border-b px-4 md:hidden">
-            <span className="text-[15px] font-medium">Highlights</span>
-          </header>
-          {/* The popup itself doesn't scroll, so the close button can hang outside it. */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:rounded-2xl lg:overflow-hidden">
-            {shownId && (
-              <ClipViewer id={shownId} source={source} onSelect={onSelect} onClose={onClose} />
-            )}
-          </div>
-          {/* In the phone top bar; from md up beside the modal, on the backdrop. The pseudo-element
-            is a hit margin so a slightly-off tap still closes: 10px on phones, which fills the
-            56px bar exactly, and 12px from md up. */}
-          <Dialog.Close
-            aria-label="Close"
-            className={cn(
-              'absolute top-2.5 right-2 grid size-9 cursor-pointer place-items-center rounded-full text-muted outline-none after:absolute after:-inset-2.5 hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
-              // On the backdrop: no fill, just a dimmed icon. A solid gray, not white at partial opacity,
-              // which would darken where the X's strokes overlap.
-              'transition-colors duration-150 md:top-0 md:-right-12 md:after:-inset-3 md:hover:bg-transparent',
-            )}
+        {/* Base UI's outside-scroll layout: the page stays locked, and the viewport scrolls the
+          dialog, which can run past the bottom of the screen. */}
+        <Dialog.Viewport className="group/dialog fixed inset-0 z-50">
+          <ScrollArea.Root
+            style={{ position: undefined }}
+            className="h-full group-data-ending-style/dialog:pointer-events-none"
           >
-            <X className="size-5" />
-          </Dialog.Close>
-        </Dialog.Popup>
+            <ScrollArea.Viewport className="h-full overscroll-contain outline-none group-data-ending-style/dialog:pointer-events-none">
+              <ScrollArea.Content className="min-h-full md:px-16 md:pt-12 md:pb-6">
+                <Dialog.Popup
+                  className={cn(
+                    'relative min-h-dvh bg-background outline-none md:min-h-0 md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
+                    'transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
+                    'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
+                  )}
+                >
+                  {/* Stays at the top of the screen while the dialog scrolls under it. */}
+                  <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background pr-2 pl-4 md:hidden">
+                    <span className="text-[15px] font-medium">Highlights</span>
+                    <CloseButton />
+                  </header>
+                  {shownId && (
+                    <ClipViewer id={shownId} source={source} onSelect={onSelect} onClose={onClose} />
+                  )}
+                </Dialog.Popup>
+              </ScrollArea.Content>
+            </ScrollArea.Viewport>
+            <ScrollArea.Scrollbar
+              orientation="vertical"
+              className="z-20 my-1 mr-1 flex w-1.5 justify-center rounded-full opacity-0 transition-opacity duration-200 data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0"
+            >
+              <ScrollArea.Thumb className="w-full rounded-full bg-foreground/25" />
+            </ScrollArea.Scrollbar>
+          </ScrollArea.Root>
+          {/* From md up beside the card's top corner, on the backdrop, and held there while the
+            dialog scrolls: outside the scroll area. Lines up with the card's right edge, which
+            stops moving once the card reaches its max width (80rem plus the 4rem side margins). */}
+          <CloseButton className="absolute top-12 right-[calc(1rem+max(0px,(100vw-88rem)/2))] transition-[color,opacity] group-data-ending-style/dialog:opacity-0 group-data-starting-style/dialog:opacity-0 max-md:hidden md:after:-inset-3 md:hover:bg-transparent" />
+        </Dialog.Viewport>
       </Dialog.Portal>
     </Dialog.Root>
   )
 }
+
+/**
+ * The pseudo-element is a hit margin so a slightly-off tap still closes: 10px by default, which
+ * fills the phone's 56px bar exactly.
+ */
+const CloseButton = ({ className }: { className?: string }) => (
+  <Dialog.Close
+    aria-label="Close"
+    className={cn(
+      'relative grid size-9 cursor-pointer place-items-center rounded-full text-muted outline-none after:absolute after:-inset-2.5 hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+      // On the backdrop: no fill, just a dimmed icon. A solid gray, not white at partial opacity,
+      // which would darken where the X's strokes overlap.
+      'transition-colors duration-150',
+      className,
+    )}
+  >
+    <X className="size-5" />
+  </Dialog.Close>
+)
 
 /**
  * The player and its reel. Inside the dialog when `onClose` is given; otherwise laid out as the
@@ -200,18 +226,26 @@ export const ClipViewer = ({
   const position =
     index === -1 ? undefined : `${index + 1} of ${reel.items.length}${reel.hasNextPage ? '+' : ''}`
 
+  const reelPanel = (
+    <Reel
+      reel={reel}
+      activeId={id}
+      position={position}
+      isMatch={'match' in source}
+      modal={modal}
+      onSelect={onSelect}
+    />
+  )
+
   const missing =
     !current &&
     (single.error instanceof ApiError ? single.error.status === 404 : single.isSuccess && !fetched)
 
   return (
     <div
-      className={cn(
-        'grid lg:grid-cols-[minmax(0,1fr)_22rem]',
-        modal ? 'lg:h-full' : 'gap-y-8 lg:gap-x-8',
-      )}
+      className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'gap-y-8 lg:gap-x-8')}
     >
-      <div className={cn('min-w-0', modal && 'pb-4 md:pb-6 lg:overflow-y-auto')}>
+      <div className={cn('min-w-0', modal && 'pb-4 md:pb-6')}>
         {!modal && (
           <Link
             to="/"
@@ -260,14 +294,13 @@ export const ClipViewer = ({
         )}
       </div>
 
-      <Reel
-        reel={reel}
-        activeId={id}
-        position={position}
-        isMatch={'match' in source}
-        modal={modal}
-        onSelect={onSelect}
-      />
+      {/* In the dialog the reel is laid over this box, so the player column alone sets the
+        height it scrolls in. (On the clip page it's sticky instead, which a wrapper would break.) */}
+      {modal ? (
+        <div className="relative min-w-0">{reelPanel}</div>
+      ) : (
+        reelPanel
+      )}
     </div>
   )
 }
@@ -475,10 +508,13 @@ const Reel = ({
   const list = useRef<HTMLDivElement>(null)
   const sentinel = useRef<HTMLLIElement>(null)
 
+  // From lg up the reel scrolls on its own beside the player; below that it scrolls with the rest.
+  const ownScroll = () => window.matchMedia('(min-width: 64rem)').matches
+
   // Keep the playing clip in view as autoplay or the keyboard moves through the reel. Only where
-  // the reel scrolls on its own: below the player it would scroll the whole dialog away.
+  // the reel scrolls on its own: elsewhere it would scroll the player away.
   useEffect(() => {
-    if (!window.matchMedia('(min-width: 64rem)').matches) return
+    if (!ownScroll()) return
     const el = list.current?.querySelector<HTMLElement>(`[data-clip="${activeId}"]`)
     el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [activeId, reel.items.length])
@@ -489,7 +525,7 @@ const Reel = ({
     if (!el || !hasNextPage) return
     const observer = new IntersectionObserver(
       ([entry]) => entry?.isIntersecting && !isFetchingNextPage && fetchNextPage(),
-      { root: window.matchMedia('(min-width: 64rem)').matches ? list.current : null },
+      { root: ownScroll() ? list.current : null },
     )
     observer.observe(el)
     return () => observer.disconnect()
@@ -500,15 +536,17 @@ const Reel = ({
       className={cn(
         'flex min-h-0 min-w-0 flex-col',
         modal
-          ? 'px-4 pb-4 md:px-6 md:pb-6 lg:p-0'
+          ? // In the dialog it takes the player column's height rather than adding its own: laid
+            // over its grid cell (ClipViewer wraps it in a relative box), it never sets the row.
+            'px-4 pb-4 md:px-6 md:pb-6 lg:absolute lg:inset-0 lg:p-0'
           : 'lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:self-start',
       )}
     >
       <div
         className={cn(
-          'mb-3 flex items-baseline justify-between gap-3 text-sm',
+          'mb-2 pb-2 flex items-baseline justify-between gap-3 text-sm',
           // Item padding (p-2) lines the heading up with the thumbnails.
-          modal && 'lg:mb-2 lg:pt-4 lg:pr-5 lg:pl-2',
+          modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
       >
         <h2 className="font-medium text-muted">
@@ -519,7 +557,7 @@ const Reel = ({
       {/* Scrolls on its own from lg up; below that it is as tall as its clips. */}
       <ScrollArea.Root
         className={cn(
-          'relative -mx-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
+          'relative -mx-2 -mt-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
           modal && 'lg:mx-0',
         )}
       >
@@ -527,7 +565,10 @@ const Reel = ({
           which a percentage height can't resolve against. */}
         <ScrollArea.Viewport
           ref={list}
-          className="overscroll-contain outline-none lg:min-h-0 lg:flex-1"
+          // No overscroll containment: a scroll that starts on the reel carries on to the dialog
+          // (or page) once the reel has nothing left to scroll, and below lg, where the reel
+          // doesn't scroll at all, it goes straight through.
+          className="outline-none lg:min-h-0 lg:flex-1"
         >
           {/* One column that may shrink below its content, so long titles truncate instead of
             widening every row past the reel. */}
@@ -592,8 +633,12 @@ const ReelItem = ({
         aria-hidden
         className={cn(
           'absolute inset-0 -z-10 rounded-[inherit] transition-[scale,opacity,background-color] duration-200 ease-out-quart motion-reduce:scale-100',
-          // Pressing only fills the card in, quickly; letting go fades back at the usual pace.
-          'group-active:scale-100 group-active:bg-surface-2 group-active:opacity-100 group-active:duration-50',
+          // A press jumps to a stronger fill at once; letting go eases back to the card's own
+          // color (the selected fill, or none) at the usual pace.
+          'group-active:scale-100 group-active:bg-surface-3 group-active:opacity-100 group-active:duration-0',
+          // Touch has no hover phase to grow from: the fill is full size from the start and only
+          // fades.
+          'pointer-coarse:scale-100',
           active
             ? 'scale-100 bg-surface-2 opacity-100'
             : 'scale-95 bg-surface-2/60 opacity-0 group-hover:scale-100 group-hover:opacity-100',
@@ -609,7 +654,13 @@ const ReelItem = ({
         <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px font-mono text-[10px] text-white">
           {clipLength(clip)}
         </span>
-        {active && <span aria-hidden className="absolute inset-0 bg-black/45" />}
+        <span
+          aria-hidden
+          className={cn(
+            'absolute inset-0 bg-black/25 transition-opacity duration-200 ease-out-quart',
+            active ? 'opacity-100' : 'opacity-0',
+          )}
+        />
       </div>
       <div className="min-w-0 flex-1 py-0.5">
         <p className="line-clamp-2 text-[13px] leading-snug font-medium">{clip.title}</p>

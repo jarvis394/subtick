@@ -63,12 +63,14 @@ const NavItem = ({
   label,
   collapsed,
   onNavigate,
+  viewTransition,
 }: {
   to: '/' | '/matches'
   icon: ReactNode
   label: string
   collapsed: boolean
   onNavigate?: () => void
+  viewTransition?: boolean
 }) => {
   const pending = usePendingPath() === to
   return (
@@ -77,6 +79,7 @@ const NavItem = ({
       // Filters live in the query string; the section is active whatever they are.
       activeOptions={{ exact: true, includeSearch: false }}
       onClick={onNavigate}
+      viewTransition={viewTransition}
       aria-label={collapsed ? label : undefined}
       title={collapsed ? label : undefined}
       className={cn(rowClass(collapsed), pending && 'shimmer')}
@@ -95,11 +98,20 @@ const menuItemClass =
 export const SidebarContent = ({
   collapsed,
   onToggle,
+  toggleLabel,
   onNavigate,
+  viewTransition,
 }: {
   collapsed: boolean
   onToggle?: () => void
+  /** Overrides the toggle's expand/collapse label (the mobile drawer uses it to close). */
+  toggleLabel?: string
   onNavigate?: () => void
+  /**
+   * Off for the mobile drawer: there the drawer closing over the new page is the transition, and a
+   * page transition on top would draw the drawer's snapshot over the page sliding back in.
+   */
+  viewTransition?: boolean
 }) => {
   const { data: me } = useSuspenseQuery(meQuery)
   const { data: recent, isError: recentFailed, refetch, isFetching } = useQuery(recentMatchesQuery)
@@ -125,8 +137,8 @@ export const SidebarContent = ({
           <button
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+            title={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
             // A ghost icon button, so its background presses in like every other button's.
             className={buttonClass('ghost', 'icon', 'size-8 rounded-lg [&_svg]:size-[18px]')}
           >
@@ -137,6 +149,7 @@ export const SidebarContent = ({
         <Link
           to="/"
           onClick={onNavigate}
+          viewTransition={viewTransition}
           tabIndex={collapsed ? -1 : undefined}
           className={cn(
             'rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -149,6 +162,7 @@ export const SidebarContent = ({
           <Link
             to="/setup"
             onClick={onNavigate}
+            viewTransition={viewTransition}
             tabIndex={collapsed ? -1 : undefined}
             className={buttonClass(
               'secondary',
@@ -170,6 +184,7 @@ export const SidebarContent = ({
           label="Highlights"
           collapsed={collapsed}
           onNavigate={onNavigate}
+          viewTransition={viewTransition}
         />
         <NavItem
           to="/matches"
@@ -177,6 +192,7 @@ export const SidebarContent = ({
           label="Matches"
           collapsed={collapsed}
           onNavigate={onNavigate}
+          viewTransition={viewTransition}
         />
       </nav>
 
@@ -219,6 +235,7 @@ export const SidebarContent = ({
                       to="/matches/$id"
                       params={{ id: match.id }}
                       onClick={onNavigate}
+                      viewTransition={viewTransition}
                       title={collapsed ? mapName(match.map) : undefined}
                       className={cn(
                         rowClass(collapsed),
@@ -317,7 +334,7 @@ export const SidebarContent = ({
                     className={menuItemClass}
                     onClick={() => {
                       onNavigate?.()
-                      void navigate({ to: '/admin' })
+                      void navigate({ to: '/admin', viewTransition })
                     }}
                   >
                     <Server /> Manage instance
@@ -327,7 +344,7 @@ export const SidebarContent = ({
                   className={menuItemClass}
                   onClick={() => {
                     onNavigate?.()
-                    void navigate({ to: '/settings' })
+                    void navigate({ to: '/settings', viewTransition })
                   }}
                 >
                   <Settings /> Settings

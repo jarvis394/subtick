@@ -138,6 +138,13 @@
 ::view-transition-group(root) {
   animation: none;
 }
+/*
+ * Between the old page fading out and the new one fading in, the canvas shows through. In the app
+ * shell the page is the surface color, not the body's background, so fill the gap with it.
+ */
+:root:has([data-app-shell])::view-transition {
+  background: var(--color-surface);
+}
 /* Exit as YouTube does it: a linear fade, and a slide that starts slow and speeds away. */
 ::view-transition-old(root) {
   animation:

@@ -119,7 +119,7 @@ interface Shape {
 
 const shell = ({ gap, pin }: Shape) => cn('p-0', gap && 'pl-[3px]', pin)
 const block = ({ round = 'rounded-md' }: Shape, head: boolean, className?: string) =>
-  cn('flex items-center', head ? 'h-9 bg-surface-2' : 'h-11 bg-surface', round, className)
+  cn('flex items-center', head ? 'h-9 bg-surface-2' : 'h-11 bg-background', round, className)
 
 /**
  * Pinned while the table scrolls sideways: on phones only the party symbol and avatar (the name
@@ -129,7 +129,7 @@ const block = ({ round = 'rounded-md' }: Shape, head: boolean, className?: strin
  * cell's transparent gap, so nothing shifts when scrolling starts.
  */
 // Written out in full (also below with md:): Tailwind only sees literal class names.
-const PIN_GAP = 'shadow-[3px_0_0_var(--color-background)]'
+const PIN_GAP = 'shadow-[3px_0_0_var(--color-surface)]'
 
 /**
  * Scrolled cells are cut by a straight line at the pinned island's edge. These caps paint concave
@@ -139,15 +139,15 @@ const PIN_GAP = 'shadow-[3px_0_0_var(--color-background)]'
  */
 const CORNER_CAPS = cn(
   "before:pointer-events-none before:absolute before:bottom-0 before:-right-[9px] before:size-1.5 before:content-['']",
-  'before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-background)_6px)]',
+  'before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-surface)_6px)]',
   "after:pointer-events-none after:absolute after:top-0 after:-right-[9px] after:size-1.5 after:content-['']",
-  'after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-background)_6px)]',
+  'after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-surface)_6px)]',
 )
 const MD_CORNER_CAPS = cn(
   "md:before:pointer-events-none md:before:absolute md:before:bottom-0 md:before:-right-[9px] md:before:size-1.5 md:before:content-['']",
-  'md:before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-background)_6px)]',
+  'md:before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-surface)_6px)]',
   "md:after:pointer-events-none md:after:absolute md:after:top-0 md:after:-right-[9px] md:after:size-1.5 md:after:content-['']",
-  'md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-background)_6px)]',
+  'md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-surface)_6px)]',
 )
 
 /**
@@ -158,9 +158,9 @@ const MD_CORNER_CAPS = cn(
 const END_CAPS = cn(
   'max-md:before:hidden max-md:after:hidden',
   "before:pointer-events-none before:absolute before:top-0 before:right-0 before:size-1.5 before:content-['']",
-  'before:bg-[radial-gradient(circle_at_0_100%,transparent_5.5px,var(--color-background)_6px)]',
+  'before:bg-[radial-gradient(circle_at_0_100%,transparent_5.5px,var(--color-surface)_6px)]',
   "after:pointer-events-none after:absolute after:right-0 after:bottom-0 after:size-1.5 after:content-['']",
-  'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-background)_6px)]',
+  'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-surface)_6px)]',
 )
 const EndCap = () => <td aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
 const EndCapHead = () => <th aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
@@ -169,7 +169,7 @@ const IDENTITY: Shape = {
   // Phones: square on the screen edge, rounded on the right. md+: left end of the avatar+name island.
   round: 'rounded-r-md md:rounded-l-md md:rounded-r-none',
   pin: cn(
-    'sticky left-0 z-10 bg-background',
+    'sticky left-0 z-10 bg-surface',
     PIN_GAP,
     CORNER_CAPS,
     'md:shadow-none md:before:hidden md:after:hidden',
@@ -179,8 +179,8 @@ const NAME: Shape = {
   // Phones: its own island after the pinned avatar. md+: joined to the avatar, pinned with it.
   round: 'rounded-md md:rounded-l-none',
   pin: cn(
-    'pl-[3px] md:sticky md:left-[4.25rem] md:z-10 md:bg-background md:pl-0',
-    'md:shadow-[3px_0_0_var(--color-background)]',
+    'pl-[3px] md:sticky md:left-[4.25rem] md:z-10 md:bg-surface md:pl-0',
+    'md:shadow-[3px_0_0_var(--color-surface)]',
     MD_CORNER_CAPS,
   ),
 }
