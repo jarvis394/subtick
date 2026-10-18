@@ -218,7 +218,7 @@ const RatingCell = ({ rating, best, mvp }: { rating: number; best: number; mvp: 
         >
           {rating.toFixed(2)}
         </span>
-        {mvp && <Star className="size-3.5 fill-accent text-accent" aria-label="Match MVP" />}
+        {mvp && <Star className="size-3.5 fill-brand text-brand" aria-label="Match MVP" />}
       </span>
     </div>
   </td>
@@ -387,10 +387,11 @@ export const Scoreboard = ({
               </div>
 
               {/* md+: only the table pokes out of the page's content width (headings stay put), by up to
-                  2rem a side, less where the content area has no room. Negative margins, not an
+                  2rem a side, always keeping 16px clear of the content area's edges (the 32px in the
+                  calc). Negative margins, not an
                   explicit width: a wider grid item would stretch its auto track and push the table
                   off-center. `100%` is the track's width and `cqw` the shell's `@container`. */}
-              <ScrollTable className="-mx-4 md:-mx-[clamp(0px,calc((100cqw_-_100%)_/_2),2rem)]">
+              <ScrollTable className="-mx-4 md:-mx-[clamp(0px,calc((100cqw_-_100%_-_32px)_/_2),2rem)]">
                 {/* Fixed widths so both teams line up; rows are separated vertically only. */}
                 <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-[13px] tabular-nums">
                   <colgroup>

@@ -1,7 +1,9 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Menu as MenuIcon } from 'lucide-react'
-import { type ReactNode, useRef, useState } from 'react'
+import { useRouterState } from '@tanstack/react-router'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
+import { ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { useMatchEvents } from '@/hooks/use-match-events'
@@ -12,12 +14,23 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const [collapsed, setCollapsed] = useLocalStorage('subtick:sidebar-collapsed', false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
+  // A tap in the drawer keeps it open (its row shimmering) until the new page has loaded, so the
+  // drawer doesn't slide away to reveal the old page still sitting there.
+  const [closeOnArrival, setCloseOnArrival] = useState(false)
+  const navigating = useRouterState({ select: (s) => s.status === 'pending' })
+  useEffect(() => {
+    if (!closeOnArrival || navigating) return
+    setCloseOnArrival(false)
+    setDrawerOpen(false)
+  }, [closeOnArrival, navigating])
   useMatchEvents()
 
   return (
     <div className="flex min-h-dvh select-none">
+      {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
       <aside
         className={cn(
+          '[view-transition-class:chrome] [view-transition-name:sidebar]',
           'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r bg-surface/50 transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 md:block motion-reduce:transition-none',
           collapsed ? RAIL_WIDTH : 'w-64',
         )}
@@ -26,13 +39,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </aside>
 
       <div className="@container min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:hidden">
           <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
             <Dialog.Trigger
               aria-label="Open menu"
-              className="grid size-10 cursor-pointer place-items-center rounded-lg text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              // A ghost icon button, so its background presses in like every other button's.
+              className={buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-5')}
             >
-              <MenuIcon className="size-5" />
+              <ButtonLayer />
+              <MenuIcon />
             </Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
@@ -51,7 +66,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               >
                 <Dialog.Title className="sr-only">Navigation</Dialog.Title>
-                <SidebarContent collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+                <SidebarContent collapsed={false} onNavigate={() => setCloseOnArrival(true)} />
               </Dialog.Popup>
             </Dialog.Portal>
           </Dialog.Root>

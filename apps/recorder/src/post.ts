@@ -1,4 +1,4 @@
-/** Turns a raw capture into what the web app plays: a small faststart MP4 and a JPEG poster. */
+/** Turns a raw capture into what the web app plays: a small faststart MP4 and a WebP poster. */
 
 const run = async (command: string[]) => {
   const proc = Bun.spawn(command, { stdout: 'pipe', stderr: 'pipe' })
@@ -99,7 +99,23 @@ export const thumbnail = async (input: string, output: string, atSeconds: number
   // Past the end, ffmpeg writes nothing and still exits 0.
   const { durationMs } = await probe(input)
   const at = Math.min(Math.max(0, atSeconds), Math.max(0, durationMs / 1000 - 0.1))
-  await ffmpeg('-ss', at.toFixed(3), '-i', input, '-frames:v', '1', '-q:v', '3', output)
+  // Cards show it at most ~640 CSS px wide, so 1280 covers 2x screens; WebP is about a third
+  // smaller than a JPEG of the same quality.
+  await ffmpeg(
+    '-ss',
+    at.toFixed(3),
+    '-i',
+    input,
+    '-frames:v',
+    '1',
+    '-vf',
+    "scale='min(1280,iw)':-2",
+    '-c:v',
+    'libwebp',
+    '-quality',
+    '80',
+    output,
+  )
   if (!(await Bun.file(output).exists()))
     throw new Error(`no frame at ${at}s in ${input} (${durationMs} ms long)`)
 }

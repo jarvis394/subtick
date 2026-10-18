@@ -1,5 +1,4 @@
 import { Select } from '@base-ui/react/select'
-import { Tabs } from '@base-ui/react/tabs'
 import { mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -8,15 +7,15 @@ import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
+import { KindTabs } from '@/components/kind-tabs'
 import { MapIcon } from '@/components/map-icon'
 import { isProcessing } from '@/components/match-status'
 import { Button } from '@/components/ui/button'
 import { Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { dayLabel } from '@/lib/format'
-import { KIND_FILTERS, type KindFilter, clipListSearch, clipMask } from '@/lib/highlights'
+import { KIND_FILTERS, clipListSearch, clipMask } from '@/lib/highlights'
 import { type Clip, clipFacetsQuery, clipsQuery, recentMatchesQuery } from '@/lib/queries'
-import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/')({
   validateSearch: clipListSearch,
@@ -73,34 +72,12 @@ function HighlightsPage() {
       </div>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
-        <Tabs.Root
+        <KindTabs
           value={kind}
-          onValueChange={(value) =>
-            navigate({
-              search: (s) => ({ ...s, kind: value === 'all' ? undefined : (value as KindFilter) }),
-            })
+          onChange={(value) =>
+            navigate({ search: (s) => ({ ...s, kind: value === 'all' ? undefined : value }) })
           }
-        >
-          <Tabs.List
-            aria-label="Kind"
-            className="relative flex flex-wrap gap-1 rounded-[10px] bg-surface-2/70 p-0.5"
-          >
-            {KIND_FILTERS.map((f) => (
-              <Tabs.Tab
-                key={f.id}
-                value={f.id}
-                className={cn(
-                  'relative z-10 h-8 cursor-pointer rounded-lg px-3 text-sm text-muted outline-none select-none transition-colors',
-                  'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:text-foreground',
-                )}
-              >
-                {f.label}
-              </Tabs.Tab>
-            ))}
-            {/* Follows top/height too: the filter wraps onto several rows on narrow screens. */}
-            <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg bg-surface shadow-sm shadow-black/10 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-          </Tabs.List>
-        </Tabs.Root>
+        />
 
         <Select.Root
           items={mapItems}
@@ -122,7 +99,7 @@ function HighlightsPage() {
           </Select.Trigger>
           <Select.Portal>
             <Select.Positioner sideOffset={6} className="z-50">
-              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
                 <Select.List>
                   {mapItems.map((item) => (
                     <Select.Item
@@ -158,7 +135,7 @@ function HighlightsPage() {
         </Switch>
       </div>
 
-      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0}>
+      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0} appear={false}>
         {clips.isPending ? (
           <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => (

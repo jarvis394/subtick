@@ -27,6 +27,9 @@ export const createAuth = ({ env, db, steamApi }: { env: Env; db: Db; steamApi: 
     user: {
       // Granted by another admin or `bun run grant-admin`, never at sign-up.
       additionalFields: { role: { type: 'string', defaultValue: 'user', input: false } },
+      // From Settings. Without a password (Steam-only accounts have none) the session must be under
+      // a day old; everything the user owns cascades from the user row.
+      deleteUser: { enabled: true },
     },
     plugins: [
       steam({

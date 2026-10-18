@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
     onError: (error, query) => {
       if (query.queryKey[0] !== 'me' || !isSessionError(error)) return
       queryClient.clear()
-      if (router.state.location.pathname === '/login') return
+      if (['/login', '/signup'].includes(router.state.location.pathname)) return
       void router.navigate({ to: '/login', search: { redirect: router.state.location.href } })
     },
   }),
@@ -26,12 +26,24 @@ const queryClient = new QueryClient({
   },
 })
 
+let firstPageShown = false
+
 const router = createRouter({
   routeTree,
   context: { queryClient },
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
+  // Page changes only: not the first load or its redirects, and not filters (search params) or
+  // the clip dialog, which keep the page in place.
+  defaultViewTransition: {
+    types: ({ pathChanged }) => (firstPageShown && pathChanged ? ['page'] : false),
+  },
+})
+
+const stopWatchingFirstLoad = router.subscribe('onResolved', () => {
+  firstPageShown = true
+  stopWatchingFirstLoad()
 })
 
 declare module '@tanstack/react-router' {

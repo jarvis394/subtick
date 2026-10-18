@@ -2,7 +2,7 @@ import { Tabs } from '@base-ui/react/tabs'
 import { mapName } from '@subtick/domain'
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, RotateCw } from 'lucide-react'
+import { ArrowLeft, Plus, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
@@ -13,7 +13,7 @@ import { MatchStatusBadge } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
 import { api, unwrap } from '@/lib/api'
 import { formatDate } from '@/lib/format'
@@ -231,7 +231,11 @@ function MatchBody({ data }: { data: MatchDetail }) {
 
   const highlights = data.highlights.filter((h) => scope === 'all' || mySteamIds.has(h.steamId))
   const clips = highlights.filter((h) => h.clip)
-  const moments = highlights.filter((h) => !h.clip)
+  // Asked for and not out yet; candidates are picked on the Create highlights page.
+  const queue = highlights.filter(
+    (h) => !h.clip && (h.status === 'queued' || h.status === 'failed'),
+  )
+  const canCreate = data.highlights.some((h) => h.status === 'candidate')
   const players = new Map(
     data.players.map((p) => [p.steamId, { name: p.name, avatarUrl: p.avatarUrl }]),
   )
@@ -242,25 +246,39 @@ function MatchBody({ data }: { data: MatchDetail }) {
       <section>
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="font-serif text-xl tracking-tight">Highlights</h2>
-          {myPlayer && (
-            <Tabs.Root value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
-              <Tabs.List className="relative flex gap-1">
-                <Tabs.Tab value="mine" className={tabClass}>
-                  Yours
-                </Tabs.Tab>
-                <Tabs.Tab value="all" className={tabClass}>
-                  Everyone
-                </Tabs.Tab>
-                <Tabs.Indicator className="absolute top-0 left-0 z-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-lg bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-              </Tabs.List>
-            </Tabs.Root>
-          )}
+          <div className="flex items-center gap-3">
+            {canCreate && (
+              <Link
+                to="/matches/$id/create"
+                params={{ id: data.match.id }}
+                className={buttonClass('contrast', 'sm')}
+              >
+                <ButtonLayer />
+                <Plus /> Create more
+              </Link>
+            )}
+            {myPlayer && (
+              <Tabs.Root value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
+                <Tabs.List className="relative flex gap-1">
+                  <Tabs.Tab value="mine" className={tabClass}>
+                    Yours
+                  </Tabs.Tab>
+                  <Tabs.Tab value="all" className={tabClass}>
+                    Everyone
+                  </Tabs.Tab>
+                  <Tabs.Indicator className="absolute top-0 left-0 z-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-lg bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
+                </Tabs.List>
+              </Tabs.Root>
+            )}
+          </div>
         </div>
-        {highlights.length === 0 ? (
+        {clips.length === 0 && queue.length === 0 ? (
           <p className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted">
-            {data.match.status === 'ready'
-              ? 'No standout moments in this one.'
-              : 'Highlights appear once the demo is analyzed.'}
+            {data.match.status !== 'ready'
+              ? 'Highlights appear once the demo is analyzed.'
+              : canCreate
+                ? 'Nothing recorded yet. Pick moments to record with Create more.'
+                : 'No standout moments in this one.'}
           </p>
         ) : (
           <div className="grid gap-10">
@@ -276,19 +294,18 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 ))}
               </div>
             )}
-            {moments.length > 0 && (
+            {queue.length > 0 && (
               // Long titles truncate instead of widening the page.
               <div className="min-w-0">
-                <h3 className="mb-2 text-sm font-medium text-muted">
-                  {clips.length > 0 ? 'More moments' : 'Moments'} · not recorded yet
-                </h3>
+                <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
                 <div className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-                  {moments.map((m) => (
+                  {queue.map((m) => (
                     <MomentRow
                       key={m.id}
                       moment={m}
                       match={data}
                       player={scope === 'all' ? playerOf(m.steamId) : undefined}
+                      owner={playerOf(m.steamId)}
                     />
                   ))}
                 </div>

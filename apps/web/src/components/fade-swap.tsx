@@ -12,25 +12,32 @@ type Layer = { key: string; node: ReactNode }
  *
  * `enterDelay` holds the new view's fade-in back, so a placeholder that's only needed for a moment
  * (a skeleton on a fast load) is gone again before it was ever seen.
+ *
+ * `appear={false}` skips the fade-in of the very first view, for pages the route's view
+ * transition already brings in.
  */
 export const FadeSwap = ({
   swapKey,
   enterDelay = 0,
+  appear = true,
   className,
   children,
 }: {
   swapKey: string
   enterDelay?: number
+  appear?: boolean
   className?: string
   children: ReactNode
 }) => {
   const [current, setCurrent] = useState(swapKey)
   const [exiting, setExiting] = useState<Layer[]>([])
+  const [swapped, setSwapped] = useState(false)
   // The current view as last painted: what stays on screen while it fades out.
   const painted = useRef(children)
 
   if (current !== swapKey) {
     setCurrent(swapKey)
+    setSwapped(true)
     setExiting((layers) => [
       ...layers.filter((l) => l.key !== current && l.key !== swapKey),
       { key: current, node: painted.current },
@@ -65,7 +72,10 @@ export const FadeSwap = ({
             className={cn(
               'col-start-1 row-start-1 min-w-0 transition-opacity',
               isCurrent
-                ? 'relative z-1 duration-200 ease-out-quart starting:opacity-0'
+                ? cn(
+                    'relative z-1 duration-200 ease-out-quart',
+                    (appear || swapped) && 'starting:opacity-0',
+                  )
                 : 'pointer-events-none opacity-0 duration-150 ease-out',
             )}
           >

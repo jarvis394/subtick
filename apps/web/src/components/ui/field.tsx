@@ -7,6 +7,8 @@ export const inputClass = cn(
   'h-10 w-full rounded-[10px] border border-border-strong bg-surface px-3 text-[15px] text-foreground select-text',
   'placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-150',
   'focus:border-accent focus:ring-3 focus:ring-ring/40 data-invalid:border-danger',
+  // Invalid stays red while focused, ring included.
+  'data-invalid:focus:border-danger data-invalid:focus:ring-danger/30',
 )
 
 export const Input = ({ className, ...props }: ComponentProps<typeof BaseInput>) => (

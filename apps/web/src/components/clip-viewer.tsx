@@ -1,4 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type HighlightKind, mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -8,11 +9,12 @@ import { EmptyState } from '@/components/empty-state'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { FadeImage } from '@/components/ui/fade-image'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { ApiError } from '@/lib/api'
-import { clipLength, formatDate } from '@/lib/format'
+import { clipLength, formatDate, timeAgo } from '@/lib/format'
 import { KIND_LABEL, tagSummary } from '@/lib/highlights'
 import { type Clip, clipQuery, clipsQuery, matchQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -109,14 +111,35 @@ export const ClipViewerDialog = ({
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/70 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup
           className={cn(
-            'fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background outline-none md:inset-6 md:mx-auto md:max-w-7xl md:rounded-2xl md:border md:shadow-2xl lg:overflow-hidden',
+            // From md up the side margins leave room for the close button beside the modal.
+            'fixed inset-0 z-50 flex flex-col bg-background outline-none md:top-12 md:right-16 md:bottom-6 md:left-16 md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
             'transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
             'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
           )}
         >
-          {shownId && (
-            <ClipViewer id={shownId} source={source} onSelect={onSelect} onClose={onClose} />
-          )}
+          <header className="flex h-14 shrink-0 items-center border-b px-4 md:hidden">
+            <span className="text-[15px] font-medium">Highlights</span>
+          </header>
+          {/* The popup itself doesn't scroll, so the close button can hang outside it. */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:rounded-2xl lg:overflow-hidden">
+            {shownId && (
+              <ClipViewer id={shownId} source={source} onSelect={onSelect} onClose={onClose} />
+            )}
+          </div>
+          {/* In the phone top bar; from md up beside the modal, on the backdrop. The pseudo-element
+            is a hit margin so a slightly-off tap still closes: 10px on phones, which fills the
+            56px bar exactly, and 12px from md up. */}
+          <Dialog.Close
+            aria-label="Close"
+            className={cn(
+              'absolute top-2.5 right-2 grid size-9 cursor-pointer place-items-center rounded-full text-muted outline-none after:absolute after:-inset-2.5 hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+              // On the backdrop: no fill, just a dimmed icon. A solid gray, not white at partial opacity,
+              // which would darken where the X's strokes overlap.
+              'transition-colors duration-150 md:top-0 md:-right-12 md:after:-inset-3 md:hover:bg-transparent',
+            )}
+          >
+            <X className="size-5" />
+          </Dialog.Close>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -174,6 +197,9 @@ export const ClipViewer = ({
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const position =
+    index === -1 ? undefined : `${index + 1} of ${reel.items.length}${reel.hasNextPage ? '+' : ''}`
+
   const missing =
     !current &&
     (single.error instanceof ApiError ? single.error.status === 404 : single.isSuccess && !fetched)
@@ -185,30 +211,15 @@ export const ClipViewer = ({
         modal ? 'lg:h-full' : 'gap-y-8 lg:gap-x-8',
       )}
     >
-      <div className={cn('min-w-0', modal && 'p-4 md:p-6 lg:overflow-y-auto')}>
-        <div className="mb-4 flex items-center justify-between gap-4">
-          {!modal && (
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ArrowLeft className="size-4" /> Highlights
-            </Link>
-          )}
-          <span className={cn('text-sm text-muted', !modal && 'ml-auto')}>
-            {index === -1
-              ? ''
-              : `${index + 1} of ${reel.items.length}${reel.hasNextPage ? '+' : ''}`}
-          </span>
-          {modal && (
-            <Dialog.Close
-              aria-label="Close"
-              className="-my-1 -mr-1 grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <X className="size-5" />
-            </Dialog.Close>
-          )}
-        </div>
+      <div className={cn('min-w-0', modal && 'pb-4 md:pb-6 lg:overflow-y-auto')}>
+        {!modal && (
+          <Link
+            to="/"
+            className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeft className="size-4" /> Highlights
+          </Link>
+        )}
 
         {missing ? (
           <EmptyState
@@ -218,22 +229,24 @@ export const ClipViewer = ({
           />
         ) : current ? (
           <Player
-            key={current.id}
             clip={current}
-            onEnded={() => autoplay && go(next)}
+            next={autoplay ? next : undefined}
+            onEnded={() => go(next)}
             modal={modal}
             onClose={onClose}
           />
         ) : (
           <div>
-            <Skeleton className="aspect-video" />
-            <Skeleton className="mt-5 h-7 w-2/3 rounded-lg" />
-            <Skeleton className="mt-3 h-5 w-1/2 rounded-lg" />
+            <Skeleton className={cn('aspect-video', modal && VIDEO_FRAME)} />
+            <div className={cn(modal && CONTENT_INSET)}>
+              <Skeleton className="mt-5 h-7 w-2/3 rounded-lg" />
+              <Skeleton className="mt-3 h-5 w-1/2 rounded-lg" />
+            </div>
           </div>
         )}
 
         {current && (
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className={cn('mt-5 flex flex-wrap items-center gap-2', modal && CONTENT_INSET)}>
             <Button variant="secondary" size="sm" disabled={!prev} onClick={() => go(prev)}>
               <ChevronUp /> Previous
             </Button>
@@ -250,6 +263,7 @@ export const ClipViewer = ({
       <Reel
         reel={reel}
         activeId={id}
+        position={position}
         isMatch={'match' in source}
         modal={modal}
         onSelect={onSelect}
@@ -258,91 +272,207 @@ export const ClipViewer = ({
   )
 }
 
+/**
+ * In the dialog the video runs nearly edge to edge: full-bleed on phones, like the match table, and
+ * with a narrower inset than the text below it from md up.
+ */
+const VIDEO_FRAME = 'md:mx-3 md:mt-3 md:rounded-lg overflow-hidden'
+const CONTENT_INSET = 'px-4 md:px-6'
+
+/** Pause after a clip ends before autoplay moves on, so the switch doesn't feel like a cut. */
+const AUTOPLAY_DELAY_MS = 1000
+
 const Player = ({
   clip,
+  next,
   onEnded,
   modal,
   onClose,
 }: {
   clip: ReelClip
+  /** The clip autoplay moves to, preloaded once this one is showing. */
+  next?: ReelClip
+  /** Autoplay's cue; only called while `next` is set. */
   onEnded: () => void
   modal: boolean
   onClose?: () => void
 }) => {
   // The dialog's title is the clip's; on the page it is the page heading.
   const Title = modal ? Dialog.Title : 'h1'
-  const video = useRef<HTMLVideoElement>(null)
   const tags = tagSummary(clip.kills)
+
+  return (
+    <div>
+      <VideoStage
+        clip={clip}
+        next={next}
+        onEnded={onEnded}
+        className={modal ? VIDEO_FRAME : 'rounded-xl'}
+      />
+
+      <div className={cn(modal && CONTENT_INSET)}>
+        <Title className="mt-5 text-xl font-semibold tracking-tight text-balance">
+          {clip.title}
+        </Title>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
+            <span className="truncate text-[15px] font-medium">{clip.player.name}</span>
+          </div>
+          <span aria-hidden className="text-border-strong select-none">
+            ·
+          </span>
+          <Link
+            to="/matches/$id"
+            params={{ id: clip.matchId }}
+            onClick={onClose}
+            className="flex min-w-0 items-center gap-1.5 text-sm text-muted hover:text-foreground"
+          >
+            <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
+            <span className="truncate">
+              {mapName(clip.map)} · Round {clip.round}
+              {clip.playedAt && ` · ${formatDate(clip.playedAt)}`}
+            </span>
+          </Link>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Badge tone="brand">{KIND_LABEL[clip.kind]}</Badge>
+          {tags.map((tag) => (
+            <Badge key={tag}>{tag}</Badge>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The video, crossfading between clips: a new clip's video stacks over the old one and fades in
+ * once it has a frame to show, and only then is the old one dropped.
+ */
+const VideoStage = ({
+  clip,
+  next,
+  onEnded,
+  className,
+}: {
+  clip: ReelClip
+  next?: ReelClip
+  onEnded: () => void
+  className?: string
+}) => {
+  // The first clip shows at once (its poster stands in); later ones wait for a frame.
+  const [layers, setLayers] = useState([{ clip, ready: true }])
+  const top = layers.at(-1)!
+  // Switching again before the new clip showed replaces it, so the last visible frame stays put.
+  if (top.clip.id !== clip.id) setLayers([top.ready ? top : layers[0]!, { clip, ready: false }])
+
+  const dropBelow = (id: string) =>
+    setLayers((ls) => ls.slice(ls.findIndex((l) => l.clip.id === id)))
+  const markReady = (id: string) => {
+    setLayers((ls) => ls.map((l) => (l.clip.id === id ? { ...l, ready: true } : l)))
+    // No fade, so no transitionend to wait for.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) dropBelow(id)
+  }
+
+  return (
+    <div className={cn('relative aspect-video bg-black', className)}>
+      {layers.map((layer, i) => (
+        <VideoLayer
+          key={layer.clip.id}
+          clip={layer.clip}
+          active={i === layers.length - 1}
+          ready={layer.ready}
+          onReady={() => markReady(layer.clip.id)}
+          onShown={() => dropBelow(layer.clip.id)}
+          onEnded={next ? onEnded : undefined}
+        />
+      ))}
+      {/* Warm the next clip so autoplay's switch has a frame to fade to straight away. */}
+      {next && top.ready && (
+        <video key={next.id} src={next.clip.videoUrl} preload="auto" muted hidden />
+      )}
+    </div>
+  )
+}
+
+const VideoLayer = ({
+  clip,
+  active,
+  ready,
+  onReady,
+  onShown,
+  onEnded,
+}: {
+  clip: ReelClip
+  active: boolean
+  ready: boolean
+  onReady: () => void
+  onShown: () => void
+  onEnded?: () => void
+}) => {
+  const video = useRef<HTMLVideoElement>(null)
+  const [ended, setEnded] = useState(false)
 
   // Arriving by click allows sound; a fresh tab may not, so fall back to muted playback.
   useEffect(() => {
     const el = video.current
-    if (!el) return
+    if (!el || !active) return
     el.play().catch(() => {
       el.muted = true
       void el.play().catch(() => {})
     })
-  }, [])
+    return () => el.pause()
+  }, [active])
+
+  // Seeking back or pressing play again during the pause cancels the move on.
+  const advance = useRef(onEnded)
+  advance.current = onEnded
+  useEffect(() => {
+    if (!ended || !active || !advance.current) return
+    const timer = setTimeout(() => advance.current?.(), AUTOPLAY_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [ended, active])
 
   return (
-    <div>
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
-        <video
-          ref={video}
-          src={clip.clip.videoUrl}
-          poster={clip.clip.thumbnailUrl}
-          controls
-          playsInline
-          preload="auto"
-          onEnded={onEnded}
-          className="size-full"
-        />
-      </div>
-
-      <Title className="mt-5 font-serif text-2xl tracking-tight text-balance">{clip.title}</Title>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
-          <span className="truncate text-[15px] font-medium">{clip.player.name}</span>
-        </div>
-        <span className="text-border-strong">·</span>
-        <Link
-          to="/matches/$id"
-          params={{ id: clip.matchId }}
-          onClick={onClose}
-          className="flex min-w-0 items-center gap-1.5 text-sm text-muted hover:text-foreground"
-        >
-          <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
-          <span className="truncate">
-            {mapName(clip.map)} · Round {clip.round}
-            {clip.playedAt && ` · ${formatDate(clip.playedAt)}`}
-          </span>
-        </Link>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        <Badge tone="accent">{KIND_LABEL[clip.kind]}</Badge>
-        {tags.map((tag) => (
-          <Badge key={tag}>{tag}</Badge>
-        ))}
-      </div>
-    </div>
+    <video
+      ref={video}
+      src={clip.clip.videoUrl}
+      poster={clip.clip.thumbnailUrl}
+      controls={active}
+      playsInline
+      preload="auto"
+      onLoadedData={ready ? undefined : onReady}
+      onTransitionEnd={(e) => e.propertyName === 'opacity' && ready && onShown()}
+      onEnded={() => setEnded(true)}
+      onPlay={() => setEnded(false)}
+      onSeeking={() => setEnded(false)}
+      className={cn(
+        'absolute inset-0 size-full transition-opacity duration-300 ease-out-quart motion-reduce:transition-none',
+        ready ? 'opacity-100' : 'opacity-0',
+        !active && 'pointer-events-none',
+      )}
+    />
   )
 }
 
 const Reel = ({
   reel,
   activeId,
+  position,
   isMatch,
   modal,
   onSelect,
 }: {
   reel: ReturnType<typeof useReel>
   activeId: string
+  /** "3 of 12", once the playing clip is found in the reel. */
+  position?: string
   isMatch: boolean
   modal: boolean
   onSelect: (id: string) => void
 }) => {
-  const list = useRef<HTMLOListElement>(null)
+  const list = useRef<HTMLDivElement>(null)
   const sentinel = useRef<HTMLLIElement>(null)
 
   // Keep the playing clip in view as autoplay or the keyboard moves through the reel. Only where
@@ -370,52 +500,73 @@ const Reel = ({
       className={cn(
         'flex min-h-0 min-w-0 flex-col',
         modal
-          ? 'border-t p-4 md:p-6 lg:border-t-0 lg:border-l lg:p-0'
+          ? 'px-4 pb-4 md:px-6 md:pb-6 lg:p-0'
           : 'lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:self-start',
       )}
     >
-      <h2
+      <div
         className={cn(
-          'mb-3 text-sm font-medium text-muted',
-          modal && 'lg:mb-0 lg:px-5 lg:pt-6 lg:pb-3',
+          'mb-3 flex items-baseline justify-between gap-3 text-sm',
+          // Item padding (p-2) lines the heading up with the thumbnails.
+          modal && 'lg:mb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
       >
-        {isMatch ? 'From this match' : 'More highlights'}
-      </h2>
-      <ol
-        ref={list}
+        <h2 className="font-medium text-muted">
+          {isMatch ? 'From this match' : 'More highlights'}
+        </h2>
+        {position && <span className="text-muted/70 tabular-nums">{position}</span>}
+      </div>
+      {/* Scrolls on its own from lg up; below that it is as tall as its clips. */}
+      <ScrollArea.Root
         className={cn(
-          '-mx-2 grid content-start gap-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain',
-          modal && 'lg:mx-0 lg:px-3 lg:pb-4',
+          'relative -mx-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
+          modal && 'lg:mx-0',
         )}
       >
-        {reel.isPending &&
-          Array.from({ length: 6 }, (_, i) => (
-            <li key={i} className="flex gap-3 p-2">
-              <Skeleton className="aspect-video w-36 shrink-0 rounded-lg" />
-              <div className="flex-1">
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="mt-2 h-3 w-2/3 rounded" />
-              </div>
-            </li>
-          ))}
-        {reel.items.map((clip) => (
-          <ReelItem
-            key={clip.id}
-            clip={clip}
-            active={clip.id === activeId}
-            onSelect={() => onSelect(clip.id)}
-          />
-        ))}
-        {hasNextPage && (
-          <li ref={sentinel} className="flex justify-center py-3 text-muted">
-            <Spinner className="size-3.5" />
-          </li>
-        )}
-        {!reel.isPending && reel.items.length === 0 && (
-          <li className="px-2 py-6 text-sm text-muted">No other clips here.</li>
-        )}
-      </ol>
+        {/* A flex child rather than h-full: on the clip page the reel only has a max-height,
+          which a percentage height can't resolve against. */}
+        <ScrollArea.Viewport
+          ref={list}
+          className="overscroll-contain outline-none lg:min-h-0 lg:flex-1"
+        >
+          {/* One column that may shrink below its content, so long titles truncate instead of
+            widening every row past the reel. */}
+          <ol className={cn('grid grid-cols-1 content-start gap-1', modal && 'lg:pr-3 lg:pb-3')}>
+            {reel.isPending &&
+              Array.from({ length: 6 }, (_, i) => (
+                <li key={i} className="flex gap-3 p-2">
+                  <Skeleton className="aspect-video w-36 shrink-0 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="mt-2 h-3 w-2/3 rounded" />
+                  </div>
+                </li>
+              ))}
+            {reel.items.map((clip) => (
+              <ReelItem
+                key={clip.id}
+                clip={clip}
+                active={clip.id === activeId}
+                onSelect={() => onSelect(clip.id)}
+              />
+            ))}
+            {hasNextPage && (
+              <li ref={sentinel} className="flex justify-center py-3 text-muted">
+                <Spinner className="size-3.5" />
+              </li>
+            )}
+            {!reel.isPending && reel.items.length === 0 && (
+              <li className="px-2 py-6 text-sm text-muted">No other clips here.</li>
+            )}
+          </ol>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar
+          orientation="vertical"
+          className="z-20 mt-1 mr-1 mb-4 flex w-1.5 justify-center rounded-full opacity-0 transition-opacity duration-200 data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0"
+        >
+          <ScrollArea.Thumb className="w-full rounded-full bg-foreground/25" />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
     </aside>
   )
 }
@@ -434,13 +585,22 @@ const ReelItem = ({
       type="button"
       onClick={onSelect}
       aria-current={active ? 'true' : undefined}
-      className={cn(
-        'group flex w-full cursor-pointer gap-3 rounded-xl p-2 text-left outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-        active ? 'bg-surface-2' : 'hover:bg-surface-2/60',
-      )}
+      className="group relative isolate flex w-full cursor-pointer gap-3 rounded-xl p-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
     >
+      {/* The card's background is its own layer, so it can scale in on hover and out on leave. */}
+      <span
+        aria-hidden
+        className={cn(
+          'absolute inset-0 -z-10 rounded-[inherit] transition-[scale,opacity,background-color] duration-200 ease-out-quart motion-reduce:scale-100',
+          // Pressing only fills the card in, quickly; letting go fades back at the usual pace.
+          'group-active:scale-100 group-active:bg-surface-2 group-active:opacity-100 group-active:duration-50',
+          active
+            ? 'scale-100 bg-surface-2 opacity-100'
+            : 'scale-95 bg-surface-2/60 opacity-0 group-hover:scale-100 group-hover:opacity-100',
+        )}
+      />
       <div className="relative aspect-video w-36 shrink-0 overflow-hidden rounded-lg bg-surface-3">
-        <img
+        <FadeImage
           src={clip.clip.thumbnailUrl}
           alt=""
           loading="lazy"
@@ -449,24 +609,21 @@ const ReelItem = ({
         <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px font-mono text-[10px] text-white">
           {clipLength(clip)}
         </span>
-        {active && (
-          <span className="absolute inset-0 grid place-items-center bg-black/40 text-[11px] font-medium tracking-wide text-white uppercase">
-            Playing
-          </span>
-        )}
+        {active && <span aria-hidden className="absolute inset-0 bg-black/45" />}
       </div>
       <div className="min-w-0 flex-1 py-0.5">
-        <p
-          className={cn(
-            'line-clamp-2 text-[13px] leading-snug font-medium',
-            active && 'text-accent',
-          )}
-        >
-          {clip.title}
+        <p className="line-clamp-2 text-[13px] leading-snug font-medium">{clip.title}</p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+          <Avatar
+            src={clip.player.avatarUrl}
+            name={clip.player.name}
+            className="size-4 text-[8px]"
+          />
+          <span className="truncate">{clip.player.name}</span>
         </p>
-        <p className="mt-1 truncate text-[12px] text-muted">{clip.player.name}</p>
         <p className="truncate text-[12px] text-muted">
-          {KIND_LABEL[clip.kind]} · {mapName(clip.map)} · R{clip.round}
+          {KIND_LABEL[clip.kind]} · R{clip.round}
+          {clip.playedAt && ` · ${timeAgo(clip.playedAt)}`}
         </p>
       </div>
     </button>

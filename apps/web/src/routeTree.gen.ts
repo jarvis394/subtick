@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -21,6 +22,7 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppClipsIdRouteImport } from './routes/_app/clips.$id'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
 import { Route as AppMatchesIdRouteImport } from './routes/_app/matches.$id'
+import { Route as AppMatchesIdCreateRouteImport } from './routes/_app/matches_.$id.create'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -29,6 +31,11 @@ const AppRoute = AppRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -81,10 +88,16 @@ const AppMatchesIdRoute = AppMatchesIdRouteImport.update({
   path: '/matches/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMatchesIdCreateRoute = AppMatchesIdCreateRouteImport.update({
+  id: '/matches_/$id/create',
+  path: '/matches/$id/create',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/admin': typeof AppAdminRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
@@ -94,9 +107,11 @@ export interface FileRoutesByFullPath {
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin/': typeof AppAdminIndexRoute
   '/matches/': typeof AppMatchesIndexRoute
+  '/matches/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
   '/': typeof AppIndexRoute
@@ -106,11 +121,13 @@ export interface FileRoutesByTo {
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin': typeof AppAdminIndexRoute
   '/matches': typeof AppMatchesIndexRoute
+  '/matches/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/setup': typeof AppSetupRoute
@@ -121,12 +138,14 @@ export interface FileRoutesById {
   '/_app/matches/$id': typeof AppMatchesIdRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/matches/': typeof AppMatchesIndexRoute
+  '/_app/matches_/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/signup'
     | '/admin'
     | '/settings'
     | '/setup'
@@ -136,9 +155,11 @@ export interface FileRouteTypes {
     | '/matches/$id'
     | '/admin/'
     | '/matches/'
+    | '/matches/$id/create'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/signup'
     | '/settings'
     | '/setup'
     | '/'
@@ -148,10 +169,12 @@ export interface FileRouteTypes {
     | '/matches/$id'
     | '/admin'
     | '/matches'
+    | '/matches/$id/create'
   id:
     | '__root__'
     | '/_app'
     | '/login'
+    | '/signup'
     | '/_app/admin'
     | '/_app/settings'
     | '/_app/setup'
@@ -162,11 +185,13 @@ export interface FileRouteTypes {
     | '/_app/matches/$id'
     | '/_app/admin/'
     | '/_app/matches/'
+    | '/_app/matches_/$id/create'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -255,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMatchesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/matches_/$id/create': {
+      id: '/_app/matches_/$id/create'
+      path: '/matches/$id/create'
+      fullPath: '/matches/$id/create'
+      preLoaderRoute: typeof AppMatchesIdCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -282,6 +321,7 @@ interface AppRouteChildren {
   AppClipsIdRoute: typeof AppClipsIdRoute
   AppMatchesIdRoute: typeof AppMatchesIdRoute
   AppMatchesIndexRoute: typeof AppMatchesIndexRoute
+  AppMatchesIdCreateRoute: typeof AppMatchesIdCreateRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -292,6 +332,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClipsIdRoute: AppClipsIdRoute,
   AppMatchesIdRoute: AppMatchesIdRoute,
   AppMatchesIndexRoute: AppMatchesIndexRoute,
+  AppMatchesIdCreateRoute: AppMatchesIdCreateRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -299,6 +340,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -40,7 +40,7 @@ export const MomentBadge = ({
 
   return (
     <Badge
-      tone={moment.kind === 'ace' || knife ? 'accent' : 'neutral'}
+      tone={moment.kind === 'ace' || knife ? 'brand' : 'neutral'}
       aria-label={knife ? `${label}, knife` : label}
       title={knife ? `${label} · knife` : label}
       className={cn('w-[4.5rem] justify-center gap-0.5', className)}

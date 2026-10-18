@@ -14,7 +14,16 @@ const variants = {
   outline:
     'text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)] [--layer-border:var(--color-border-strong)]',
   ghost: 'text-muted hover:text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
-  danger: 'text-white [--bg:var(--color-danger)] [--bg-hover:var(--color-danger)]',
+  danger:
+    'text-white [--bg:var(--color-danger-solid)] [--bg-hover:var(--color-danger-solid-hover)]',
+  /** The page's own foreground as the fill: white on dark, black on light. */
+  contrast:
+    'text-background [--bg:var(--color-foreground)] [--bg-hover:color-mix(in_oklab,var(--color-foreground)_88%,var(--color-background))]',
+  /** Needs attention without alarm (retry a failed recording): brand orange, softly filled. */
+  'brand-soft':
+    'text-brand [--bg:color-mix(in_oklab,var(--color-brand)_14%,transparent)] [--bg-hover:color-mix(in_oklab,var(--color-brand)_22%,transparent)]',
+  /** Destructive but low-key (sign out, unlink): red text, no fill until hover. */
+  'danger-ghost': 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
 }
 
 const sizes = {
@@ -34,6 +43,8 @@ export const buttonClass = (
 ) =>
   cn(
     'group/button relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center font-medium whitespace-nowrap select-none',
+    // Text color (ghost's muted -> foreground) fades with the background layer, not instantly.
+    'transition-[color] duration-150 ease-out',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     'disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed data-disabled:opacity-50',
     '[&_svg]:size-4 [&_svg]:shrink-0',
