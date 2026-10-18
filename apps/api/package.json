@@ -16,6 +16,7 @@
     "@subtick/db": "workspace:*",
     "@subtick/domain": "workspace:*",
     "@subtick/logger": "workspace:*",
+    "@subtick/mail": "workspace:*",
     "@subtick/queue": "workspace:*",
     "@subtick/steam": "workspace:*",
     "@subtick/storage": "workspace:*",

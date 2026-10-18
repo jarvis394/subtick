@@ -1,0 +1,17 @@
+{
+  "name": "@subtick/mail",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@subtick/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@subtick/tsconfig": "workspace:*"
+  }
+}

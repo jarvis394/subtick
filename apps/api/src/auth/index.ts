@@ -1,13 +1,25 @@
 import type { Db } from '@subtick/db'
+import type { Mailer } from '@subtick/mail'
 import { schema } from '@subtick/db'
 import type { SteamWebApi } from '@subtick/steam'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import type { Env } from '../env'
 import { upsertSteamLink } from '../services/steam-links'
+import { emailChange } from './email-plugin'
 import { steam } from './steam-plugin'
 
-export const createAuth = ({ env, db, steamApi }: { env: Env; db: Db; steamApi: SteamWebApi }) =>
+export const createAuth = ({
+  env,
+  db,
+  steamApi,
+  mailer,
+}: {
+  env: Env
+  db: Db
+  steamApi: SteamWebApi
+  mailer: Mailer
+}) =>
   betterAuth({
     baseURL: env.PUBLIC_URL,
     basePath: '/api/auth',
@@ -22,7 +34,7 @@ export const createAuth = ({ env, db, steamApi }: { env: Env; db: Db; steamApi: 
         verification: schema.verification,
       },
     }),
-    // No mail server: accounts are not verified by email and there is no password reset by mail.
+    // Sign-up isn't verified by email; addresses are confirmed only when added or changed later.
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     user: {
       // Granted by another admin or `bun run grant-admin`, never at sign-up.
@@ -39,6 +51,7 @@ export const createAuth = ({ env, db, steamApi }: { env: Env; db: Db; steamApi: 
         },
         onAccount: (userId, steamId) => upsertSteamLink({ db, steamApi }, userId, steamId),
       }),
+      emailChange({ mailer }),
     ],
   })
 

@@ -60,6 +60,7 @@ subtick/
 │  ├─ db/             drizzle schema, client, migrations, drizzle-zod schemas
 │  ├─ queue/          typed queue registry (names, payloads, job IDs, default opts)
 │  ├─ storage/        object storage port + Bun.S3Client adapter (SeaweedFS S3)
+│  ├─ mail/           mailer port: Resend over fetch, or a logging mock without a key; templates
 │  ├─ domain/         pure types and logic: share-code codec, highlight kinds, tick↔time
 │  ├─ logger/         tslog, one named sub-logger per service; pretty in dev, JSON in prod
 │  ├─ config/         env schema per app (zod + dotenv), fail fast on boot

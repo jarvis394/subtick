@@ -1,5 +1,6 @@
 import { createDb, createSecretBox } from '@subtick/db'
 import { createLogger } from '@subtick/logger'
+import { createMailer } from '@subtick/mail'
 import { createMatchEventPublisher, createQueue } from '@subtick/queue'
 import { createSteamWebApi } from '@subtick/steam'
 import { createS3Storage } from '@subtick/storage'
@@ -36,7 +37,12 @@ export const createContext = async (env: Env) => {
       recordClip: createQueue('clip.record', env.REDIS_URL),
     },
     publish: createMatchEventPublisher(env.REDIS_URL),
-    auth: createAuth({ env, db, steamApi }),
+    auth: createAuth({
+      env,
+      db,
+      steamApi,
+      mailer: createMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM }),
+    }),
   }
 }
 

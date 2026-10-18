@@ -4,11 +4,13 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
+import { EmailForm } from '@/components/email-form'
 import { MatchAuthForm } from '@/components/match-auth-form'
 import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
+import { Reveal } from '@/components/ui/reveal'
 import { Badge, Card } from '@/components/ui/surface'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
@@ -17,7 +19,10 @@ import { type Me, meQuery } from '@/lib/queries'
 import { clearStoredMe } from '@/lib/stored-me'
 
 export const Route = createFileRoute('/_app/settings')({
-  validateSearch: z.object({ error: z.string().optional() }),
+  validateSearch: z.object({
+    error: z.string().optional(),
+    email: z.literal('confirmed').optional(),
+  }),
   component: SettingsPage,
 })
 
@@ -25,10 +30,13 @@ const linkSteam = () => void startSteamFlow('link', '/settings')
 
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
-  const { error } = Route.useSearch()
+  const { error, email: emailStatus } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const steamOnly = me.user.email.endsWith('@steam.invalid')
+  const [editingEmail, setEditingEmail] = useState(false)
+  const steamOnly = !me.user.hasPassword
+  const emailError = error?.startsWith('email_') ? error : undefined
+  const steamError = emailError ? undefined : error
 
   return (
     <div className="mx-auto grid max-w-2xl gap-10 @3xl:max-w-5xl">
@@ -38,6 +46,10 @@ function SettingsPage() {
         its share) has room for two readable columns. */}
       <div className="grid gap-10 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-6">
         <Section title="Account">
+          {emailStatus === 'confirmed' && (
+            <p className="text-sm text-accent">Email confirmed. You can sign in with it now</p>
+          )}
+          {emailError && <p className="text-sm text-danger">{describeAuthError(emailError)}</p>}
           <Group>
             <Row
               // Same picture as the sidebar; the initial stands in when there is none.
@@ -64,6 +76,25 @@ function SettingsPage() {
                 Sign out
               </Button>
             </Row>
+            <Collapsible.Root open={editingEmail} onOpenChange={setEditingEmail}>
+              <Row
+                label="Email"
+                description={
+                  steamOnly ? 'Add one to sign in without Steam' : 'Where sign-in links are sent'
+                }
+              >
+                <Collapsible.Trigger
+                  render={<Button size="sm" variant={editingEmail ? 'outline' : 'secondary'} />}
+                >
+                  {editingEmail ? 'Cancel' : steamOnly ? 'Add email' : 'Change'}
+                </Collapsible.Trigger>
+              </Row>
+              <Collapsible.Panel className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
+                <div className="pb-4">
+                  <EmailForm adding={steamOnly} />
+                </div>
+              </Collapsible.Panel>
+            </Collapsible.Root>
             <Row
               label="Delete account"
               description="Removes your account and linked Steam accounts. This can't be undone"
@@ -83,7 +114,7 @@ function SettingsPage() {
             )
           }
         >
-          {error && <p className="text-sm text-danger">{describeAuthError(error)}</p>}
+          {steamError && <p className="text-sm text-danger">{describeAuthError(steamError)}</p>}
           {me.steamLinks.length === 0 && (
             <Group>
               <Row
@@ -97,7 +128,14 @@ function SettingsPage() {
             </Group>
           )}
           {me.steamLinks.map((link) => (
-            <SteamLinkGroup key={link.steamId} link={link} />
+            <SteamLinkGroup
+              key={link.steamId}
+              link={link}
+              onAddEmail={() => {
+                setEditingEmail(true)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
           ))}
         </Section>
       </div>
@@ -159,7 +197,13 @@ const SYNC_LABEL = {
   error: 'Sync error',
 } as const
 
-function SteamLinkGroup({ link }: { link: Me['steamLinks'][number] }) {
+function SteamLinkGroup({
+  link,
+  onAddEmail,
+}: {
+  link: Me['steamLinks'][number]
+  onAddEmail: () => void
+}) {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(!link.hasMatchAuth)
   const unlink = useMutation({
@@ -178,13 +222,26 @@ function SteamLinkGroup({ link }: { link: Me['steamLinks'][number] }) {
         leading={<Avatar src={link.avatarUrl} name={link.personaName} className="size-9" />}
         label={link.personaName}
         description={
-          lastSignIn ? (
-            <span className="text-danger">
-              This is your only way to sign in. Add an email account first.
-            </span>
-          ) : (
-            'Steam account'
-          )
+          <>
+            Steam account
+            <Reveal open={lastSignIn}>
+              <p className="pt-1 leading-relaxed text-danger">
+                This is your only way to sign in.
+                <br />
+                <button
+                  type="button"
+                  onClick={() => {
+                    unlink.reset()
+                    onAddEmail()
+                  }}
+                  className="cursor-pointer underline underline-offset-2 outline-none hover:no-underline focus-visible:no-underline"
+                >
+                  Add an email
+                </button>{' '}
+                first, then unlink it
+              </p>
+            </Reveal>
+          </>
         }
       >
         <Button

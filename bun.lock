@@ -19,6 +19,7 @@
         "@subtick/db": "workspace:*",
         "@subtick/domain": "workspace:*",
         "@subtick/logger": "workspace:*",
+        "@subtick/mail": "workspace:*",
         "@subtick/queue": "workspace:*",
         "@subtick/steam": "workspace:*",
         "@subtick/storage": "workspace:*",
@@ -142,6 +143,15 @@
       "dependencies": {
         "@subtick/config": "workspace:*",
         "tslog": "^5.2.0",
+      },
+      "devDependencies": {
+        "@subtick/tsconfig": "workspace:*",
+      },
+    },
+    "packages/mail": {
+      "name": "@subtick/mail",
+      "dependencies": {
+        "@subtick/logger": "workspace:*",
       },
       "devDependencies": {
         "@subtick/tsconfig": "workspace:*",
@@ -508,6 +518,8 @@
     "@subtick/domain": ["@subtick/domain@workspace:packages/domain"],
 
     "@subtick/logger": ["@subtick/logger@workspace:packages/logger"],
+
+    "@subtick/mail": ["@subtick/mail@workspace:packages/mail"],
 
     "@subtick/parser": ["@subtick/parser@workspace:apps/parser"],
 
