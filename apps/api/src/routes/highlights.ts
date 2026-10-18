@@ -1,6 +1,6 @@
 import { and, desc, eq, exists, inArray, or, schema, sql } from '@subtick/db'
 import { HIGHLIGHT_KINDS, type HighlightKind } from '@subtick/domain'
-import { enqueue } from '@subtick/queue'
+import { requeue } from '@subtick/queue'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
@@ -148,8 +148,9 @@ export const highlightRoutes = (ctx: Context) => {
           .returning({ id: highlight.id, matchId: highlight.matchId })
 
         if (row) {
-          // Lazy requests rank below freshly discovered matches.
-          await enqueue(
+          // Lazy requests rank below freshly discovered matches. A retried failure (or a clip
+          // cancelled and requested again) left a finished job under the same id; requeue clears it.
+          await requeue(
             queues.recordClip,
             { matchId: row.matchId, highlightIds: [row.id] },
             { priority: 10 },
