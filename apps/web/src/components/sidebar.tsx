@@ -37,8 +37,9 @@ export const RAIL_WIDTH = 'w-14'
 const rowClass = (collapsed: boolean) =>
   cn(
     'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-[11px] text-sm whitespace-nowrap text-muted outline-none select-none',
-    // Only the rail's width animates; hover and the active row switch instantly.
-    'transition-[width] duration-200 ease-out-quart',
+    // The rail's width, and the text/icon color as a row becomes active; backgrounds switch
+    // instantly.
+    '[transition:width_200ms_var(--ease-out-quart),color_150ms_ease-out]',
     // Hover only tints the row; the text stays muted until the row is the active one.
     'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring',
     'data-[status=active]:bg-surface-2 data-[status=active]:text-foreground',
