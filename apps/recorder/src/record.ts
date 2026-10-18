@@ -117,14 +117,14 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
 
   const planned = ticksToSeconds(segmentsTicks(segments))
   const video = join(work, `${h.id}.mp4`)
-  const poster = join(work, `${h.id}.jpg`)
+  const poster = join(work, `${h.id}.webp`)
   await joinParts(finished, video)
   // The poster is the clip's last kill: the moment the highlight builds up to.
   const peak = h.kills.at(-1)?.tick ?? (h.startTick + h.endTick) / 2
   await thumbnail(video, poster, ticksToSeconds(clipOffsetTicks(segments, peak)) + 0.25)
   const info = await probe(video)
   await clips.put(keys.clip(h.id), Bun.file(video), 'video/mp4')
-  await clips.put(keys.thumbnail(h.id), Bun.file(poster), 'image/jpeg')
+  await clips.put(keys.thumbnail(h.id), Bun.file(poster), 'image/webp')
   const values = {
     videoKey: keys.clip(h.id),
     thumbnailKey: keys.thumbnail(h.id),

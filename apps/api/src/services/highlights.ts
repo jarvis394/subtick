@@ -1,5 +1,4 @@
 import { schema, sql } from '@subtick/db'
-import { keys } from '@subtick/storage'
 import type { Context } from '../context'
 
 /**
@@ -25,7 +24,8 @@ export const withClipUrls = (
       durationMs: clip.durationMs,
       width: clip.width,
       height: clip.height,
-      videoUrl: clips.presign(keys.clip(highlight.id)),
-      thumbnailUrl: clips.presign(keys.thumbnail(highlight.id)),
+      // The row's keys, not `keys.*`: clips recorded before the WebP switch keep a `.jpg` poster.
+      videoUrl: clips.presign(clip.videoKey),
+      thumbnailUrl: clips.presign(clip.thumbnailKey),
     },
   }))

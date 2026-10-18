@@ -30,6 +30,19 @@ export const createS3Storage = ({
   const publicClient = publicEndpoint
     ? new S3Client({ ...options, endpoint: publicEndpoint })
     : client
+  // Each signing stamps the current time, so a fresh URL every call would miss the browser cache
+  // and re-download every poster whenever a list refetches. Reuse one while half its life remains.
+  const signed = new Map<string, { url: string; renewAt: number }>()
+  const presign = (key: string, expiresIn: number) => {
+    const now = Date.now()
+    const id = `${expiresIn}:${key}`
+    const hit = signed.get(id)
+    if (hit && hit.renewAt > now) return hit.url
+    if (signed.size >= 10_000) for (const [k, v] of signed) if (v.renewAt <= now) signed.delete(k)
+    const url = publicClient.presign(key, { expiresIn })
+    signed.set(id, { url, renewAt: now + (expiresIn * 1000) / 2 })
+    return url
+  }
 
   return {
     async put(key, data, contentType) {
@@ -38,7 +51,7 @@ export const createS3Storage = ({
     bytes: (key) => client.file(key).bytes(),
     exists: (key) => client.exists(key),
     delete: (key) => client.delete(key),
-    presign: (key, expiresIn = 3600) => publicClient.presign(key, { expiresIn }),
+    presign: (key, expiresIn = 3600) => presign(key, expiresIn),
   }
 }
 
@@ -46,5 +59,5 @@ export const createS3Storage = ({
 export const keys = {
   demo: (matchId: string) => `${matchId}.dem.zst`,
   clip: (highlightId: string) => `${highlightId}.mp4`,
-  thumbnail: (highlightId: string) => `${highlightId}.jpg`,
+  thumbnail: (highlightId: string) => `${highlightId}.webp`,
 }

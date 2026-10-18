@@ -122,7 +122,7 @@ function HighlightsPage() {
           </Select.Trigger>
           <Select.Portal>
             <Select.Positioner sideOffset={6} className="z-50">
-              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
                 <Select.List>
                   {mapItems.map((item) => (
                     <Select.Item

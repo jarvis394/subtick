@@ -218,7 +218,7 @@ const RatingCell = ({ rating, best, mvp }: { rating: number; best: number; mvp: 
         >
           {rating.toFixed(2)}
         </span>
-        {mvp && <Star className="size-3.5 fill-accent text-accent" aria-label="Match MVP" />}
+        {mvp && <Star className="size-3.5 fill-brand text-brand" aria-label="Match MVP" />}
       </span>
     </div>
   </td>

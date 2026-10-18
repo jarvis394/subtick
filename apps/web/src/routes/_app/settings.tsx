@@ -1,7 +1,7 @@
 import { Collapsible } from '@base-ui/react/collapsible'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
 import { MatchAuthForm } from '@/components/match-auth-form'
 import { SteamIcon } from '@/components/steam-icon'
@@ -19,6 +19,8 @@ export const Route = createFileRoute('/_app/settings')({
   component: SettingsPage,
 })
 
+const linkSteam = () => void startSteamFlow('link', '/settings')
+
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
   const { error } = Route.useSearch()
@@ -27,54 +29,120 @@ function SettingsPage() {
   const steamOnly = me.user.email.endsWith('@steam.invalid')
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-10">
+    <div className="mx-auto grid max-w-2xl gap-10 @3xl:max-w-5xl">
       <h1 className="font-serif text-3xl tracking-tight">Settings</h1>
 
-      <section className="grid gap-3">
-        <h2 className="text-sm font-medium text-muted">Account</h2>
-        <Card className="flex items-center justify-between gap-4 p-4">
-          <div className="min-w-0">
-            <p className="font-medium">{me.user.name}</p>
-            <p className="truncate text-sm text-muted">
-              {steamOnly ? 'Signed in with Steam' : me.user.email}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              await authClient.signOut()
-              clearStoredMe()
-              queryClient.clear()
-              await navigate({ to: '/login' })
-            }}
-          >
-            Sign out
-          </Button>
-        </Card>
-      </section>
+      {/* Sections sit side by side once the content area (not the viewport: the sidebar takes
+        its share) has room for two readable columns. */}
+      <div className="grid gap-10 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-6">
+        <Section title="Account">
+          <Group>
+            <Row
+              // Same picture as the sidebar; the initial stands in when there is none.
+              leading={
+                <Avatar
+                  src={me.steamLinks[0]?.avatarUrl ?? me.user.image}
+                  name={me.user.name}
+                  className="size-9"
+                />
+              }
+              label={me.user.name}
+              description={steamOnly ? 'Signed in with Steam' : me.user.email}
+            >
+              <Button
+                size="sm"
+                variant="danger-ghost"
+                onClick={async () => {
+                  await authClient.signOut()
+                  clearStoredMe()
+                  queryClient.clear()
+                  await navigate({ to: '/login' })
+                }}
+              >
+                Sign out
+              </Button>
+            </Row>
+          </Group>
+        </Section>
 
-      <section className="grid gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted">Steam accounts</h2>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void startSteamFlow('link', '/settings')}
-          >
-            <SteamIcon /> Link another
-          </Button>
-        </div>
-        {error && <p className="text-sm text-danger">{describeAuthError(error)}</p>}
-        {me.steamLinks.length === 0 && (
-          <Card className="p-4 text-sm text-muted">No Steam account linked yet.</Card>
-        )}
-        {me.steamLinks.map((link) => (
-          <SteamLinkCard key={link.steamId} link={link} />
-        ))}
-      </section>
+        <Section
+          title="Steam accounts"
+          action={
+            me.steamLinks.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={linkSteam}>
+                <SteamIcon /> Link another
+              </Button>
+            )
+          }
+        >
+          {error && <p className="text-sm text-danger">{describeAuthError(error)}</p>}
+          {me.steamLinks.length === 0 && (
+            <Group>
+              <Row
+                label="No Steam account linked"
+                description="Link one so subtick can pick up your matches."
+              >
+                <Button size="sm" variant="secondary" onClick={linkSteam}>
+                  <SteamIcon /> Link Steam
+                </Button>
+              </Row>
+            </Group>
+          )}
+          {me.steamLinks.map((link) => (
+            <SteamLinkGroup key={link.steamId} link={link} />
+          ))}
+        </Section>
+      </div>
     </div>
   )
 }
+
+/** A titled block of settings. The header is h-8 whether or not it has an action. */
+const Section = ({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+}) => (
+  <section className="grid gap-3">
+    <div className="flex h-8 items-center justify-between gap-4">
+      <h2 className="text-[15px] font-medium">{title}</h2>
+      {action}
+    </div>
+    {children}
+  </section>
+)
+
+/** A card of rows, divided by hairlines inset to the card's padding. */
+const Group = ({ children }: { children: ReactNode }) => (
+  <Card className="divide-y px-4">{children}</Card>
+)
+
+/** Label and description on the left, its control on the right. */
+const Row = ({
+  label,
+  description,
+  leading,
+  children,
+}: {
+  label: ReactNode
+  description?: ReactNode
+  /** Before the label, e.g. an avatar. */
+  leading?: ReactNode
+  children?: ReactNode
+}) => (
+  <div className="flex min-h-16 items-center gap-3 py-3">
+    {leading}
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-medium">{label}</p>
+      {description && <div className="mt-0.5 text-[13px] text-muted">{description}</div>}
+    </div>
+    {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
+  </div>
+)
 
 const SYNC_LABEL = {
   idle: 'Up to date',
@@ -83,7 +151,7 @@ const SYNC_LABEL = {
   error: 'Sync error',
 } as const
 
-function SteamLinkCard({ link }: { link: Me['steamLinks'][number] }) {
+function SteamLinkGroup({ link }: { link: Me['steamLinks'][number] }) {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(!link.hasMatchAuth)
   const unlink = useMutation({
@@ -93,51 +161,63 @@ function SteamLinkCard({ link }: { link: Me['steamLinks'][number] }) {
 
   const syncTone =
     link.syncState === 'needs_auth' || link.syncState === 'error' ? 'danger' : 'neutral'
+  const lastSignIn =
+    unlink.error instanceof ApiError && unlink.error.message === 'last_sign_in_method'
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <Avatar src={link.avatarUrl} name={link.personaName} className="size-10" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{link.personaName}</p>
-          <p className="flex items-center gap-2 text-[13px] text-muted">
-            {link.hasMatchAuth ? (
-              <>
-                <Badge tone={syncTone}>{SYNC_LABEL[link.syncState]}</Badge>
-                {link.lastSyncedAt && `checked ${timeAgo(link.lastSyncedAt)}`}
-              </>
-            ) : (
-              <Badge tone="accent">Match history not connected</Badge>
-            )}
-          </p>
-        </div>
+    <Group>
+      <Row
+        leading={<Avatar src={link.avatarUrl} name={link.personaName} className="size-9" />}
+        label={link.personaName}
+        description={
+          lastSignIn ? (
+            <span className="text-danger">
+              This is your only way to sign in. Add an email account first.
+            </span>
+          ) : (
+            'Steam account'
+          )
+        }
+      >
         <Button
           size="sm"
-          variant="ghost"
+          variant="danger-ghost"
           onClick={() => unlink.mutate()}
           disabled={unlink.isPending}
-          className="text-danger hover:text-danger"
         >
           Unlink
         </Button>
-      </div>
-      {link.lastError && <p className="mt-3 text-sm text-danger">{link.lastError}</p>}
-      {unlink.error instanceof ApiError && unlink.error.message === 'last_sign_in_method' && (
-        <p className="mt-3 text-sm text-danger">
-          This is your only way to sign in. Add an email account first.
-        </p>
-      )}
+      </Row>
 
-      <Collapsible.Root open={editing} onOpenChange={setEditing} className="mt-3 border-t pt-3">
-        <Collapsible.Trigger className="cursor-pointer text-sm text-accent outline-none hover:underline focus-visible:underline">
-          {link.hasMatchAuth ? 'Update authentication code' : 'Connect match history'}
-        </Collapsible.Trigger>
+      <Collapsible.Root open={editing} onOpenChange={setEditing}>
+        <Row
+          label="Match history"
+          description={
+            link.hasMatchAuth ? (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Badge tone={syncTone}>{SYNC_LABEL[link.syncState]}</Badge>
+                {link.lastSyncedAt && `checked ${timeAgo(link.lastSyncedAt)}`}
+                {link.lastError && <span className="text-danger">{link.lastError}</span>}
+              </span>
+            ) : (
+              'Not connected. Add an authentication code to pick up your matches.'
+            )
+          }
+        >
+          <Collapsible.Trigger
+            render={
+              <Button size="sm" variant={editing || link.hasMatchAuth ? 'outline' : 'primary'} />
+            }
+          >
+            {editing ? 'Cancel' : link.hasMatchAuth ? 'Update code' : 'Connect'}
+          </Collapsible.Trigger>
+        </Row>
         <Collapsible.Panel className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
-          <div className="pt-4">
+          <div className="pb-4">
             <MatchAuthForm steamId={link.steamId} onDone={() => setEditing(false)} />
           </div>
         </Collapsible.Panel>
       </Collapsible.Root>
-    </Card>
+    </Group>
   )
 }

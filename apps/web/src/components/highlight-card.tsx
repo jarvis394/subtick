@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
+import { FadeImage } from '@/components/ui/fade-image'
 import { Badge } from '@/components/ui/surface'
 import { clipSeconds, clock } from '@/lib/format'
 import { KIND_LABEL, clipMask, tagSummary } from '@/lib/highlights'
@@ -58,6 +59,8 @@ export const HighlightCard = memo(
           mask={clipMask(highlight.id)}
           resetScroll={false}
           aria-label={`Watch ${highlight.title}`}
+          // Otherwise a drag on the thumbnail drags the link out instead.
+          draggable={false}
           className="relative block aspect-video overflow-hidden rounded-xl bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={() => void video.current?.play().catch(() => {})}
           onMouseLeave={() => {
@@ -68,10 +71,17 @@ export const HighlightCard = memo(
             setElapsed(0)
           }}
         >
+          <FadeImage
+            src={highlight.clip.thumbnailUrl}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 size-full object-cover"
+          />
+          {/* Hidden until it actually plays, so the thumbnail shows before and after a hover
+            rather than the video's blank or first frame. */}
           <video
             ref={video}
             src={highlight.clip.videoUrl}
-            poster={highlight.clip.thumbnailUrl}
             preload="none"
             muted
             loop
@@ -80,7 +90,10 @@ export const HighlightCard = memo(
             onPlaying={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
             onEnded={() => setPlaying(false)}
-            className="size-full object-cover"
+            className={cn(
+              'relative size-full object-cover transition-opacity duration-150',
+              playing ? 'opacity-100' : 'opacity-0',
+            )}
           />
           <div className="pointer-events-none absolute inset-x-2 top-2 flex items-start justify-between">
             <Badge className="bg-black/55 text-white backdrop-blur">

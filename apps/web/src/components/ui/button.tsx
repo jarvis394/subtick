@@ -15,6 +15,8 @@ const variants = {
     'text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)] [--layer-border:var(--color-border-strong)]',
   ghost: 'text-muted hover:text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
   danger: 'text-white [--bg:var(--color-danger)] [--bg-hover:var(--color-danger)]',
+  /** Destructive but low-key (sign out, unlink): red text, no fill until hover. */
+  'danger-ghost': 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
 }
 
 const sizes = {
@@ -34,6 +36,8 @@ export const buttonClass = (
 ) =>
   cn(
     'group/button relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center font-medium whitespace-nowrap select-none',
+    // Text color (ghost's muted -> foreground) fades with the background layer, not instantly.
+    'transition-[color] duration-150 ease-out',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     'disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed data-disabled:opacity-50',
     '[&_svg]:size-4 [&_svg]:shrink-0',

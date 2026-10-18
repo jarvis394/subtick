@@ -10,7 +10,7 @@ export const Badge = ({
   className,
   ...props
 }: ComponentProps<'span'> & {
-  tone?: 'neutral' | 'accent' | 'success' | 'danger' | 'ct' | 't'
+  tone?: 'neutral' | 'accent' | 'brand' | 'success' | 'danger' | 'ct' | 't'
 }) => (
   <span
     className={cn(
@@ -18,6 +18,7 @@ export const Badge = ({
       {
         neutral: 'bg-surface-2 text-muted',
         accent: 'bg-accent/12 text-accent',
+        brand: 'bg-brand/12 text-brand',
         success: 'bg-success/12 text-success',
         danger: 'bg-danger/12 text-danger',
         ct: 'bg-side-ct/14 text-side-ct',

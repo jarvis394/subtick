@@ -3,7 +3,7 @@ import { mapName } from '@subtick/domain'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
-  ChevronsUpDown,
+  ChevronDown,
   Clapperboard,
   LogOut,
   PanelLeft,
@@ -38,7 +38,8 @@ const rowClass = (collapsed: boolean) =>
   cn(
     'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-[11px] text-sm whitespace-nowrap text-muted outline-none select-none',
     'transition-[width] duration-200 ease-out-quart',
-    'hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+    // Hover only tints the row; the text stays muted until the row is the active one.
+    'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring',
     'data-[status=active]:bg-surface-2 data-[status=active]:text-foreground',
     '[&_svg]:size-[18px] [&_svg]:shrink-0',
     collapsed ? 'w-10' : 'w-full',
@@ -99,7 +100,7 @@ export const SidebarContent = ({
   onNavigate?: () => void
 }) => {
   const { data: me } = useSuspenseQuery(meQuery)
-  const { data: recent } = useQuery(recentMatchesQuery)
+  const { data: recent, isError: recentFailed, refetch, isFetching } = useQuery(recentMatchesQuery)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const pendingPath = usePendingPath()
@@ -124,9 +125,11 @@ export const SidebarContent = ({
             onClick={onToggle}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            // A ghost icon button, so its background presses in like every other button's.
+            className={buttonClass('ghost', 'icon', 'size-8 rounded-lg [&_svg]:size-[18px]')}
           >
-            <PanelLeft className="size-[18px]" />
+            <ButtonLayer />
+            <PanelLeft />
           </button>
         )}
         <Link
@@ -184,7 +187,7 @@ export const SidebarContent = ({
         >
           Recents
         </p>
-        <FadeSwap swapKey={recent ? 'ready' : 'loading'}>
+        <FadeSwap swapKey={recent ? 'ready' : recentFailed ? 'failed' : 'loading'}>
           {recent ? (
             <>
               {recent.items.length === 0 && (
@@ -255,6 +258,25 @@ export const SidebarContent = ({
                 })}
               </div>
             </>
+          ) : recentFailed ? (
+            // Without this a failed request (after its retries) would leave the skeleton up forever.
+            <div
+              className={cn(
+                'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
+                fade(collapsed),
+              )}
+            >
+              <p className="text-[13px] font-medium">Couldn't load matches</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                disabled={isFetching}
+                className="mt-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+              >
+                {isFetching && <Spinner className="size-3" />}
+                Try again
+              </button>
+            </div>
           ) : (
             <div className="grid gap-0.5" aria-hidden>
               {SKELETON_WIDTHS.map((width, i) => (
@@ -272,24 +294,22 @@ export const SidebarContent = ({
         <Menu.Root>
           <Menu.Trigger
             className={cn(
-              'flex cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg p-1.5 text-left outline-none',
-              'transition-[width] duration-200 ease-out-quart',
+              // A compact pill sized to the name; the email lives in the menu.
+              'flex h-10 max-w-full cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-1.5 text-left outline-none',
               'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2',
-              collapsed ? 'w-10' : 'w-full',
+              collapsed && 'w-10',
             )}
           >
             <Avatar src={avatar} name={me.user.name} className="size-7" />
-            <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{me.user.name}</span>
-                <span className="block truncate text-[12px] text-muted">{subtitle}</span>
-              </span>
-              <ChevronsUpDown className="size-4 shrink-0 text-muted" />
+            <span className={cn('flex min-w-0 items-center gap-3 pr-1.5', fade(collapsed))}>
+              <span className="truncate text-sm font-medium">{me.user.name}</span>
+              <ChevronDown className="size-4 shrink-0 text-muted" />
             </span>
           </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
-              <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+              <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
+                <p className="truncate px-2 pt-1 pb-1.5 text-[13px] text-muted">{subtitle}</p>
                 {me.user.isAdmin && (
                   <Menu.Item
                     className={menuItemClass}

@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * subtick design tokens. Neutral greys, one accent (CS2 orange), team colors for CT/T.
+ * subtick design tokens. Neutral greys, a blue accent for interactive UI, CS2 orange as the brand
+ * color (the wordmark and the game's own moments: aces, MVPs, highlights), team colors for CT/T.
  * Light/dark follow the system unless [data-theme] is set on <html>.
  */
 :root {
@@ -13,15 +14,17 @@
   --border-strong: rgb(17 17 17 / 0.16);
   --foreground: #111111;
   --muted: #6b6b6b;
-  --accent: rgb(227 135 23);
-  --accent-hover: #cf7a12;
-  /* Dark text: white on this orange is below readable contrast. */
-  --accent-foreground: #111111;
+  --accent: rgb(41 116 207);
+  --accent-hover: #2363b0;
+  --accent-foreground: #ffffff;
+  --brand: rgb(227 135 23);
   --danger: #c8442f;
   --success: #3f8f4a;
   --ct: #3f78bd;
   --t: #b9852a;
-  --ring: rgb(227 135 23 / 0.5);
+  --ring: rgb(41 116 207 / 0.5);
+  /* Text selection: a light accent tint here, the deeper blue in dark mode. */
+  --selection: rgb(41 116 207 / 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,7 +37,8 @@
     --border-strong: rgb(255 255 255 / 0.13);
     --foreground: #f2f2f2;
     --muted: #8f8f8f;
-    --accent-hover: #f0962c;
+    --accent-hover: #3d86dc;
+    --selection: rgb(56 87 115);
     --success: #5fb36a;
     --danger: #e0614f;
     --ct: #6fa2df;
@@ -51,7 +55,8 @@
   --border-strong: rgb(255 255 255 / 0.13);
   --foreground: #f2f2f2;
   --muted: #8f8f8f;
-  --accent-hover: #f0962c;
+  --accent-hover: #3d86dc;
+  --selection: rgb(56 87 115);
   --success: #5fb36a;
   --danger: #e0614f;
   --ct: #6fa2df;
@@ -70,6 +75,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--brand);
   --color-danger: var(--danger);
   --color-success: var(--success);
   /* Not `t`/`ct`: `border-t` would read as a border color. */
@@ -111,7 +117,7 @@
     font-feature-settings: 'tnum' 0;
   }
   ::selection {
-    background: rgb(227 135 23 / 0.3);
+    background: var(--selection);
   }
 }
 

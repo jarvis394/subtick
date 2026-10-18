@@ -10,13 +10,14 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60],
 ]
 
+/** "5 minutes ago", "yesterday", "3 weeks ago"; never below "1 minute ago". */
 export const timeAgo = (date: Date | string | null | undefined) => {
   if (!date) return ''
   const seconds = (new Date(date).getTime() - Date.now()) / 1000
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return relative.format(Math.round(seconds / size), unit)
   }
-  return 'just now'
+  return relative.format(-1, 'minute')
 }
 
 const AGE_UNITS: [string, number][] = [
