@@ -171,7 +171,7 @@ const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) =>
           </p>
           <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
             {item.state === 'active' && (
-              <ProgressRing progress={progress} size={12} className="text-accent" />
+              <ProgressRing progress={progress} size={12} className="text-foreground/50" />
             )}
             <span className="truncate">
               {stageLabel(item)} · <span className="tabular-nums">{detail}</span>
@@ -388,7 +388,7 @@ const ClipStatus = ({
         // Loading and encoding report no frames: the ring sweeps.
         progress={phase?.phase === 'recording' ? phase.progress : undefined}
         size={12}
-        className="text-accent"
+        className="text-foreground/50"
       />
     ) : state === 'recorded' ? (
       <Check className="size-3.5" />

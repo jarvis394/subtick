@@ -13,7 +13,7 @@ export const ProgressRing = ({
   size = 14,
   stroke = 2,
   className,
-  trackClassName = 'stroke-foreground/15',
+  trackClassName = 'stroke-foreground/10',
 }: {
   progress?: number
   size?: number
@@ -177,8 +177,8 @@ export const QueueRing = ({ items }: { items: QueueItem[] }) => {
             progress={progress}
             size={22}
             stroke={2.5}
-            className="size-[22px]! text-accent"
-            trackClassName="stroke-foreground/15"
+            className="size-[22px]! text-foreground/50"
+            trackClassName="stroke-foreground/10"
           />
         ) : (
           // Only waiting work: an empty track.
@@ -187,7 +187,7 @@ export const QueueRing = ({ items }: { items: QueueItem[] }) => {
             size={22}
             stroke={2.5}
             className="size-[22px]! text-transparent"
-            trackClassName="stroke-foreground/15"
+            trackClassName="stroke-foreground/10"
           />
         )}
         <span className="text-[10px] leading-none font-semibold text-foreground tabular-nums">

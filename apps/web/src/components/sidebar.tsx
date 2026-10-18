@@ -169,7 +169,7 @@ const RecentRow = ({
           <span className={cn('flex items-center', swapTransition, swapOut)}>
             {isProcessing(match.status) && (
               <span
-                className="mr-2 flex text-accent"
+                className="mr-2 flex text-foreground/50"
                 title={progress !== undefined ? percent(progress) : 'Processing'}
               >
                 <ProgressRing progress={progress} size={14} />
