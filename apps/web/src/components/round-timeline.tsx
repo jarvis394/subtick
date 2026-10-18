@@ -50,7 +50,7 @@ export const RoundTimeline = ({
               <span
                 className={cn(
                   'text-[11px] tabular-nums',
-                  kills >= 3 ? 'font-semibold text-brand' : 'text-muted',
+                  kills >= 3 ? 'font-semibold text-foreground' : 'text-muted',
                 )}
               >
                 {kills > 0 ? `${kills}k` : '·'}

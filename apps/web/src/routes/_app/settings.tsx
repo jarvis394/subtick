@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { MorphLabel } from '@/components/ui/morph-label'
+import { Collapse, usePresence } from '@/components/ui/presence'
 import { Reveal } from '@/components/ui/reveal'
 import { Badge, Card } from '@/components/ui/surface'
 import { ApiError, api, unwrap } from '@/lib/api'
@@ -31,6 +32,7 @@ const linkSteam = () => void startSteamFlow('link', '/settings')
 
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
+  const steamLinks = usePresence(me.steamLinks, (link) => link.steamId)
   const { error, email: emailStatus } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -128,15 +130,19 @@ function SettingsPage() {
               </Row>
             </Group>
           )}
-          {me.steamLinks.map((link) => (
-            <SteamLinkGroup
-              key={link.steamId}
-              link={link}
-              onAddEmail={() => {
-                setEditingEmail(true)
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-              }}
-            />
+          {steamLinks.map(({ key, item: link, exiting, entering }) => (
+            // The section's gap moves inside, so an unlinked account takes its gap with it.
+            <Collapse key={key} exiting={exiting} entering={entering} className="-mt-3">
+              <div className="pt-3">
+                <SteamLinkGroup
+                  link={link}
+                  onAddEmail={() => {
+                    setEditingEmail(true)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                />
+              </div>
+            </Collapse>
           ))}
         </Section>
       </div>
@@ -154,7 +160,8 @@ const Section = ({
   action?: ReactNode
   children: ReactNode
 }) => (
-  <section className="grid gap-3">
+  // Flex, not grid: a collapsing item's negative margin can then cancel its gap.
+  <section className="flex flex-col gap-3">
     <div className="flex h-8 items-center justify-between gap-4">
       <h2 className="text-[15px] font-medium">{title}</h2>
       {action}

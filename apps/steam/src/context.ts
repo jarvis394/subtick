@@ -9,7 +9,7 @@ import {
   WorkerEnv,
   loadEnv,
 } from '@subtick/config'
-import { createDb, createSecretBox, eq, schema } from '@subtick/db'
+import { and, createDb, createSecretBox, eq, notCancelled, schema } from '@subtick/db'
 import type { MatchStatus } from '@subtick/domain'
 import { createLogger } from '@subtick/logger'
 import { createMatchEventPublisher, createQueue } from '@subtick/queue'
@@ -47,8 +47,12 @@ export const createContext = async () => {
 
   /** Moves a match to a pipeline status and tells subscribed browsers. */
   const setStatus = async (matchId: string, status: MatchStatus, error: string | null = null) => {
-    await db.update(schema.match).set({ status, error }).where(eq(schema.match.id, matchId))
-    await publish({ matchId, status })
+    const updated = await db
+      .update(schema.match)
+      .set({ status, error })
+      .where(and(eq(schema.match.id, matchId), notCancelled))
+      .returning({ id: schema.match.id })
+    if (updated.length) await publish({ matchId, status })
   }
 
   return {
@@ -57,6 +61,7 @@ export const createContext = async () => {
     db,
     gc,
     setStatus,
+    publish,
     steamApi: createSteamWebApi(env.STEAM_API_KEY),
     secrets: await createSecretBox(env.SECRETS_KEY),
     demos: createS3Storage({

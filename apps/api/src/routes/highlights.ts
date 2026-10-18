@@ -5,6 +5,7 @@ import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { notOneKill, withClipUrls } from '../services/highlights'
+import { actorOf, cancelHighlight } from '../services/matches'
 import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
@@ -133,11 +134,11 @@ export const highlightRoutes = (ctx: Context) => {
     )
     .post(
       '/:id/record',
-      async ({ params, status }) => {
+      async ({ user, params, status }) => {
         // Only candidates (never queued) and failures can be (re)queued; anything else is a no-op.
         const [row] = await db
           .update(highlight)
-          .set({ status: 'queued' })
+          .set({ status: 'queued', requestedBy: user.id })
           .where(
             and(
               eq(highlight.id, params.id),
@@ -162,6 +163,18 @@ export const highlightRoutes = (ctx: Context) => {
           .where(eq(highlight.id, params.id))
         if (!existing) return status(404, { error: 'not_found' as const })
         return { status: existing.status }
+      },
+      { auth: true, params: z.object({ id: z.uuid() }) },
+    )
+    .post(
+      '/:id/cancel',
+      async ({ user, params, status }) => {
+        // Only the person who asked for it, the match's players for clips subtick queued itself,
+        // and admins.
+        const result = await cancelHighlight(ctx, params.id, actorOf(user))
+        if (!result) return status(404, { error: 'not_found' as const })
+        if (result === 'forbidden') return status(403, { error: 'forbidden' as const })
+        return { status: result }
       },
       { auth: true, params: z.object({ id: z.uuid() }) },
     )

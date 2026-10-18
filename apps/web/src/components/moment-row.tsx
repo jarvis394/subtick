@@ -1,11 +1,13 @@
 import { Dialog } from '@base-ui/react/dialog'
+import { X } from 'lucide-react'
 import type { ClipSegment, HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/surface'
+import { useCancelMoment } from '@/hooks/use-match-actions'
 import { useRecordMoment } from '@/hooks/use-record-moment'
 import { clipLength } from '@/lib/format'
 import { tagSummary } from '@/lib/highlights'
@@ -23,7 +25,17 @@ export interface Moment {
   status: 'candidate' | 'queued' | 'recorded' | 'skipped' | 'failed'
   kills: { tags: KillTag[] }[]
   clutch: HighlightClutch | null
+  /** Who asked for it to be recorded; null when subtick queued it itself. */
+  requester?: { name: string; image: string | null; isViewer: boolean } | null
+  /** The viewer may take it off the queue. */
+  canCancel?: boolean
 }
+
+/** "Requested by you" / "by Name" / "Picked automatically", for a queued or failed moment. */
+export const requestedLabel = (moment: Moment) =>
+  moment.requester
+    ? `Requested by ${moment.requester.isViewer ? 'you' : moment.requester.name}`
+    : 'Picked automatically'
 
 /** The moment's line under its title: round, length and its standout kill tags. */
 export const momentDetails = (moment: Moment) =>
@@ -47,15 +59,52 @@ export const MomentRow = ({
   owner: HighlightPlayer
 }) => {
   const record = useRecordMoment(match.match.id)
-  const details = [player?.name, momentDetails(moment)].filter(Boolean).join(' · ')
+  const cancel = useCancelMoment(match.match.id)
+  const details = [player?.name, momentDetails(moment), requestedLabel(moment)]
+    .filter(Boolean)
+    .join(' · ')
+  const failed = moment.status === 'failed'
 
   return (
-    <div className="flex min-h-14 items-center gap-3 border-b pr-4 last:border-0">
+    <div className="flex min-h-14 items-center gap-3 pr-4">
       <KillfeedDialog
         match={match}
         moment={moment}
         player={owner}
         subtitle={momentDetails(moment)}
+        footer={
+          <>
+            <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted">
+              {!failed && <Spinner className="size-3 shrink-0" />}
+              <span className="truncate">
+                {failed ? 'Recording failed' : 'Waiting to record'} · {requestedLabel(moment)}
+              </span>
+            </span>
+            {failed ? (
+              <Button
+                size="sm"
+                variant="brand-soft"
+                onClick={() => record.mutate(moment.id)}
+                disabled={record.isPending}
+              >
+                Retry
+              </Button>
+            ) : moment.canCancel ? (
+              <Dialog.Close
+                render={
+                  <Button
+                    size="sm"
+                    variant="danger-ghost"
+                    onClick={() => cancel.mutate(moment.id)}
+                    disabled={cancel.isPending}
+                  />
+                }
+              >
+                <X /> Cancel recording
+              </Dialog.Close>
+            ) : null}
+          </>
+        }
         trigger={
           <Dialog.Trigger className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 py-2 pl-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
             <MomentBadge moment={moment} />
@@ -67,7 +116,7 @@ export const MomentRow = ({
           </Dialog.Trigger>
         }
       />
-      {moment.status === 'failed' ? (
+      {failed ? (
         <Button
           size="sm"
           variant="brand-soft"
@@ -77,8 +126,23 @@ export const MomentRow = ({
           Retry
         </Button>
       ) : (
-        <span className="flex items-center gap-1.5 text-[13px] text-muted">
-          <Spinner className="size-3" /> Recording
+        <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5 text-[13px] text-muted">
+            <Spinner className="size-3" /> Recording
+          </span>
+          {moment.canCancel && (
+            <button
+              type="button"
+              onClick={() => cancel.mutate(moment.id)}
+              disabled={cancel.isPending}
+              aria-label={`Cancel recording ${moment.title}`}
+              title="Cancel recording"
+              className={buttonClass('ghost', 'icon', 'size-8 rounded-lg')}
+            >
+              <ButtonLayer />
+              <X />
+            </button>
+          )}
         </span>
       )}
     </div>

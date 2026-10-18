@@ -162,14 +162,14 @@ const END_CAPS = cn(
   "after:pointer-events-none after:absolute after:right-0 after:bottom-0 after:size-1.5 after:content-['']",
   'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-surface)_6px)]',
 )
-const EndCap = () => <td aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
-const EndCapHead = () => <th aria-hidden className={cn('sticky right-0 z-10 w-0 p-0', END_CAPS)} />
+const EndCap = () => <td aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
+const EndCapHead = () => <th aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
 
 const IDENTITY: Shape = {
   // Phones: square on the screen edge, rounded on the right. md+: left end of the avatar+name island.
   round: 'rounded-r-md md:rounded-l-md md:rounded-r-none',
   pin: cn(
-    'sticky left-0 z-10 bg-surface',
+    'sticky left-(--e) z-10 bg-surface',
     PIN_GAP,
     CORNER_CAPS,
     'md:shadow-none md:before:hidden md:after:hidden',
@@ -179,7 +179,7 @@ const NAME: Shape = {
   // Phones: its own island after the pinned avatar. md+: joined to the avatar, pinned with it.
   round: 'rounded-md md:rounded-l-none',
   pin: cn(
-    'pl-[3px] md:sticky md:left-[4.25rem] md:z-10 md:bg-surface md:pl-0',
+    'pl-[3px] md:sticky md:left-[calc(var(--e)+4.25rem)] md:z-10 md:bg-surface md:pl-0',
     'md:shadow-[3px_0_0_var(--color-surface)]',
     MD_CORNER_CAPS,
   ),
@@ -247,16 +247,39 @@ const averagePremier = (team: Player[]) => {
 /**
  * Horizontal scroller with a Base UI scrollbar, shown while hovering or scrolling. The bar lives in
  * padding below the table (only while it overflows), so it never covers a row.
+ *
+ * The table pokes out of the page's content width on md+ (headings stay put) by `--bleed`: up to
+ * 2rem a side, always keeping 16px clear of the content area's edges. The scroller itself reaches
+ * on to the shell's edges, `--e` further, so an overscroll bounce carries the table past where it's
+ * cut instead of cropping it there. Covers pinned in that extra space hide what scrolls through it,
+ * and the table's pinned cells sit `--e` in from the scroller's edges. `--p` is the page's content
+ * width and `cqw` the shell's `@container`. Negative margins, not an explicit width: a wider grid
+ * item would stretch its auto track and push the table off-center.
  */
-const ScrollTable = ({ className, children }: { className?: string; children: ReactNode }) => (
-  <ScrollArea.Root className={cn('data-has-overflow-x:pb-2', className)}>
-    <ScrollArea.Viewport className="overscroll-x-none select-text">
-      <ScrollArea.Content>{children}</ScrollArea.Content>
+const ScrollTable = ({ children }: { children: ReactNode }) => (
+  <ScrollArea.Root
+    className={cn(
+      '[--pad:1rem] md:[--pad:2rem]',
+      '[--p:calc(min(100cqw,72rem)_-_2*var(--pad))]',
+      '[--bleed:1rem] md:[--bleed:clamp(0px,calc((100cqw_-_var(--p)_-_32px)/2),2rem)]',
+      '[--e:calc((100cqw_-_var(--p))/2_-_var(--bleed))]',
+      '-mx-[calc((100cqw_-_var(--p))/2)]',
+      'data-has-overflow-x:pb-2',
+    )}
+  >
+    <ScrollArea.Viewport className="select-text">
+      <ScrollArea.Content className="flex">
+        <div aria-hidden className="sticky left-0 z-20 w-(--e) shrink-0 bg-surface" />
+        {children}
+        <div aria-hidden className="sticky right-0 z-20 w-(--e) shrink-0 bg-surface" />
+      </ScrollArea.Content>
     </ScrollArea.Viewport>
     <ScrollArea.Scrollbar
       orientation="horizontal"
       className={cn(
-        'absolute inset-x-4 bottom-0 flex h-1.5 items-center rounded-full bg-foreground/[0.04] md:inset-x-0',
+        // Spans the table: the content width on phones, the table's own on md+. Margins, as Base UI
+        // sets the insets inline.
+        'absolute bottom-0 mx-[calc(var(--e)+1rem)] flex h-1.5 items-center rounded-full bg-foreground/[0.04] md:mx-(--e)',
         // Shown while the pointer is over the table or it's scrolling (touch has no hover).
         'opacity-0 transition-opacity duration-150 data-hovering:opacity-100 data-scrolling:opacity-100',
         'motion-reduce:transition-none',
@@ -386,12 +409,7 @@ export const Scoreboard = ({
                 </span>
               </div>
 
-              {/* md+: only the table pokes out of the page's content width (headings stay put), by up to
-                  2rem a side, always keeping 16px clear of the content area's edges (the 32px in the
-                  calc). Negative margins, not an
-                  explicit width: a wider grid item would stretch its auto track and push the table
-                  off-center. `100%` is the track's width and `cqw` the shell's `@container`. */}
-              <ScrollTable className="-mx-4 md:-mx-[clamp(0px,calc((100cqw_-_100%_-_32px)_/_2),2rem)]">
+              <ScrollTable>
                 {/* Fixed widths so both teams line up; rows are separated vertically only. */}
                 <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-[13px] tabular-nums">
                   <colgroup>

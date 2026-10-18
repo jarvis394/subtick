@@ -1,5 +1,6 @@
 import { DatabaseEnv, RedisEnv, S3Env, WorkerEnv, loadEnv } from '@subtick/config'
-import { createDb, eq, schema } from '@subtick/db'
+import { and, createDb, eq, notCancelled, schema } from '@subtick/db'
+import { isCancelled } from '@subtick/domain'
 import { createLogger } from '@subtick/logger'
 import {
   closeOnSignal,
@@ -35,13 +36,19 @@ const worker = createWorker(
   async (job) => {
     const { matchId } = job.data
     const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
-    if (!row) return
+    if (!row || isCancelled(row)) return
 
-    await db.update(schema.match).set({ status: 'parsing' }).where(eq(schema.match.id, matchId))
+    await db
+      .update(schema.match)
+      .set({ status: 'parsing' })
+      .where(and(eq(schema.match.id, matchId), notCancelled))
     await publish({ matchId, status: 'parsing' })
 
     const started = performance.now()
     const analysis = analyzeDemo(await loadDemo(matchId))
+    // Parsing can't be interrupted; a cancel that came in meanwhile drops the result.
+    const [now] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
+    if (!now || isCancelled(now)) return void log.info({ matchId }, 'parse cancelled')
     const highlightIds = await persistAnalysis(db, matchId, analysis, PARSER_VERSION)
 
     if (highlightIds.length) await enqueue(recordQueue, { matchId, highlightIds })

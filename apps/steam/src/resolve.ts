@@ -1,9 +1,18 @@
 import { eq, schema } from '@subtick/db'
-import { decodeShareCode } from '@subtick/domain'
+import { decodeShareCode, isCancelled } from '@subtick/domain'
 import { enqueue, type TypedJob } from '@subtick/queue'
 import type { Context } from './context'
 import type { GameCoordinator } from './gc'
 import { friendParties } from './parties'
+
+/** Whether someone cancelled the match since its job started. */
+export const cancelled = async ({ db }: Pick<Context, 'db'>, matchId: string) => {
+  const [row] = await db
+    .select({ status: schema.match.status, error: schema.match.error })
+    .from(schema.match)
+    .where(eq(schema.match.id, matchId))
+  return !row || isCancelled(row)
+}
 
 /**
  * Asks the Game Coordinator where a match's demo is. Matches that already have a demo URL (or a
@@ -18,7 +27,7 @@ export const resolveMatch = async (
   const { shareCode } = job.data
   const matchId = decodeShareCode(shareCode).matchId.toString()
   const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
-  if (!row || row.demoKey) return
+  if (!row || row.demoKey || isCancelled(row)) return
   if (row.demoUrl) return void (await enqueue(queues.download, { matchId }))
 
   await setStatus(matchId, 'resolving')
@@ -43,6 +52,7 @@ export const resolveMatch = async (
     log.info({ matchId }, 'demo expired before it was resolved')
     return
   }
+  if (await cancelled(ctx, matchId)) return
   await enqueue(queues.download, { matchId })
   log.info({ matchId, parties: Object.keys(parties).length }, 'match resolved')
 }

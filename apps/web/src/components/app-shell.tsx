@@ -62,16 +62,24 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             'motion-reduce:[transition:none]',
           )}
         >
-          {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
-          <aside
+          {/* The sidebar is fixed, so page overscroll doesn't drag it; this keeps its place in the row. */}
+          <div
             className={cn(
-              '[view-transition-class:chrome] [view-transition-name:sidebar]',
-              'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r bg-background transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 md:block motion-reduce:transition-none',
+              'hidden shrink-0 transition-[width] duration-200 ease-out-quart md:block motion-reduce:transition-none',
               collapsed ? RAIL_WIDTH : 'w-64',
             )}
           >
-            <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-          </aside>
+            {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
+            <aside
+              className={cn(
+                '[view-transition-class:chrome] [view-transition-name:sidebar]',
+                'fixed top-0 left-0 h-dvh overflow-hidden border-r bg-background transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 motion-reduce:transition-none',
+                collapsed ? RAIL_WIDTH : 'w-64',
+              )}
+            >
+              <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+            </aside>
+          </div>
 
           <div className="@container min-w-0 flex-1">
             <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden">

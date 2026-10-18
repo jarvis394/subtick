@@ -18,6 +18,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import { jsonb } from '../jsonb'
+import { user } from './auth'
 import { match } from './match'
 
 export const highlightKind = pgEnum('highlight_kind', HIGHLIGHT_KINDS)
@@ -44,6 +45,8 @@ export const highlight = pgTable(
     tags: text().array().$type<MomentTag[]>().notNull().default([]),
     clutch: jsonb().$type<HighlightClutch>(),
     status: highlightStatus().notNull().default('candidate'),
+    /** Who asked for it to be recorded; null when subtick queued it on its own (or never was). */
+    requestedBy: text().references(() => user.id, { onDelete: 'set null' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.matchId, t.steamId), index().on(t.steamId, t.score)],

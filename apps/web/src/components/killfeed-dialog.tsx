@@ -116,6 +116,8 @@ export const KillfeedDialog = ({
   player,
   subtitle,
   trigger,
+  footer,
+  onClosed,
 }: {
   match: MatchDetail
   moment: {
@@ -130,12 +132,16 @@ export const KillfeedDialog = ({
   player: HighlightPlayer
   subtitle: string
   trigger: ReactNode
+  /** Actions under the feed (cancel or retry a queued clip). */
+  footer?: ReactNode
+  /** Called once the dialog has finished closing (its exit animation done). */
+  onClosed?: () => void
 }) => {
   const feed = momentFeed(match, moment)
   const preview = mapPreviewUrl(match.match.map)
 
   return (
-    <Dialog.Root>
+    <Dialog.Root onOpenChangeComplete={(open) => !open && onClosed?.()}>
       {trigger}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
@@ -191,6 +197,11 @@ export const KillfeedDialog = ({
               )}
             </ol>
           </div>
+          {footer && (
+            <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
+              {footer}
+            </div>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

@@ -101,15 +101,6 @@
   * {
     border-color: var(--color-border);
   }
-  /*
-   * The page doesn't rubber-band. Only the page: on an inner scroller `none` also stops scrolls it
-   * can't use (vertical over a sideways table) from reaching the page. Tables use
-   * `overscroll-x-none` instead.
-   */
-  html,
-  body {
-    overscroll-behavior: none;
-  }
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
@@ -120,6 +111,10 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     font-feature-settings: 'tnum' 0;
+  }
+  /* In the app shell the page is the surface color, so overscroll above and below continues it. */
+  html:has([data-app-shell]) body {
+    background: var(--color-surface);
   }
   ::selection {
     background: var(--selection);
@@ -247,10 +242,12 @@
   animation-timing-function: var(--ease-out-quart);
 }
 
-/* MorphLabel: the incoming text of a button whose label changes. */
-@keyframes morph-in {
+/* A running stage that reports no progress: a short bar sweeping across. */
+@keyframes queue-sweep {
   from {
-    opacity: 0;
-    filter: blur(2px);
+    translate: -100% 0;
+  }
+  to {
+    translate: 300% 0;
   }
 }

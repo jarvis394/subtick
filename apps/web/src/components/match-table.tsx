@@ -110,8 +110,8 @@ export const MatchTable = ({ matches }: { matches: MatchListItem[] }) => (
             {score && match.status !== 'ready' ? (
               <MatchStatusBadge status={match.status} />
             ) : match.highlightCount > 0 ? (
-              <span className="inline-flex items-center gap-1 text-brand">
-                <Play className="size-3 fill-current" />
+              <span className="inline-flex items-center gap-1 text-foreground">
+                <Play strokeWidth={2} className="size-3 fill-foreground/16" />
                 {match.highlightCount}
               </span>
             ) : (

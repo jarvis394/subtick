@@ -5,6 +5,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { Badge, Card, Skeleton } from '@/components/ui/surface'
+import { Collapse, usePresence } from '@/components/ui/presence'
 import { type AdminRecorder, recordersQuery } from '@/lib/admin'
 import { api, unwrap } from '@/lib/api'
 import { timeAgo } from '@/lib/format'
@@ -31,9 +32,11 @@ function RecordersPage() {
   const recorders = useQuery(recordersQuery)
   const [adding, setAdding] = useState(false)
   const [issued, setIssued] = useState<Issued | null>(null)
+  const cards = usePresence(recorders.data ?? [], (recorder) => recorder.id, recorders.isSuccess)
 
   return (
-    <section className="grid gap-4">
+    // Flex, not grid: a removed card's negative margin can then cancel its gap as it collapses.
+    <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted">
           Machines that record clips. Each runs the recorder container with its own token.
@@ -61,14 +64,18 @@ function RecordersPage() {
           GPU using the token it gives you.
         </Card>
       ) : (
-        recorders.data?.map((recorder) => (
-          <RecorderCard
-            key={recorder.id}
-            recorder={recorder}
-            token={issued?.id === recorder.id ? issued.token : null}
-            onToken={(token) => setIssued({ id: recorder.id, token })}
-            onDismissToken={() => setIssued(null)}
-          />
+        cards.map(({ key, item: recorder, exiting, entering }) => (
+          // The section's gap moves inside, so a removed recorder takes its gap with it.
+          <Collapse key={key} exiting={exiting} entering={entering} className="-mt-4">
+            <div className="pt-4">
+              <RecorderCard
+                recorder={recorder}
+                token={issued?.id === recorder.id ? issued.token : null}
+                onToken={(token) => setIssued({ id: recorder.id, token })}
+                onDismissToken={() => setIssued(null)}
+              />
+            </div>
+          </Collapse>
         ))
       )}
     </section>

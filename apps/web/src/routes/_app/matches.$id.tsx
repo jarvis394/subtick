@@ -1,24 +1,26 @@
 import { Tabs } from '@base-ui/react/tabs'
 import { mapName } from '@subtick/domain'
-import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, Plus, RotateCw } from 'lucide-react'
+import { ArrowLeft, CircleStop, Plus, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
 import { MapIcon } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
-import { MatchStatusBadge } from '@/components/match-status'
+import { MatchStatusBadge, isProcessing } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
 import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Collapse, Presence, usePresence } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
-import { api, unwrap } from '@/lib/api'
+import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
+import { useMatchProgress } from '@/hooks/use-match-events'
 import { formatDate } from '@/lib/format'
 import { clipMask, clipViewerSearch } from '@/lib/highlights'
-import { type MatchDetail, type MatchListItem, matchQuery } from '@/lib/queries'
+import { type MatchDetail, type MatchListItem, matchQuery, meQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 /** Everything the page header shows, so it can render before the full match has loaded. */
@@ -28,6 +30,9 @@ interface MatchHead {
   roundsPlayed: number | null
   mode: string | null
   status: MatchListItem['status']
+  cancelled: boolean
+  /** The viewer played it (so may stop or restart it). */
+  mine: boolean
   score: ReturnType<typeof perspectiveScore>
   hasPlayer: boolean
 }
@@ -40,6 +45,8 @@ const headFromDetail = (data: MatchDetail): MatchHead => {
     roundsPlayed: data.match.roundsPlayed,
     mode: data.match.mode,
     status: data.match.status,
+    cancelled: data.match.cancelled,
+    mine: data.viewerSteamId !== null,
     score: perspectiveScore(data.match, me?.startingSide ?? 'CT'),
     hasPlayer: Boolean(me),
   }
@@ -51,6 +58,8 @@ const headFromList = (m: MatchListItem): MatchHead => ({
   roundsPlayed: m.roundsPlayed,
   mode: m.mode,
   status: m.status,
+  cancelled: m.cancelled,
+  mine: true,
   score: perspectiveScore(m, m.player?.startingSide ?? 'CT'),
   hasPlayer: Boolean(m.player?.startingSide),
 })
@@ -124,16 +133,14 @@ const BodySkeleton = () => (
 )
 
 function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
-  const queryClient = useQueryClient()
-  const retry = useMutation({
-    mutationFn: () => unwrap(api.matches({ id }).retry.post()),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['match', id] }),
-        queryClient.invalidateQueries({ queryKey: ['matches'] }),
-      ]),
-  })
-  const canRetry = head && (head.status === 'failed' || head.status === 'expired')
+  const { data: me } = useSuspenseQuery(meQuery)
+  const retry = useRetryMatch()
+  const cancel = useCancelMatch()
+  const progress = useMatchProgress(id, head?.status ?? 'ready')
+  const canManage = Boolean(head && (head.mine || me.user.isAdmin))
+  const canRetry = canManage && head && (head.status === 'failed' || head.status === 'expired')
+  const canCancel = canManage && head && isProcessing(head.status)
+  const error = retry.error ?? cancel.error
 
   return (
     <div>
@@ -164,24 +171,40 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                       <span className="capitalize">{head.mode}</span>
                     </>
                   )}
-                  <MatchStatusBadge status={head.status} className="ml-1.5" />
+                  <MatchStatusBadge
+                    status={head.status}
+                    cancelled={head.cancelled}
+                    progress={progress}
+                    className="ml-1.5"
+                  />
                   {canRetry && (
                     <Button
                       size="sm"
                       variant="secondary"
                       className="ml-1"
-                      onClick={() => retry.mutate()}
+                      onClick={() => retry.mutate(id)}
                       disabled={retry.isPending}
                     >
-                      <RotateCw className="size-3.5" /> Retry
+                      <RotateCw className="size-3.5" /> {head.cancelled ? 'Resume' : 'Retry'}
+                    </Button>
+                  )}
+                  {canCancel && (
+                    <Button
+                      size="sm"
+                      variant="danger-ghost"
+                      className="ml-1"
+                      onClick={() => cancel.mutate(id)}
+                      disabled={cancel.isPending}
+                    >
+                      <CircleStop className="size-3.5" /> Cancel
                     </Button>
                   )}
                 </p>
-                {retry.error && (
+                {error && (
                   <p className="mt-1.5 text-sm text-danger">
-                    {retry.error.message === 'forbidden'
-                      ? 'Only players who imported this match can retry it.'
-                      : 'Could not retry. Try again in a moment.'}
+                    {error.message === 'forbidden'
+                      ? 'Only players who imported this match can change its processing.'
+                      : 'Something went wrong. Try again in a moment.'}
                   </p>
                 )}
               </div>
@@ -235,6 +258,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
   const queue = highlights.filter(
     (h) => !h.clip && (h.status === 'queued' || h.status === 'failed'),
   )
+  const queued = usePresence(queue, (h) => h.id)
   const canCreate = data.highlights.some((h) => h.status === 'candidate')
   const players = new Map(
     data.players.map((p) => [p.steamId, { name: p.name, avatarUrl: p.avatarUrl }]),
@@ -254,7 +278,11 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 className={buttonClass('contrast', 'sm')}
               >
                 <ButtonLayer />
-                <Plus /> Create<span className="max-sm:hidden"> more</span>
+                <Plus />
+                {/* One flex item, so the button's gap doesn't widen the space before "more". */}
+                <span>
+                  Create<span className="max-sm:hidden"> more</span>
+                </span>
               </Link>
             )}
             {myPlayer && (
@@ -281,7 +309,9 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 : 'No standout moments in this one.'}
           </p>
         ) : (
-          <div className="grid gap-10">
+          // A flex column, not a grid: the Queue's negative margin can then cancel the gap as it
+          // collapses (a grid row stops at zero and the gap would jump away at the end).
+          <div className="flex flex-col gap-10">
             {clips.length > 0 && (
               <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                 {clips.map((h) => (
@@ -294,23 +324,30 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 ))}
               </div>
             )}
-            {queue.length > 0 && (
-              // Long titles truncate instead of widening the page.
-              <div className="min-w-0">
+            {/* Cancelled and recorded moments collapse out; the block goes with the last one. */}
+            <Presence show={queue.length > 0} className="-mt-10">
+              {/* Long titles truncate instead of widening the page. */}
+              <div className="min-w-0 pt-10">
                 <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
                 <div className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-                  {queue.map((m) => (
-                    <MomentRow
-                      key={m.id}
-                      moment={m}
-                      match={data}
-                      player={scope === 'all' ? playerOf(m.steamId) : undefined}
-                      owner={playerOf(m.steamId)}
-                    />
+                  {queued.map(({ key, item: m, exiting, entering }) => (
+                    <Collapse
+                      key={key}
+                      exiting={exiting}
+                      entering={entering}
+                      className="border-b last:border-0"
+                    >
+                      <MomentRow
+                        moment={m}
+                        match={data}
+                        player={scope === 'all' ? playerOf(m.steamId) : undefined}
+                        owner={playerOf(m.steamId)}
+                      />
+                    </Collapse>
                   ))}
                 </div>
               </div>
-            )}
+            </Presence>
           </div>
         )}
       </section>

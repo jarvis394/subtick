@@ -7,6 +7,7 @@ import {
   Clapperboard,
   LogOut,
   PanelLeft,
+  RotateCw,
   Settings,
   Server,
   Swords,
@@ -14,15 +15,19 @@ import {
 import type { ReactNode } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon } from '@/components/map-icon'
+import { MatchMenu } from '@/components/match-menu'
+import { QueueRing } from '@/components/queue-ring'
 import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
 import { ButtonLayer, buttonClass } from '@/components/ui/button'
 import { Skeleton, Spinner } from '@/components/ui/surface'
 import { Wordmark } from '@/components/wordmark'
+import { useRefreshMatches } from '@/hooks/use-match-actions'
+import { percent, useMatchProgress } from '@/hooks/use-match-events'
 import { authClient } from '@/lib/auth'
 import { shortAge } from '@/lib/format'
-import { meQuery, recentMatchesQuery } from '@/lib/queries'
+import { type MatchListItem, meQuery, queueQuery, recentMatchesQuery } from '@/lib/queries'
 import { isSetUp } from '@/lib/setup'
 import { clearStoredMe } from '@/lib/stored-me'
 import { cn } from '@/lib/utils'
@@ -90,6 +95,147 @@ const NavItem = ({
   )
 }
 
+/**
+ * A row's trailing slot and its menu share one spot. With a mouse the score sits there and the
+ * menu button swaps in on hover (or focus, or while its menu is open); on touch screens there is
+ * no hover, so the button stays and the score moves left of it.
+ */
+const swapOut =
+  'pointer-fine:group-hover/row:opacity-0 pointer-fine:group-has-[:focus-visible]/row:opacity-0 pointer-fine:group-has-data-popup-open/row:opacity-0'
+const swapIn =
+  'pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-has-[:focus-visible]/row:opacity-100 pointer-fine:data-popup-open:opacity-100'
+/**
+ * Hovered dozens of times a day: the swap itself is instant (opacity never transitions), but the
+ * menu button's icon still eases its color like every other button.
+ */
+const swapTransition = 'transition-[color] duration-150 ease-out'
+
+const RecentRow = ({
+  match,
+  collapsed,
+  pending,
+  onNavigate,
+  viewTransition,
+}: {
+  match: MatchListItem
+  collapsed: boolean
+  pending: boolean
+  onNavigate?: () => void
+  viewTransition?: boolean
+}) => {
+  const score = perspectiveScore(match, match.player?.startingSide)
+  const progress = useMatchProgress(match.id, match.status)
+
+  return (
+    <div className="group/row relative">
+      <Link
+        to="/matches/$id"
+        params={{ id: match.id }}
+        onClick={onNavigate}
+        viewTransition={viewTransition}
+        title={collapsed ? mapName(match.map) : undefined}
+        className={cn(
+          rowClass(collapsed),
+          'h-10 px-2',
+          !collapsed && 'pointer-coarse:pr-10',
+          // Lit while the pointer is anywhere on the row, its menu button included (the button
+          // sits over the link, so the link's own hover ends there), and while its menu is open.
+          'group-hover/row:bg-surface-2 group-has-data-popup-open/row:bg-surface-2',
+          pending && 'shimmer',
+        )}
+      >
+        <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
+        <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
+          <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+            <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+            <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
+              {shortAge(match.playedAt ?? match.discoveredAt)}
+            </span>
+          </span>
+          <span className={cn('flex items-center', swapTransition, swapOut)}>
+            {isProcessing(match.status) &&
+              (progress !== undefined ? (
+                <span className="mr-2 font-mono text-[11px] text-accent tabular-nums">
+                  {percent(progress)}
+                </span>
+              ) : (
+                <Spinner className="mr-2 size-3" />
+              ))}
+            {match.cancelled ? (
+              <span className="text-[11px] text-muted">Cancelled</span>
+            ) : match.status === 'failed' || match.status === 'expired' ? (
+              <span className="text-[11px] text-danger">
+                {match.status === 'failed' ? 'Failed' : 'Expired'}
+              </span>
+            ) : score ? (
+              // Known once the demo is analyzed, so it shows beside the spinner while clips record.
+              <span className="font-mono text-[12px] tabular-nums">
+                <span
+                  className={
+                    score.result === 'win'
+                      ? 'text-success'
+                      : score.result === 'loss'
+                        ? 'text-danger'
+                        : undefined
+                  }
+                >
+                  {score.own}
+                </span>
+                :{score.enemy}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      </Link>
+      {!collapsed && (
+        <MatchMenu
+          match={match}
+          onNavigate={onNavigate}
+          align="start"
+          side="right"
+          triggerClassName={cn(
+            'absolute top-1/2 right-1.5 -translate-y-1/2',
+            swapTransition,
+            swapIn,
+          )}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Opens the Queue page; the badge counts matches with pipeline work across the instance. */
+const QueueButton = ({
+  onNavigate,
+  viewTransition,
+}: {
+  onNavigate?: () => void
+  viewTransition?: boolean
+}) => {
+  const { data } = useQuery(queueQuery)
+  const items = data?.items ?? []
+  const pending = usePendingPath() === '/queue'
+  const label = items.length ? `Queue, ${items.length} in progress` : 'Queue'
+
+  return (
+    <Link
+      to="/queue"
+      onClick={onNavigate}
+      viewTransition={viewTransition}
+      aria-label={label}
+      title={label}
+      className={cn(
+        buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-[18px]'),
+        'data-[status=active]:text-foreground data-[status=active]:[--bg:var(--color-surface-2)]',
+        pending && 'shimmer',
+      )}
+    >
+      <ButtonLayer />
+      <QueueRing items={items} />
+    </Link>
+  )
+}
+
 const SKELETON_WIDTHS = ['w-28', 'w-36', 'w-24', 'w-32', 'w-28']
 
 const menuItemClass =
@@ -119,6 +265,7 @@ export const SidebarContent = ({
   const queryClient = useQueryClient()
   const pendingPath = usePendingPath()
   const setUp = isSetUp(me)
+  const refresh = useRefreshMatches()
 
   const signOut = async () => {
     await authClient.signOut()
@@ -177,148 +324,142 @@ export const SidebarContent = ({
         )}
       </div>
 
-      <nav className="grid gap-0.5 px-2">
-        <NavItem
-          to="/"
-          icon={<Clapperboard />}
-          label="Highlights"
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-          viewTransition={viewTransition}
-        />
-        <NavItem
-          to="/matches"
-          icon={<Swords />}
-          label="Matches"
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-          viewTransition={viewTransition}
-        />
-      </nav>
+      {/* Header and footer hold still; everything between them scrolls as one. */}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-2">
+        <nav className="grid gap-0.5 px-2">
+          <NavItem
+            to="/"
+            icon={<Clapperboard />}
+            label="Highlights"
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+            viewTransition={viewTransition}
+          />
+          <NavItem
+            to="/matches"
+            icon={<Swords />}
+            label="Matches"
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+            viewTransition={viewTransition}
+          />
+        </nav>
 
-      <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2">
-        <p
-          className={cn(
-            'px-[11px] pb-1.5 text-[12px] font-medium whitespace-nowrap text-muted/70',
-            fade(collapsed),
-          )}
-        >
-          Recents
-        </p>
-        <FadeSwap swapKey={recent ? 'ready' : recentFailed ? 'failed' : 'loading'}>
-          {recent ? (
-            <>
-              {recent.items.length === 0 && (
-                <div
-                  className={cn(
-                    'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
-                    fade(collapsed),
-                  )}
-                >
-                  <span className="mb-3 grid size-9 place-items-center rounded-lg border bg-surface text-muted">
-                    <Swords className="size-4" />
-                  </span>
-                  <p className="text-[13px] font-medium">No matches yet</p>
-                  <p className="mt-1 text-[12px] text-balance text-muted">
-                    {setUp
-                      ? 'Matches you play show up here.'
-                      : 'Finish setup to start picking up your matches.'}
-                  </p>
-                </div>
-              )}
-              <div className="grid gap-0.5">
-                {recent.items.map((match) => {
-                  const score = perspectiveScore(match, match.player?.startingSide)
-                  return (
-                    <Link
-                      key={match.id}
-                      to="/matches/$id"
-                      params={{ id: match.id }}
-                      onClick={onNavigate}
-                      viewTransition={viewTransition}
-                      title={collapsed ? mapName(match.map) : undefined}
-                      className={cn(
-                        rowClass(collapsed),
-                        'h-10 px-2',
-                        pendingPath === `/matches/${match.id}` && 'shimmer',
-                      )}
-                    >
-                      <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
-                      <span
-                        className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}
-                      >
-                        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                          <span className="truncate text-foreground/90">{mapName(match.map)}</span>
-                          <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
-                            {shortAge(match.playedAt ?? match.discoveredAt)}
-                          </span>
-                        </span>
-                        {isProcessing(match.status) ? (
-                          <Spinner className="size-3" />
-                        ) : score ? (
-                          <span className="font-mono text-[12px] tabular-nums">
-                            <span
-                              className={
-                                score.result === 'win'
-                                  ? 'text-success'
-                                  : score.result === 'loss'
-                                    ? 'text-danger'
-                                    : undefined
-                              }
-                            >
-                              {score.own}
-                            </span>
-                            :{score.enemy}
-                          </span>
-                        ) : null}
-                      </span>
-                    </Link>
-                  )
-                })}
-              </div>
-            </>
-          ) : recentFailed ? (
-            // Without this a failed request (after its retries) would leave the skeleton up forever.
-            <div
-              className={cn(
-                'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
-                fade(collapsed),
-              )}
-            >
-              <p className="text-[13px] font-medium">Couldn't load matches</p>
+        <div className="mt-5 px-2">
+          <div className={cn('flex h-7 items-center pr-1 pl-[11px]', fade(collapsed))}>
+            <p className="flex-1 text-[12px] font-medium whitespace-nowrap text-muted/70">
+              Recents
+            </p>
+            {setUp && (
               <button
                 type="button"
-                onClick={() => void refetch()}
-                disabled={isFetching}
-                className="mt-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                onClick={() => refresh.mutate()}
+                disabled={refresh.isPending}
+                tabIndex={collapsed ? -1 : undefined}
+                aria-label="Check for new matches"
+                title="Check for new matches"
+                className={buttonClass(
+                  'ghost',
+                  'icon',
+                  'size-6 rounded-md disabled:cursor-default disabled:opacity-100',
+                )}
               >
-                {isFetching && <Spinner className="size-3" />}
-                Try again
+                <ButtonLayer />
+                <RotateCw
+                  className={cn(
+                    'size-3.5',
+                    refresh.isPending && 'animate-spin [animation-duration:600ms]',
+                  )}
+                />
               </button>
-            </div>
-          ) : (
-            <div className="grid gap-0.5" aria-hidden>
-              {SKELETON_WIDTHS.map((width, i) => (
-                <div key={i} className="flex h-10 items-center gap-2 px-2">
-                  <Skeleton className="size-6 shrink-0 rounded-md" />
-                  <Skeleton className={cn('h-3.5 rounded-md', width, fade(collapsed))} />
+            )}
+          </div>
+          <FadeSwap swapKey={recent ? 'ready' : recentFailed ? 'failed' : 'loading'}>
+            {recent ? (
+              <>
+                {recent.items.length === 0 && (
+                  <div
+                    className={cn(
+                      'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
+                      fade(collapsed),
+                    )}
+                  >
+                    <span className="mb-3 grid size-9 place-items-center rounded-lg border bg-surface text-muted">
+                      <Swords className="size-4" />
+                    </span>
+                    <p className="text-[13px] font-medium">No matches yet</p>
+                    <p className="mt-1 text-[12px] text-balance text-muted">
+                      {setUp
+                        ? 'Matches you play show up here.'
+                        : 'Finish setup to start picking up your matches.'}
+                    </p>
+                  </div>
+                )}
+                <div className="grid gap-0.5">
+                  {recent.items.map((match) => (
+                    <RecentRow
+                      key={match.id}
+                      match={match}
+                      collapsed={collapsed}
+                      pending={pendingPath === `/matches/${match.id}`}
+                      onNavigate={onNavigate}
+                      viewTransition={viewTransition}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </FadeSwap>
+              </>
+            ) : recentFailed ? (
+              // Without this a failed request (after its retries) would leave the skeleton up forever.
+              <div
+                className={cn(
+                  'grid justify-items-center rounded-xl border border-dashed px-4 py-6 text-center',
+                  fade(collapsed),
+                )}
+              >
+                <p className="text-[13px] font-medium">Couldn't load matches</p>
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  disabled={isFetching}
+                  className="mt-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                >
+                  {isFetching && <Spinner className="size-3" />}
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-0.5" aria-hidden>
+                {SKELETON_WIDTHS.map((width, i) => (
+                  <div key={i} className="flex h-10 items-center gap-2 px-2">
+                    <Skeleton className="size-6 shrink-0 rounded-md" />
+                    <Skeleton className={cn('h-3.5 rounded-md', width, fade(collapsed))} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </FadeSwap>
+        </div>
       </div>
 
-      <div className="shrink-0 border-t p-2">
+      <div
+        className={cn(
+          'flex shrink-0 gap-1 border-t p-2',
+          // The rail has no room beside the account: the queue goes above it.
+          collapsed ? 'flex-col-reverse' : 'items-center justify-between',
+        )}
+      >
         <Menu.Root>
           <Menu.Trigger
             className={cn(
               // A compact pill sized to the name; the email lives in the menu.
-              'flex h-10 max-w-full cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-1.5 text-left outline-none',
-              'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2',
+              'group/button relative isolate flex h-10 max-w-full cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-1.5 text-left outline-none',
+              // The press-in background layer every button has; lit while the menu is open.
+              '[--bg:transparent] [--bg-hover:var(--color-surface-2)] data-popup-open:[--bg:var(--color-surface-2)]',
+              'focus-visible:ring-2 focus-visible:ring-ring',
               collapsed && 'w-10',
             )}
           >
+            <ButtonLayer />
             <Avatar src={avatar} name={me.user.name} className="size-7" />
             <span className={cn('flex min-w-0 items-center gap-3 pr-1.5', fade(collapsed))}>
               <span className="truncate text-sm font-medium">{me.user.name}</span>
@@ -357,6 +498,7 @@ export const SidebarContent = ({
             </Menu.Positioner>
           </Menu.Portal>
         </Menu.Root>
+        <QueueButton onNavigate={onNavigate} viewTransition={viewTransition} />
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { DatabaseEnv, RecorderEnv, RedisEnv, S3Env, WorkerEnv, loadEnv } from '@subtick/config'
-import { createDb, eq, schema } from '@subtick/db'
+import { and, createDb, eq, notCancelled, schema } from '@subtick/db'
 import type { MatchStatus } from '@subtick/domain'
 import { createLogger } from '@subtick/logger'
 import { type MatchEvent, createMatchEventPublisher } from '@subtick/queue'
@@ -58,8 +58,12 @@ export const createContext = () => {
 
   /** Moves a match to a pipeline status and tells subscribed browsers. */
   const setStatus = async (matchId: string, status: MatchStatus, error: string | null = null) => {
-    await db.update(schema.match).set({ status, error }).where(eq(schema.match.id, matchId))
-    await publish({ matchId, status })
+    const updated = await db
+      .update(schema.match)
+      .set({ status, error })
+      .where(and(eq(schema.match.id, matchId), notCancelled))
+      .returning({ id: schema.match.id })
+    if (updated.length) await publish({ matchId, status })
   }
 
   return {

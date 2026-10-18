@@ -28,6 +28,8 @@ const queryClient = new QueryClient({
 
 let firstPageShown = false
 
+const isClip = (path?: string) => !!path && /^\/clips\/[^/]+\/?$/.test(path)
+
 const router = createRouter({
   routeTree,
   context: { queryClient },
@@ -39,7 +41,6 @@ const router = createRouter({
   // dialog, so it doesn't transition either.
   defaultViewTransition: {
     types: ({ pathChanged, fromLocation, toLocation }) => {
-      const isClip = (path?: string) => !!path && /^\/clips\/[^/]+\/?$/.test(path)
       if (isClip(fromLocation?.pathname) && isClip(toLocation.pathname)) return false
       return firstPageShown && pathChanged ? ['page'] : false
     },

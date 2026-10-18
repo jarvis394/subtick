@@ -6,6 +6,7 @@ import { KindTabs } from '@/components/kind-tabs'
 import { MomentCard } from '@/components/moment-card'
 import { Skeleton } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
+import { useCancelMoment } from '@/hooks/use-match-actions'
 import { useRecordMoment } from '@/hooks/use-record-moment'
 import { KIND_FILTERS, clipListSearch } from '@/lib/highlights'
 import { type MatchDetail, matchQuery } from '@/lib/queries'
@@ -31,6 +32,7 @@ function CreateHighlightsPage() {
   const navigate = Route.useNavigate()
   const { data } = useQuery(matchQuery(id))
   const record = useRecordMoment(id)
+  const cancel = useCancelMoment(id, { morph: true })
 
   const kind = search.kind ?? 'all'
   const kinds: readonly string[] = KIND_FILTERS.find((f) => f.id === kind)!.kinds
@@ -57,6 +59,8 @@ function CreateHighlightsPage() {
       player={playerOf(h.steamId)}
       onRecord={() => record.mutate(h.id)}
       recording={record.isPending && record.variables === h.id}
+      onCancel={() => cancel.mutate(h.id)}
+      cancelling={cancel.isPending && cancel.variables === h.id}
     />
   )
 

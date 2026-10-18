@@ -21,6 +21,9 @@ const connect = (redisUrl: string) =>
 export const createQueue = <N extends QueueName>(name: N, redisUrl: string): TypedQueue<N> =>
   new Queue(name, { connection: connect(redisUrl), defaultJobOptions: defaultJobOptions(name) })
 
+/** States of a job no worker has picked up yet, which can be removed outright. */
+export const PENDING_STATES = ['waiting', 'prioritized', 'delayed'] as const
+
 export const enqueue = <N extends QueueName>(
   queue: TypedQueue<N>,
   payload: JobPayload<N>,

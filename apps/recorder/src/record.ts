@@ -46,9 +46,13 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
     .leftJoin(clip, eq(clip.highlightId, highlight.id))
     .where(inArray(highlight.id, highlightIds))
     .orderBy(asc(highlight.startTick))
-  // A retried job skips what an earlier attempt already rendered.
-  const pending = todo.filter((t) => (t.recordedBy ?? -1) < RECORDER_VERSION)
-  const current = todo.filter((t) => !pending.includes(t)).map((t) => t.highlight.id)
+  // A retried job skips what an earlier attempt already rendered, and nothing cancelled is recorded.
+  const pending = todo.filter(
+    (t) => t.highlight.status === 'queued' && (t.recordedBy ?? -1) < RECORDER_VERSION,
+  )
+  const current = todo
+    .filter((t) => (t.recordedBy ?? -1) >= RECORDER_VERSION)
+    .map((t) => t.highlight.id)
   if (current.length)
     await db.update(highlight).set({ status: 'recorded' }).where(inArray(highlight.id, current))
 
@@ -61,7 +65,12 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
       await Bun.write(demoPath, await Bun.zstdDecompress(await demos.bytes(keys.demo(matchId))))
 
       for (const [index, { highlight: h, playerName }] of pending.entries()) {
-        await ctx.progress(matchId, index / pending.length)
+        // Cancelled while earlier clips recorded: it went back to being a candidate.
+        if (!(await stillQueued(ctx, h.id))) continue
+        await Promise.all([
+          ctx.progress(matchId, index / pending.length),
+          job.updateProgress(index / pending.length),
+        ])
         // The game keeps the previous job's demo loaded; never record this match's ticks from it.
         if (recorder.loadedMatchId !== matchId)
           await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
@@ -91,6 +100,14 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
     await rm(work, { recursive: true, force: true })
   }
   await finishMatch(ctx, matchId)
+}
+
+const stillQueued = async ({ db }: Context, highlightId: string) => {
+  const [row] = await db
+    .select({ status: highlight.status })
+    .from(highlight)
+    .where(eq(highlight.id, highlightId))
+  return row?.status === 'queued'
 }
 
 /** Encodes the capture for the web, uploads it with a poster, and records the clip row. */

@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppQueueRouteImport } from './routes/_app/queue'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSetupRouteImport } from './routes/_app/setup'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
@@ -46,6 +47,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppQueueRoute = AppQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AppAdminRouteWithChildren
+  '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
   '/admin/recorders': typeof AppAdminRecordersRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/queue': typeof AppQueueRoute
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
   '/': typeof AppIndexRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_app/admin': typeof AppAdminRouteWithChildren
+  '/_app/queue': typeof AppQueueRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/setup': typeof AppSetupRoute
   '/_app/': typeof AppIndexRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin'
+    | '/queue'
     | '/settings'
     | '/setup'
     | '/admin/recorders'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/signup'
+    | '/queue'
     | '/settings'
     | '/setup'
     | '/'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_app/admin'
+    | '/_app/queue'
     | '/_app/settings'
     | '/_app/setup'
     | '/_app/'
@@ -229,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/queue': {
+      id: '/_app/queue'
+      path: '/queue'
+      fullPath: '/queue'
+      preLoaderRoute: typeof AppQueueRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -315,6 +334,7 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
+  AppQueueRoute: typeof AppQueueRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSetupRoute: typeof AppSetupRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -326,6 +346,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
+  AppQueueRoute: AppQueueRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSetupRoute: AppSetupRoute,
   AppIndexRoute: AppIndexRoute,

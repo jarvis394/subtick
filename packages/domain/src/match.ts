@@ -12,6 +12,27 @@ export const MATCH_STATUSES = [
 ] as const
 export type MatchStatus = (typeof MATCH_STATUSES)[number]
 
+/** Statuses a match is still moving through the pipeline in. */
+export const PROCESSING_STATUSES = [
+  'queued',
+  'resolving',
+  'downloading',
+  'parsing',
+  'recording',
+] as const satisfies readonly MatchStatus[]
+
+export const isProcessingStatus = (status: MatchStatus) =>
+  (PROCESSING_STATUSES as readonly MatchStatus[]).includes(status)
+
+/**
+ * A match someone stopped is `failed` with this error, so Retry picks it up again from the stage
+ * it stopped at. Workers check for it between steps and leave the match alone.
+ */
+export const CANCELLED_ERROR = 'Cancelled'
+
+export const isCancelled = (row: { status: MatchStatus; error: string | null }) =>
+  row.status === 'failed' && row.error === CANCELLED_ERROR
+
 /** Rounds a team needs to win the match, given how many rounds were played before this one. */
 export const winsNeeded = (roundsPlayed: number) => {
   if (roundsPlayed < REGULATION_ROUNDS) return ROUNDS_PER_HALF + 1

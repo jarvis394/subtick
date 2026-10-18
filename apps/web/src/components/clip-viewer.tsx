@@ -3,13 +3,23 @@ import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type HighlightKind, mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, ChevronDown, ChevronUp, Clapperboard, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clapperboard,
+  Link2,
+  Share2,
+  X,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
 import { FadeImage } from '@/components/ui/fade-image'
+import { MorphLabel } from '@/components/ui/morph-label'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { useLocalStorage } from '@/hooks/use-local-storage'
@@ -131,7 +141,12 @@ export const ClipViewerDialog = ({
                     <CloseButton />
                   </header>
                   {shownId && (
-                    <ClipViewer id={shownId} source={source} onSelect={onSelect} onClose={onClose} />
+                    <ClipViewer
+                      id={shownId}
+                      source={source}
+                      onSelect={onSelect}
+                      onClose={onClose}
+                    />
                   )}
                 </Dialog.Popup>
               </ScrollArea.Content>
@@ -242,9 +257,7 @@ export const ClipViewer = ({
     (single.error instanceof ApiError ? single.error.status === 404 : single.isSuccess && !fetched)
 
   return (
-    <div
-      className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'gap-y-8 lg:gap-x-8')}
-    >
+    <div className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'gap-y-8 lg:gap-x-8')}>
       <div className={cn('min-w-0', modal && 'pb-4 md:pb-6')}>
         {!modal && (
           <Link
@@ -296,11 +309,7 @@ export const ClipViewer = ({
 
       {/* In the dialog the reel is laid over this box, so the player column alone sets the
         height it scrolls in. (On the clip page it's sticky instead, which a wrapper would break.) */}
-      {modal ? (
-        <div className="relative min-w-0">{reelPanel}</div>
-      ) : (
-        reelPanel
-      )}
+      {modal ? <div className="relative min-w-0">{reelPanel}</div> : reelPanel}
     </div>
   )
 }
@@ -344,9 +353,13 @@ const Player = ({
       />
 
       <div className={cn(modal && CONTENT_INSET)}>
-        <Title className="mt-5 text-xl font-semibold tracking-tight text-balance">
-          {clip.title}
-        </Title>
+        {/* Buttons stay on the first line; a long title wraps beside them. */}
+        <div className="mt-5 flex items-start gap-3">
+          <Title className="min-w-0 flex-1 text-xl leading-8 font-semibold tracking-tight text-balance">
+            {clip.title}
+          </Title>
+          <ShareActions clip={clip} />
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2.5">
             <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
@@ -375,6 +388,76 @@ const Player = ({
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** How long a copy confirms itself before going back. */
+const COPIED_MS = 1500
+
+/** Says "copied" for a moment after `copy()`; the timer restarts on every copy. */
+const useCopied = () => {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const copy = (text: string) => {
+    void navigator.clipboard.writeText(text)
+    setCopied(true)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), COPIED_MS)
+  }
+  return { copied, copy }
+}
+
+/**
+ * Share (the system share sheet where there is one, otherwise a copy) and a copy-link icon button
+ * that confirms with a check.
+ */
+const ShareActions = ({ clip }: { clip: ReelClip }) => {
+  const url = `${window.location.origin}/clips/${clip.id}`
+  const shareCopy = useCopied()
+  const linkCopy = useCopied()
+  const canShare = typeof navigator.share === 'function'
+
+  const share = async () => {
+    if (!canShare) return shareCopy.copy(url)
+    try {
+      await navigator.share({ title: clip.title, url })
+    } catch (error) {
+      // Dismissing the sheet rejects with AbortError; anything else falls back to copying.
+      if (!(error instanceof DOMException && error.name === 'AbortError')) shareCopy.copy(url)
+    }
+  }
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <Button size="sm" variant="secondary" onClick={() => void share()}>
+        <Share2 />
+        <MorphLabel>{shareCopy.copied ? 'Copied' : 'Share'}</MorphLabel>
+      </Button>
+      <button
+        type="button"
+        onClick={() => linkCopy.copy(url)}
+        aria-label={linkCopy.copied ? 'Link copied' : 'Copy link'}
+        title={linkCopy.copied ? 'Link copied' : 'Copy link'}
+        className={buttonClass('secondary', 'icon', 'size-8 rounded-lg')}
+      >
+        <ButtonLayer />
+        <span className="grid place-items-center *:col-start-1 *:row-start-1">
+          <Link2
+            className={cn(
+              'transition-[opacity,scale] duration-150 ease-out',
+              linkCopy.copied && 'scale-75 opacity-0',
+            )}
+          />
+          <Check
+            className={cn(
+              'text-success transition-[opacity,scale] duration-150 ease-out',
+              !linkCopy.copied && 'scale-75 opacity-0',
+            )}
+          />
+        </span>
+      </button>
     </div>
   )
 }
@@ -489,6 +572,9 @@ const VideoLayer = ({
   )
 }
 
+// From lg up the reel scrolls on its own beside the player; below that it scrolls with the rest.
+const ownScroll = () => window.matchMedia('(min-width: 64rem)').matches
+
 const Reel = ({
   reel,
   activeId,
@@ -507,9 +593,6 @@ const Reel = ({
 }) => {
   const list = useRef<HTMLDivElement>(null)
   const sentinel = useRef<HTMLLIElement>(null)
-
-  // From lg up the reel scrolls on its own beside the player; below that it scrolls with the rest.
-  const ownScroll = () => window.matchMedia('(min-width: 64rem)').matches
 
   // Keep the playing clip in view as autoplay or the keyboard moves through the reel. Only where
   // the reel scrolls on its own: elsewhere it would scroll the player away.
