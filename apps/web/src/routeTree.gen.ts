@@ -19,6 +19,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSetupRouteImport } from './routes/_app/setup'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminRecordersRouteImport } from './routes/_app/admin/recorders'
+import { Route as AppAdminStorageRouteImport } from './routes/_app/admin/storage'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppClipsIdRouteImport } from './routes/_app/clips.$id'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
@@ -74,6 +75,11 @@ const AppAdminRecordersRoute = AppAdminRecordersRouteImport.update({
   path: '/recorders',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminStorageRoute = AppAdminStorageRouteImport.update({
+  id: '/storage',
+  path: '/storage',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/setup': typeof AppSetupRoute
   '/admin/recorders': typeof AppAdminRecordersRoute
+  '/admin/storage': typeof AppAdminStorageRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/setup': typeof AppSetupRoute
   '/': typeof AppIndexRoute
   '/admin/recorders': typeof AppAdminRecordersRoute
+  '/admin/storage': typeof AppAdminStorageRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/_app/setup': typeof AppSetupRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/recorders': typeof AppAdminRecordersRoute
+  '/_app/admin/storage': typeof AppAdminStorageRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/clips/$id': typeof AppClipsIdRoute
   '/_app/matches/$id': typeof AppMatchesIdRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/admin/recorders'
+    | '/admin/storage'
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/'
     | '/admin/recorders'
+    | '/admin/storage'
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/_app/setup'
     | '/_app/'
     | '/_app/admin/recorders'
+    | '/_app/admin/storage'
     | '/_app/admin/users'
     | '/_app/clips/$id'
     | '/_app/matches/$id'
@@ -278,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRecordersRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/admin/storage': {
+      id: '/_app/admin/storage'
+      path: '/storage'
+      fullPath: '/admin/storage'
+      preLoaderRoute: typeof AppAdminStorageRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/admin/users': {
       id: '/_app/admin/users'
       path: '/users'
@@ -318,12 +337,14 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminRecordersRoute: typeof AppAdminRecordersRoute
+  AppAdminStorageRoute: typeof AppAdminStorageRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminRecordersRoute: AppAdminRecordersRoute,
+  AppAdminStorageRoute: AppAdminStorageRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }

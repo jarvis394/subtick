@@ -8,6 +8,8 @@ export interface ObjectStorage {
   delete(key: string): Promise<void>
   /** Short-lived GET URL for browsers and the recorder. */
   presign(key: string, expiresInSeconds?: number): string
+  /** Every object in the bucket, a page at a time. */
+  objects(): AsyncIterable<{ key: string; size: number }>
 }
 
 export interface S3StorageOptions {
@@ -52,6 +54,14 @@ export const createS3Storage = ({
     exists: (key) => client.exists(key),
     delete: (key) => client.delete(key),
     presign: (key, expiresIn = 3600) => presign(key, expiresIn),
+    async *objects() {
+      let continuationToken: string | undefined
+      do {
+        const page = await client.list({ maxKeys: 1000, continuationToken })
+        for (const { key, size } of page.contents ?? []) yield { key, size: size ?? 0 }
+        continuationToken = page.isTruncated ? page.nextContinuationToken : undefined
+      } while (continuationToken)
+    },
   }
 }
 

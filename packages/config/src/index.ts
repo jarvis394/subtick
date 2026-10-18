@@ -37,6 +37,14 @@ export const S3Env = {
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_BUCKET_DEMOS: z.string().default('demos'),
   S3_BUCKET_CLIPS: z.string().default('clips'),
+  /**
+   * SeaweedFS volume server status (http://<host>:8080/status), for the disk's size and free space
+   * on the admin Storage page. Unset: the page shows only what subtick's own data takes.
+   */
+  S3_DISK_STATUS_URL: z
+    .url()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 }
 export const SteamEnv = {
   /** https://steamcommunity.com/dev/apikey */

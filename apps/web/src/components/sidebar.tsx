@@ -208,9 +208,11 @@ const RecentRow = ({
 const QueueButton = ({
   onNavigate,
   viewTransition,
+  className,
 }: {
   onNavigate?: () => void
   viewTransition?: boolean
+  className?: string
 }) => {
   const { data } = useQuery(queueQuery)
   const items = data?.items ?? []
@@ -228,6 +230,7 @@ const QueueButton = ({
         buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-[18px]'),
         'data-[status=active]:text-foreground data-[status=active]:[--bg:var(--color-surface-2)]',
         pending && 'shimmer',
+        className,
       )}
     >
       <ButtonLayer />
@@ -441,11 +444,15 @@ export const SidebarContent = ({
         </div>
       </div>
 
+      {/*
+       * The rail has no room beside the account, so the queue goes above it. It slides there on
+       * the sidebar's own curve (and the footer grows to fit) instead of the row reflowing at once.
+       */}
       <div
         className={cn(
-          'flex shrink-0 gap-1 border-t p-2',
-          // The rail has no room beside the account: the queue goes above it.
-          collapsed ? 'flex-col-reverse' : 'items-center justify-between',
+          'relative flex shrink-0 items-center border-t p-2',
+          '[transition:padding_200ms_var(--ease-out-quart)] motion-reduce:transition-none',
+          collapsed && 'pt-[52px]',
         )}
       >
         <Menu.Root>
@@ -456,7 +463,9 @@ export const SidebarContent = ({
               // The press-in background layer every button has; lit while the menu is open.
               '[--bg:transparent] [--bg-hover:var(--color-surface-2)] data-popup-open:[--bg:var(--color-surface-2)]',
               'focus-visible:ring-2 focus-visible:ring-ring',
-              collapsed && 'w-10',
+              // Narrows with the rail rather than at once, so the name fades instead of being cut.
+              '[transition:max-width_200ms_var(--ease-out-quart)] motion-reduce:transition-none',
+              collapsed && 'max-w-10',
             )}
           >
             <ButtonLayer />
@@ -498,7 +507,17 @@ export const SidebarContent = ({
             </Menu.Positioner>
           </Menu.Portal>
         </Menu.Root>
-        <QueueButton onNavigate={onNavigate} viewTransition={viewTransition} />
+        <QueueButton
+          onNavigate={onNavigate}
+          viewTransition={viewTransition}
+          className={cn(
+            'absolute right-2 bottom-2',
+            'transition-[color,translate] duration-200 ease-out-quart motion-reduce:transition-none',
+            // Collapsing only happens in the desktop sidebar, whose content is always w-64: from
+            // the right edge to the rail's 8px inset is 256 − 56, and up one button plus the gap.
+            collapsed && '-translate-x-[200px] -translate-y-11',
+          )}
+        />
       </div>
     </div>
   )

@@ -79,3 +79,16 @@ export const clipTime = (h: ClipWindow, tick: number) =>
   clock(Math.round(clipOffsetTicks(clipSegments(h), tick) / TICKRATE))
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : String(n))
+
+const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB']
+
+/** "812 KB", "4.2 GB": decimal units, as disks are sold. */
+export const formatBytes = (bytes: number) => {
+  let value = bytes
+  let unit = 0
+  while (value >= 1000 && unit < BYTE_UNITS.length - 1) {
+    value /= 1000
+    unit += 1
+  }
+  return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${BYTE_UNITS[unit]}`
+}

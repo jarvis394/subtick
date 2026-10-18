@@ -24,6 +24,7 @@ export const createContext = async (env: Env) => {
     steamApi,
     log: createLogger('api'),
     secrets: await createSecretBox(env.SECRETS_KEY),
+    demos: createS3Storage({ ...s3, bucket: env.S3_BUCKET_DEMOS }),
     clips: createS3Storage({
       ...s3,
       bucket: env.S3_BUCKET_CLIPS,

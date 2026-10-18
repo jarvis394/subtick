@@ -1,6 +1,7 @@
 name: subtick
 
-# Host ports are overridable (POSTGRES_PORT, REDIS_PORT, S3_PORT) when the defaults are taken.
+# Host ports are overridable (POSTGRES_PORT, REDIS_PORT, S3_PORT, S3_STATUS_PORT) when the defaults
+# are taken.
 
 services:
   postgres:
@@ -25,7 +26,8 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:latest
     command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
-    ports: ['${S3_PORT:-8333}:8333']
+    # 8080 is the volume server; its /status reports the disk for the admin Storage page.
+    ports: ['${S3_PORT:-8333}:8333', '127.0.0.1:${S3_STATUS_PORT:-58080}:8080']
     volumes:
       - seaweedfs:/data
       - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro

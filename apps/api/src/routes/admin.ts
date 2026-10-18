@@ -4,6 +4,7 @@ import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { newRecorderToken, recorderView } from '../services/recorders'
+import { createStorageReport } from '../services/storage'
 import { authGuard } from './guard'
 
 const { user, recorder } = schema
@@ -13,7 +14,7 @@ const UserId = z.object({ id: z.string() })
 const Id = z.object({ id: z.uuid() })
 const Name = z.string().trim().min(1).max(64)
 
-/** Instance administration: users' roles and recorder machines. Every route needs the admin role. */
+/** Instance administration: users' roles, recorder machines and storage. Every route needs the admin role. */
 export const adminRoutes = (ctx: Context) => {
   const { db, auth } = ctx
 
@@ -21,6 +22,7 @@ export const adminRoutes = (ctx: Context) => {
     const rows = await db.select().from(recorder).orderBy(asc(recorder.createdAt))
     return rows.map(recorderView)
   }
+  const storageReport = createStorageReport(ctx)
 
   return (
     new Elysia({ prefix: '/admin' })
@@ -58,6 +60,9 @@ export const adminRoutes = (ctx: Context) => {
         },
         { admin: true, params: UserId, body: z.object({ role: z.enum(USER_ROLES) }) },
       )
+
+      // Storage
+      .get('/storage', () => storageReport(), { admin: true })
 
       // Recorders
       .get('/recorders', listRecorders, { admin: true })

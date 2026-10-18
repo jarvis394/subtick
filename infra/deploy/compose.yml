@@ -14,6 +14,7 @@ x-server: &server
     DATABASE_URL: postgres://subtick:${POSTGRES_PASSWORD}@postgres:5432/subtick
     REDIS_URL: redis://redis:6379
     S3_ENDPOINT: http://seaweedfs:8333
+    S3_DISK_STATUS_URL: http://seaweedfs:8080/status
   restart: unless-stopped
 
 services:

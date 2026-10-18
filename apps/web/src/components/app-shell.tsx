@@ -1,6 +1,6 @@
 import { Drawer } from '@base-ui/react/drawer'
 import { Menu as MenuIcon } from 'lucide-react'
-import { useRouterState } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
 import { ButtonLayer, buttonClass } from '@/components/ui/button'
@@ -136,7 +136,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                   </Drawer.Viewport>
                 </Drawer.Portal>
               </Drawer.Root>
-              <Wordmark />
+              <Link
+                to="/"
+                className="rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Wordmark />
+              </Link>
             </header>
             <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
           </div>
