@@ -27,8 +27,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="flex min-h-dvh select-none">
+      {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
       <aside
         className={cn(
+          '[view-transition-class:chrome] [view-transition-name:sidebar]',
           'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r bg-surface/50 transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 md:block motion-reduce:transition-none',
           collapsed ? RAIL_WIDTH : 'w-64',
         )}
@@ -37,7 +39,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </aside>
 
       <div className="@container min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-background/85 px-2 backdrop-blur-md md:hidden">
           <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
             <Dialog.Trigger
               aria-label="Open menu"
@@ -70,9 +72,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </Dialog.Root>
           <Wordmark />
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 [view-transition-name:page] md:px-8 md:py-10">
-          {children}
-        </main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
       </div>
     </div>
   )
