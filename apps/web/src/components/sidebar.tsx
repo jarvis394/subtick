@@ -237,7 +237,6 @@ const QueueButton = ({
   return (
     <Tooltip
       side="top"
-      align="end"
       content={
         summary.running.length || summary.waiting ? (
           <div className="grid gap-1.5">
