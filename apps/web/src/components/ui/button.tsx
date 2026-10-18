@@ -19,6 +19,9 @@ const variants = {
   /** The page's own foreground as the fill: white on dark, black on light. */
   contrast:
     'text-background [--bg:var(--color-foreground)] [--bg-hover:color-mix(in_oklab,var(--color-foreground)_88%,var(--color-background))]',
+  /** Needs attention without alarm (retry a failed recording): brand orange, softly filled. */
+  'brand-soft':
+    'text-brand [--bg:color-mix(in_oklab,var(--color-brand)_14%,transparent)] [--bg-hover:color-mix(in_oklab,var(--color-brand)_22%,transparent)]',
   /** Destructive but low-key (sign out, unlink): red text, no fill until hover. */
   'danger-ghost': 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
 }

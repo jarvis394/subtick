@@ -22,6 +22,7 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppClipsIdRouteImport } from './routes/_app/clips.$id'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
 import { Route as AppMatchesIdRouteImport } from './routes/_app/matches.$id'
+import { Route as AppMatchesIdCreateRouteImport } from './routes/_app/matches_.$id.create'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -87,6 +88,11 @@ const AppMatchesIdRoute = AppMatchesIdRouteImport.update({
   path: '/matches/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMatchesIdCreateRoute = AppMatchesIdCreateRouteImport.update({
+  id: '/matches_/$id/create',
+  path: '/matches/$id/create',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin/': typeof AppAdminIndexRoute
   '/matches/': typeof AppMatchesIndexRoute
+  '/matches/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/matches/$id': typeof AppMatchesIdRoute
   '/admin': typeof AppAdminIndexRoute
   '/matches': typeof AppMatchesIndexRoute
+  '/matches/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_app/matches/$id': typeof AppMatchesIdRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/matches/': typeof AppMatchesIndexRoute
+  '/_app/matches_/$id/create': typeof AppMatchesIdCreateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/matches/$id'
     | '/admin/'
     | '/matches/'
+    | '/matches/$id/create'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/matches/$id'
     | '/admin'
     | '/matches'
+    | '/matches/$id/create'
   id:
     | '__root__'
     | '/_app'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_app/matches/$id'
     | '/_app/admin/'
     | '/_app/matches/'
+    | '/_app/matches_/$id/create'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMatchesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/matches_/$id/create': {
+      id: '/_app/matches_/$id/create'
+      path: '/matches/$id/create'
+      fullPath: '/matches/$id/create'
+      preLoaderRoute: typeof AppMatchesIdCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -302,6 +321,7 @@ interface AppRouteChildren {
   AppClipsIdRoute: typeof AppClipsIdRoute
   AppMatchesIdRoute: typeof AppMatchesIdRoute
   AppMatchesIndexRoute: typeof AppMatchesIndexRoute
+  AppMatchesIdCreateRoute: typeof AppMatchesIdCreateRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -312,6 +332,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClipsIdRoute: AppClipsIdRoute,
   AppMatchesIdRoute: AppMatchesIdRoute,
   AppMatchesIndexRoute: AppMatchesIndexRoute,
+  AppMatchesIdCreateRoute: AppMatchesIdCreateRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

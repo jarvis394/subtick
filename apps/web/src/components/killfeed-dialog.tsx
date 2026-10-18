@@ -2,7 +2,9 @@ import { Dialog } from '@base-ui/react/dialog'
 import { type ClipSegment, type Side, weaponName } from '@subtick/domain'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { HighlightPlayer } from '@/components/highlight-card'
 import { mapPreviewUrl } from '@/components/map-icon'
+import { Avatar } from '@/components/ui/avatar'
 import { clipTime } from '@/lib/format'
 import {
   BLIND_ICON,
@@ -111,6 +113,7 @@ const involves = (entry: FeedEntry, steamId: string): Own => {
 export const KillfeedDialog = ({
   match,
   moment,
+  player,
   subtitle,
   trigger,
 }: {
@@ -123,6 +126,8 @@ export const KillfeedDialog = ({
     endTick: number
     segments: ClipSegment[]
   }
+  /** Whose moment it is. */
+  player: HighlightPlayer
   subtitle: string
   trigger: ReactNode
 }) => {
@@ -136,13 +141,16 @@ export const KillfeedDialog = ({
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border bg-surface shadow-xl outline-none transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
           <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4">
-            <div className="min-w-0">
-              <Dialog.Title className="truncate font-serif text-xl tracking-tight">
-                {moment.title}
-              </Dialog.Title>
-              <Dialog.Description className="mt-1 truncate text-sm text-muted">
-                {subtitle}
-              </Dialog.Description>
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar src={player.avatarUrl} name={player.name} className="size-10" />
+              <div className="min-w-0">
+                <Dialog.Title className="truncate text-base font-semibold">
+                  {moment.title}
+                </Dialog.Title>
+                <Dialog.Description className="mt-0.5 truncate text-[13px] text-muted">
+                  <span className="text-foreground/80">{player.name}</span> · {subtitle}
+                </Dialog.Description>
+              </div>
             </div>
             <Dialog.Close
               aria-label="Close"
@@ -151,12 +159,13 @@ export const KillfeedDialog = ({
               <X className="size-4" />
             </Dialog.Close>
           </div>
-          <div className="relative isolate bg-[#0d0d0d]">
+          <div className="relative isolate overflow-hidden bg-[#0d0d0d]">
             {preview && (
               <img
                 src={preview}
                 alt=""
-                className="absolute inset-0 -z-10 size-full object-cover opacity-35 blur-[2px]"
+                // Scaled past the edges: a blur fades an image's own edges to transparent.
+                className="absolute inset-0 -z-10 size-full scale-110 object-cover opacity-35 blur-[2px]"
               />
             )}
             <ol className="grid max-h-[60vh] gap-1.5 overflow-y-auto p-4">

@@ -254,3 +254,25 @@
     animation: none !important;
   }
 }
+
+/*
+ * Recording a moment on Create highlights: its card moves into the Queue. Each card is captured on
+ * its own (match-element names them) and slides to its new place; the page around them holds
+ * still instead of playing the page-change fade.
+ */
+:root:active-view-transition-type(queue) .moment-card {
+  view-transition-name: match-element;
+  view-transition-class: moment;
+}
+:root:active-view-transition-type(queue)::view-transition-old(page) {
+  animation: none;
+  opacity: 0;
+}
+:root:active-view-transition-type(queue)::view-transition-new(page) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-group(.moment) {
+  animation-duration: 350ms;
+  animation-timing-function: var(--ease-out-quart);
+}
