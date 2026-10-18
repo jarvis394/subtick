@@ -329,8 +329,7 @@ const QueueClipCard = ({
       className={cn(
         'flex min-w-0 items-start gap-3 rounded-xl border py-2.5 pr-2 pl-2.5',
         'transition-[background-color,border-color,opacity] duration-200 ease-out',
-        // The one being recorded right now stands out; finished ones step back.
-        state === 'recording' && 'border-foreground/25',
+        // Finished clips step back.
         state === 'recorded' && 'opacity-70',
       )}
     >
