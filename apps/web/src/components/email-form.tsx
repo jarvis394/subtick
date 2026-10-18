@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { MailCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
-import { Field, Input } from '@/components/ui/field'
+import { Field, Input, PasswordInput } from '@/components/ui/field'
 import { authClient } from '@/lib/auth'
 
 const ERRORS: Record<string, string> = {
@@ -84,7 +84,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
           label="Password"
           description="At least 8 characters. You'll sign in with it and your email."
         >
-          <Input
+          <PasswordInput
             name="password"
             type="password"
             required

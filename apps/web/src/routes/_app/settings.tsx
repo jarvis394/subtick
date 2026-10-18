@@ -89,7 +89,7 @@ function SettingsPage() {
                   {editingEmail ? 'Cancel' : steamOnly ? 'Add email' : 'Change'}
                 </Collapsible.Trigger>
               </Row>
-              <Collapsible.Panel className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
+              <Collapsible.Panel className="-mx-1 h-(--collapsible-panel-height) overflow-hidden px-1 transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
                 <div className="pb-4">
                   <EmailForm adding={steamOnly} />
                 </div>
@@ -277,7 +277,7 @@ function SteamLinkGroup({
             {editing ? 'Cancel' : link.hasMatchAuth ? 'Update code' : 'Connect'}
           </Collapsible.Trigger>
         </Row>
-        <Collapsible.Panel className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
+        <Collapsible.Panel className="-mx-1 h-(--collapsible-panel-height) overflow-hidden px-1 transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
           <div className="pb-4">
             <MatchAuthForm steamId={link.steamId} onDone={() => setEditing(false)} />
           </div>

@@ -1,6 +1,8 @@
 import { Field as BaseField } from '@base-ui/react/field'
 import { Input as BaseInput } from '@base-ui/react/input'
-import type { ComponentProps, ReactNode } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { type ComponentProps, type ReactNode, useState } from 'react'
+import { ButtonLayer, buttonClass } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export const inputClass = cn(
@@ -14,6 +16,34 @@ export const inputClass = cn(
 export const Input = ({ className, ...props }: ComponentProps<typeof BaseInput>) => (
   <BaseInput className={cn(inputClass, typeof className === 'string' && className)} {...props} />
 )
+
+/** A password field with an eye button that shows or hides what was typed. */
+export const PasswordInput = ({ className, ...props }: ComponentProps<typeof Input>) => {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="relative">
+      <Input
+        {...props}
+        type={visible ? 'text' : 'password'}
+        className={cn('pr-11', typeof className === 'string' && className)}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible(!visible)}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-pressed={visible}
+        className={buttonClass(
+          'ghost',
+          'icon',
+          'absolute top-1/2 right-1 size-9 -translate-y-1/2 rounded-lg [&_svg]:size-[18px]',
+        )}
+      >
+        <ButtonLayer />
+        {visible ? <EyeOff /> : <Eye />}
+      </button>
+    </div>
+  )
+}
 
 export const Field = ({
   label,

@@ -1,10 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { Eye, EyeOff } from 'lucide-react'
-import { type CSSProperties, type ComponentProps, type FormEvent, useState } from 'react'
+import { type CSSProperties, type FormEvent, useState } from 'react'
 import { SteamIcon } from '@/components/steam-icon'
 import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
-import { Field, Input } from '@/components/ui/field'
+import { Field, Input, PasswordInput } from '@/components/ui/field'
 import { Wordmark } from '@/components/wordmark'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { meQuery } from '@/lib/queries'
@@ -183,6 +182,7 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
                 invalid={Boolean(errors.password)}
               >
                 <PasswordInput
+                  className="h-11"
                   name="password"
                   placeholder={mode === 'sign-in' ? 'Enter your password' : 'At least 8 characters'}
                   required
@@ -261,30 +261,6 @@ const ErrorText = ({
       )}
     >
       <p className="min-h-0 overflow-hidden text-[13px] text-danger">{open ? message : shown}</p>
-    </div>
-  )
-}
-
-/** A password field with an eye button that shows or hides what was typed. */
-const PasswordInput = (props: ComponentProps<typeof Input>) => {
-  const [visible, setVisible] = useState(false)
-  return (
-    <div className="relative">
-      <Input {...props} type={visible ? 'text' : 'password'} className="h-11 pr-11" />
-      <button
-        type="button"
-        onClick={() => setVisible(!visible)}
-        aria-label={visible ? 'Hide password' : 'Show password'}
-        aria-pressed={visible}
-        className={buttonClass(
-          'ghost',
-          'icon',
-          'absolute top-1 right-1 size-9 rounded-lg [&_svg]:size-[18px]',
-        )}
-      >
-        <ButtonLayer />
-        {visible ? <EyeOff /> : <Eye />}
-      </button>
     </div>
   )
 }
