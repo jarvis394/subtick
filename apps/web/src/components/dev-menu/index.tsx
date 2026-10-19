@@ -1,16 +1,32 @@
 import { Popover } from '@base-ui/react/popover'
 import { Tabs } from '@base-ui/react/tabs'
 import { FlaskConical } from 'lucide-react'
-import { useState } from 'react'
+import { useMatch } from '@tanstack/react-router'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/ui/button'
-import { DevMatchesTab } from './matches-tab'
 
-/** Sections of the menu; each is a tab. `close` dismisses the menu, e.g. before navigating. */
+// Each tab loads when first opened.
+const DevMatchesTab = lazy(() => import('./matches-tab').then((m) => ({ default: m.DevMatchesTab })))
+const DevHighlightsTab = lazy(() =>
+  import('./highlights-tab').then((m) => ({ default: m.DevHighlightsTab })),
+)
+
+/**
+ * Sections of the menu; each is a tab. `close` dismisses the menu, e.g. before navigating;
+ * `matchId` is the match open now, or the last one that was.
+ */
 const TABS = [
   {
     value: 'matches',
     label: 'Matches',
     panel: (close: () => void) => <DevMatchesTab onNavigate={close} />,
+  },
+  {
+    value: 'highlights',
+    label: 'Highlights',
+    panel: (close: () => void, matchId: string | null) => (
+      <DevHighlightsTab matchId={matchId} onNavigate={close} />
+    ),
   },
 ] as const
 
@@ -26,15 +42,21 @@ const tabClass =
 export default function DevMenu() {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
+  const lastMatch = useRef<string | null>(null)
+  const onMatchPage = useMatch({ from: '/_app/matches/$id', shouldThrow: false })
+  const matchId = onMatchPage?.params.id ?? lastMatch.current
+
+  useEffect(() => {
+    if (onMatchPage) lastMatch.current = onMatchPage.params.id
+  }, [onMatchPage])
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
       <div className="theme-dark fixed right-4 bottom-4 z-50 [view-transition-class:chrome] [view-transition-name:dev-menu]">
         <Popover.Trigger
           render={
             <IconButton
-              label="Dev tools"
+              label="Developer tools"
               tooltip={false}
               className="size-10 rounded-full border border-border-strong shadow-lg shadow-black/30 [--bg:black]"
             />
@@ -44,12 +66,18 @@ export default function DevMenu() {
         </Popover.Trigger>
       </div>
       <Popover.Portal>
-        <Popover.Positioner side="top" align="end" sideOffset={8} className="z-50">
+        <Popover.Positioner
+          side="top"
+          align="end"
+          sideOffset={8}
+          positionMethod="fixed"
+          className="z-50"
+        >
           <Popover.Popup className="theme-dark w-80 origin-(--transform-origin) rounded-2xl border border-border-strong bg-black text-foreground shadow-2xl shadow-black/40 outline-none transition-[scale,opacity] duration-200 ease-out-quart data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-starting-style:scale-[0.96] data-starting-style:opacity-0">
             <Tabs.Root defaultValue={TABS[0].value}>
               <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
                 <Popover.Title className="text-[12px] font-medium text-muted">
-                  Dev tools
+                  Developer tools
                 </Popover.Title>
                 <Tabs.List className="relative flex gap-0.5" aria-label="Sections">
                   {TABS.map((tab) => (
@@ -62,7 +90,7 @@ export default function DevMenu() {
               </div>
               {TABS.map((tab) => (
                 <Tabs.Panel key={tab.value} value={tab.value} className="outline-none">
-                  {tab.panel(close)}
+                  <Suspense fallback={null}>{tab.panel(close, matchId)}</Suspense>
                 </Tabs.Panel>
               ))}
             </Tabs.Root>

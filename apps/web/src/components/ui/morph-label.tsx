@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { AnimatePresence, animate, motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { type Ref, useLayoutEffect, useRef, useState } from 'react'
 import { EASE_OUT_STRONG } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -19,30 +19,46 @@ export const MorphLabel = ({
   /** `start` for left-aligned labels (menu items); buttons center theirs. */
   align?: 'center' | 'start'
 }) => {
+  const box = useRef<HTMLSpanElement>(null)
   const incoming = useRef<HTMLSpanElement>(null)
-  const [width, setWidth] = useState<number>()
+  const measured = useRef(false)
   const reduce = useReducedMotion()
+  // Each change is a new element, never an exiting one brought back: flipping A -> B -> A faster
+  // than the exit leaves AnimatePresence holding the old A mid-exit, and the label sticks.
+  const [shown, setShown] = useState({ text: children, id: 0 })
+  if (shown.text !== children) setShown({ text: children, id: shown.id + 1 })
 
+  // The first width is set outright, so the first change has a width to ease from; after that
+  // each change eases (and takes over from a still-running one).
   useLayoutEffect(() => {
-    if (incoming.current) setWidth(incoming.current.offsetWidth)
-  }, [children])
+    if (!box.current || !incoming.current) return
+    const next = incoming.current.offsetWidth
+    if (!measured.current) {
+      measured.current = true
+      box.current.style.width = `${next}px`
+    } else {
+      animate(
+        box.current,
+        { width: next },
+        reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG },
+      )
+    }
+  }, [children, reduce])
 
   return (
-    <motion.span
+    <span
+      ref={box}
       className={cn(
         'relative inline-flex whitespace-nowrap',
         align === 'center' ? 'justify-center' : 'justify-start',
       )}
-      initial={false}
-      animate={width === undefined ? undefined : { width }}
-      transition={reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG }}
     >
       <AnimatePresence initial={false}>
-        <Text key={children} ref={incoming} align={align} reduce={!!reduce}>
-          {children}
+        <Text key={shown.id} ref={incoming} align={align} reduce={!!reduce}>
+          {shown.text}
         </Text>
       </AnimatePresence>
-    </motion.span>
+    </span>
   )
 }
 

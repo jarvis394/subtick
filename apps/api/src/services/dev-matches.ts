@@ -1,13 +1,7 @@
 import { type Db, and, desc, eq, schema } from '@subtick/db'
 import type { PlayerStats } from '@subtick/domain'
-import type { Env } from '../env'
 
-/**
- * Dev tools: fake matches that a refresh "finds", for working on the new-match UI without a steam
- * worker. On only when the app is served from this machine, so production can never expose them.
- */
-export const devToolsEnabled = (env: Env) =>
-  ['localhost', '127.0.0.1', '[::1]'].includes(new URL(env.PUBLIC_URL).hostname)
+/** Dev tools: fake matches that a refresh "finds", for working on the new-match UI without a steam worker. */
 
 const MAPS = [
   'de_ancient',

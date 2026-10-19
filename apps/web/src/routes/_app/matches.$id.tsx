@@ -332,7 +332,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
           </p>
         ) : (
           // No gap: the Queue's box stays (at no height) while empty, so it spaces itself.
-          <div className="grid">
+          <div className="grid grid-cols-[minmax(0,1fr)]">
             {clips.length > 0 && (
               <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                 {clips.map((h) => (

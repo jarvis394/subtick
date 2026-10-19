@@ -2,6 +2,7 @@ import { and, eq, inArray, schema } from '@subtick/db'
 import type { ClipProgress } from '@subtick/queue'
 import type { Context } from '../context'
 import { type Actor, jobMatchId } from './matches'
+import { devToolsEnabled } from './dev-flag'
 import { getProfiles } from './profiles'
 
 /** Pipeline stages in order; a match's row shows the furthest one it has work in. */
@@ -44,7 +45,7 @@ const readProgress = (job: { progress: unknown }) => {
   }
 }
 
-const readJobs = async ({ queues }: Pick<Context, 'queues'>): Promise<QueuedJob[]> => {
+const readJobs = async ({ queues, env }: Pick<Context, 'queues' | 'env'>): Promise<QueuedJob[]> => {
   const byStage = [
     ['resolving', queues.resolveMatch],
     ['downloading', queues.download],
@@ -81,7 +82,24 @@ const readJobs = async ({ queues }: Pick<Context, 'queues'>): Promise<QueuedJob[
       ),
     ),
   )
-  return lists.flat()
+  // Dev tools' simulated recordings (always empty outside a dev build).
+  const simulatedJobs = devToolsEnabled(env)
+    ? (await import('./dev-highlights')).simulatedJobs
+    : new Map<string, never>()
+  const simulated = [...simulatedJobs.entries()].map(
+    ([id, run]): QueuedJob => ({
+      stage: 'recording',
+      state: 'active',
+      matchId: run.matchId,
+      progress: run.progress || null,
+      clip: run.clip,
+      highlightIds: [id],
+      priority: 0,
+      queuedAt: run.queuedAt,
+      startedAt: run.queuedAt,
+    }),
+  )
+  return [...lists.flat(), ...simulated]
 }
 
 /** A match's row: its furthest job, plus every clip its record jobs carry. */
@@ -103,7 +121,7 @@ export type ClipState = 'recorded' | 'recording' | 'waiting' | 'failed'
  * is recording lists its clips, so the page can show them being recorded one by one.
  */
 export const listQueue = async (
-  ctx: Pick<Context, 'db' | 'queues' | 'steamApi' | 'log'>,
+  ctx: Pick<Context, 'db' | 'queues' | 'steamApi' | 'log' | 'env'>,
   actor: Actor,
 ) => {
   const { db } = ctx

@@ -5,10 +5,12 @@ import { FailureNote } from '@/components/failure-note'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
+import { phaseLabel } from '@/components/queue-ring'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/surface'
 import { useCancelMoment } from '@/hooks/use-match-actions'
+import { useClipProgress } from '@/hooks/use-match-events'
 import { useRecordMoment } from '@/hooks/use-record-moment'
 import { clipLength } from '@/lib/format'
 import { tagSummary } from '@/lib/highlights'
@@ -108,6 +110,9 @@ export const MomentRow = ({
     .filter(Boolean)
     .join(' · ')
   const failed = moment.status === 'failed'
+  // What the recorder says about this clip, while it is the one it is on.
+  const current = useClipProgress(match.match.id)
+  const phase = current?.id === moment.id ? current : undefined
 
   return (
     <div className="flex min-h-14 items-center gap-3 pr-4">
@@ -141,7 +146,7 @@ export const MomentRow = ({
       ) : (
         <span className="flex items-center gap-1">
           <span className="flex items-center gap-1.5 text-[13px] text-muted">
-            <Spinner className="size-3" /> Recording
+            <Spinner className="size-3" /> {phase ? phaseLabel(phase) : 'Recording'}
           </span>
           {moment.canCancel && (
             <IconButton

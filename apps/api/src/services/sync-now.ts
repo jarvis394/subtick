@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, schema, sql } from '@subtick/db'
 import { enqueue, queues as registry } from '@subtick/queue'
 import type { Context } from '../context'
-import { devToolsEnabled, materializeFakeMatches, stagedFakeMatches } from './dev-matches'
+import { devToolsEnabled } from './dev-flag'
 
 const POLL_MS = 300
 /** Past this the answer is "still looking": the worker keeps going and the next poll finds it. */
@@ -17,9 +17,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 export const syncNow = async ({ db, queues, env }: Context, userId: string, steamIds: string[]) => {
   if (!steamIds.length) return { newMatches: 0, done: true }
   // Dev: staged fake matches stand in for what Steam would have found.
-  if (devToolsEnabled(env) && stagedFakeMatches(userId)) {
-    await sleep(800)
-    return { newMatches: await materializeFakeMatches(db, userId, steamIds[0]!), done: true }
+  if (devToolsEnabled(env)) {
+    const { materializeFakeMatches, stagedFakeMatches } = await import('./dev-matches')
+    if (stagedFakeMatches(userId)) {
+      await sleep(800)
+      return { newMatches: await materializeFakeMatches(db, userId, steamIds[0]!), done: true }
+    }
   }
   const startedAt = new Date()
   await Promise.all(steamIds.map((steamId) => enqueue(queues.syncUser, { steamId })))

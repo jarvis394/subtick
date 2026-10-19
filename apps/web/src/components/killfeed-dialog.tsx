@@ -6,6 +6,7 @@ import type { HighlightPlayer } from '@/components/highlight-card'
 import { mapPreviewUrl } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { IconButton } from '@/components/ui/button'
+import { Presence } from '@/components/ui/presence'
 import { clipTime } from '@/lib/format'
 import {
   BLIND_ICON,
@@ -211,7 +212,10 @@ export const KillfeedDialog = ({
               )}
             </ol>
           </div>
-          {notice}
+          {/* Retrying a failed clip takes its note away: the box collapses instead of snapping. */}
+          <Presence show={Boolean(notice)} className="relative overflow-hidden">
+            {notice}
+          </Presence>
           {footer && (
             <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
               {footer}
