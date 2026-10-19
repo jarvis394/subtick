@@ -174,7 +174,9 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
             <div className="flex items-center gap-4">
               <MapIcon map={head.map} className="size-14 text-2xl" />
               <div>
-                <h1 className="font-serif text-4xl tracking-tight">{matchName(head.map, head.status)}</h1>
+                <h1 className="font-serif text-4xl tracking-tight">
+                  {matchName(head.map, head.status)}
+                </h1>
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
                   <span>{formatDate(head.playedAt)}</span>
                   {head.roundsPlayed !== null && (
@@ -286,8 +288,10 @@ function MatchBody({ data }: { data: MatchDetail }) {
 
   return (
     <div className="grid gap-10">
-      <section>
-        <div className="mb-4 flex items-center justify-between gap-4">
+      {/* A grid item grows to its widest row unless told not to; that widened the whole page. */}
+      <section className="min-w-0">
+        {/* Title, Create and the tabs don't fit a phone side by side: the actions wrap under. */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <h2 className="font-serif text-xl tracking-tight">Highlights</h2>
           <div className="flex items-center gap-3">
             {canCreate && (

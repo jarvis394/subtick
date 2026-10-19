@@ -47,6 +47,8 @@ export const highlight = pgTable(
     status: highlightStatus().notNull().default('candidate'),
     /** Who asked for it to be recorded; null when subtick queued it on its own (or never was). */
     requestedBy: text().references(() => user.id, { onDelete: 'set null' }),
+    /** Why its last recording failed, as the recorder reported it; cleared when it's queued again. */
+    error: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.matchId, t.steamId), index().on(t.steamId, t.score)],

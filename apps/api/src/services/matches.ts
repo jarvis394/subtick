@@ -66,7 +66,7 @@ export const retryMatch = async (
   else {
     const failed = await db
       .update(highlight)
-      .set({ status: 'queued' })
+      .set({ status: 'queued', error: null })
       .where(and(eq(highlight.matchId, matchId), eq(highlight.status, 'failed')))
       .returning({ id: highlight.id })
     if (failed.length)

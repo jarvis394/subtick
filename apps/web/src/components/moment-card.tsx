@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Circle, RotateCw, X } from 'lucide-react'
 import { useRef } from 'react'
+import { FailureNote } from '@/components/failure-note'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
@@ -47,6 +48,7 @@ export const MomentCard = ({
         moment={moment}
         player={player}
         subtitle={momentDetails(moment)}
+        notice={moment.status === 'failed' && <FailureNote error={moment.error} />}
         onClosed={() => {
           afterClose.current?.()
           afterClose.current = null

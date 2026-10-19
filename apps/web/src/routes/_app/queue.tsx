@@ -1,10 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { Check, CircleAlert, Clock, ListVideo, Sparkles, X } from 'lucide-react'
+import { createContext, use, useState } from 'react'
+import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { MomentBadge } from '@/components/moment-badge'
+import { type MomentTarget, QueueMomentDialog } from '@/components/queue-moment-dialog'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { AutoHeight, FadeItem, FadeList, Presence } from '@/components/ui/presence'
@@ -19,7 +22,7 @@ import { Badge, Skeleton } from '@/components/ui/surface'
 import { useCancelMatch, useCancelMoment } from '@/hooks/use-match-actions'
 import { type ClipProgress, percent } from '@/hooks/use-match-events'
 import { clipLength, shortAge } from '@/lib/format'
-import { type QueueItem, queueQuery } from '@/lib/queries'
+import { type QueueItem, matchQuery, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/queue')({
@@ -27,14 +30,55 @@ export const Route = createFileRoute('/_app/queue')({
   component: QueuePage,
 })
 
+/** Opens a clip card: its recording once it has one, its moment otherwise. */
+const OpenClip = createContext<(matchId: string, clip: QueueClip) => void>(() => {})
+
 function QueuePage() {
   const { data, isError, refetch } = useQuery(queueQuery)
+  // The match stays after closing, so the viewer's reel keeps its source while it animates out.
+  const [viewing, setViewing] = useState<{ matchId: string; clipId?: string }>({ matchId: '' })
+  const [inspecting, setInspecting] = useState<MomentTarget | null>(null)
+  const openClip = (matchId: string, clip: QueueClip) =>
+    clip.state === 'recorded'
+      ? setViewing({ matchId, clipId: clip.id })
+      : setInspecting({ matchId, momentId: clip.id })
+  return (
+    <OpenClip value={openClip}>
+      <QueueBody
+        data={data}
+        isError={isError}
+        refetch={refetch}
+        recordingAhead={(item) => aheadInLine(data?.items ?? [], item)}
+      />
+      <ClipViewerDialog
+        clipId={viewing.clipId}
+        source={{ match: viewing.matchId }}
+        onSelect={(clipId) => setViewing((v) => ({ ...v, clipId }))}
+        onClose={() => setViewing((v) => ({ matchId: v.matchId }))}
+      />
+      <QueueMomentDialog target={inspecting} onClose={() => setInspecting(null)} />
+    </OpenClip>
+  )
+}
+
+/** Matches the recorders take before this one: recording work earlier in line. */
+const aheadInLine = (items: QueueItem[], item: QueueItem) =>
+  items.slice(0, items.indexOf(item)).filter((other) => other.stage === 'recording').length
+
+const QueueBody = ({
+  data,
+  isError,
+  refetch,
+  recordingAhead,
+}: {
+  data: { items: QueueItem[] } | undefined
+  isError: boolean
+  refetch: () => unknown
+  recordingAhead: (item: QueueItem) => number
+}) => {
   const items = data?.items ?? []
   const running = items.filter((item) => item.state === 'active')
   const waiting = items.filter((item) => item.state !== 'active')
-  // Matches the recorders take before this one: recording work earlier in line.
-  const recordingAhead = (item: QueueItem) =>
-    items.slice(0, items.indexOf(item)).filter((other) => other.stage === 'recording').length
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -113,6 +157,8 @@ const Group = ({
                   className={cn(
                     'rounded-2xl border transition-[border-radius] duration-300 ease-out-quart',
                     item.moments.length > 0 && 'rounded-b-3xl sm:rounded-b-[28px]',
+                    // Phones give the card the screen's width, edge to edge (past main's px-4).
+                    'max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0',
                   )}
                 >
                   <QueueRow item={item} />
@@ -230,13 +276,10 @@ const byRequester = (moments: QueueClip[]) => {
  */
 const ClipGroups = ({ item, ahead }: { item: QueueItem; ahead: number }) => {
   const { clip: current } = useLiveProgress(item)
-  /** What a waiting clip waits for: a recorder, matches in line before it, or its batch's clips. */
+  /** What a waiting clip waits for: a recorder, its turn, or its batch's clips. */
   const waitingFor = (clip: QueueClip) => {
     if (item.state === 'delayed') return 'Retrying shortly'
-    if (item.state !== 'active')
-      return ahead
-        ? `Waiting for ${ahead} ${ahead === 1 ? 'match' : 'matches'} ahead`
-        : 'Waiting for recorder'
+    if (item.state !== 'active') return ahead ? 'Up next' : 'Waiting for recorder'
     const before = item.moments
       .slice(0, item.moments.indexOf(clip))
       .filter((m) => m.state === 'waiting' || m.state === 'recording').length
@@ -321,28 +364,41 @@ const QueueClipCard = ({
   waitingFor: string
 }) => {
   const cancel = useCancelMoment(matchId)
+  const queryClient = useQueryClient()
+  const open = use(OpenClip)
   const { state, phase } = clipState(clip, current)
 
   return (
     <div
       className={cn(
-        'flex min-w-0 items-start gap-3 rounded-xl border py-2.5 pr-2 pl-2.5',
+        'relative flex min-w-0 items-start rounded-xl border',
         'transition-[background-color,border-color,opacity] duration-200 ease-out',
+        // Lit while the pointer is anywhere on the card, its cancel button included.
+        'hover:bg-surface-2/60',
         // Finished clips step back.
-        state === 'recorded' && 'opacity-70',
+        state === 'recorded' && 'opacity-70 hover:opacity-100',
       )}
     >
-      <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="mt-0.5 size-8" />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-[13px] font-medium">{clip.title}</p>
-          <MomentBadge moment={clip} className="w-auto shrink-0" />
+      <button
+        type="button"
+        onClick={() => open(matchId, clip)}
+        // The dialog reads the match; start on it before the click lands.
+        onPointerEnter={() => void queryClient.prefetchQuery(matchQuery(matchId))}
+        aria-label={state === 'recorded' ? `Watch ${clip.title}` : `Show ${clip.title}`}
+        className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl py-2.5 pr-2 pl-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="mt-0.5 size-8" />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-[13px] font-medium">{clip.title}</p>
+            <MomentBadge moment={clip} className="w-auto shrink-0" />
+          </div>
+          <p className="mt-0.5 truncate text-[12px] text-muted">
+            {clip.player.name} · Round {clip.round} · {clipLength(clip)}
+          </p>
+          <ClipStatus state={state} phase={phase} waitingFor={waitingFor} />
         </div>
-        <p className="mt-0.5 truncate text-[12px] text-muted">
-          {clip.player.name} · Round {clip.round} · {clipLength(clip)}
-        </p>
-        <ClipStatus state={state} phase={phase} waitingFor={waitingFor} />
-      </div>
+      </button>
       {clip.canCancel && (
         <IconButton
           size="xs"
@@ -350,6 +406,7 @@ const QueueClipCard = ({
           aria-label={`Cancel recording ${clip.title}`}
           onClick={() => cancel.mutate(clip.id)}
           loading={cancel.isPending}
+          className="mt-2 mr-2"
         >
           <X />
         </IconButton>
@@ -403,5 +460,7 @@ const ClipStatus = ({
             ? 'Failed'
             : waitingFor}
     </span>
+    {/* The reason is long and technical; the card opens it. */}
+    {state === 'failed' && <span className="shrink-0 font-normal text-muted">· See why</span>}
   </p>
 )

@@ -6,6 +6,7 @@ import { clipOffsetTicks, clipSegments, segmentsTicks, ticksToSeconds } from '@s
 import type { ClipPhase, TypedJob } from '@subtick/queue'
 import { keys } from '@subtick/storage'
 import type { Context } from './context'
+import { failureReason } from './failure'
 import { finishClip, joinParts, probe, thumbnail } from './post'
 import type { RecordedFile } from './recorder'
 
@@ -100,9 +101,12 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
         }
         await report(index, h.id, 'recording', 0)
-        const fail = async (stage: string, error: unknown) => {
+        const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
-          await db.update(highlight).set({ status: 'failed' }).where(eq(highlight.id, h.id))
+          await db
+            .update(highlight)
+            .set({ status: 'failed', error: failureReason(stage, error) })
+            .where(eq(highlight.id, h.id))
         }
         let raw: RecordedFile
         try {

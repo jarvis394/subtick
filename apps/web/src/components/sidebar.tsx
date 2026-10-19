@@ -14,7 +14,13 @@ import { type ReactNode, useState } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
-import { ProgressRing, QueueRing, liveProgress, useQueueSummary } from '@/components/queue-ring'
+import {
+  ProgressRing,
+  QueueRing,
+  liveProgress,
+  remainingWork,
+  useQueueSummary,
+} from '@/components/queue-ring'
 import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
@@ -191,11 +197,9 @@ const RecentRow = ({
             </span>
           </span>
           <span className={cn('flex items-center', swapTransition, swapOut)}>
-            {isProcessing(match.status) && (
-              <span
-                className="mr-2 flex text-foreground/50"
-                title={progress !== undefined ? percent(progress) : 'Processing'}
-              >
+            {/* Only a stage that reports how far it is gets a ring; a spinner would say nothing. */}
+            {isProcessing(match.status) && progress !== undefined && (
+              <span className="mr-2 flex text-foreground/50" title={percent(progress)}>
                 <ProgressRing progress={progress} size={14} />
               </span>
             )}
@@ -255,8 +259,10 @@ const QueueButton = ({
   const { data } = useQuery(queueQuery)
   const items = data?.items ?? []
   const pending = usePendingPath() === '/queue'
-  const label = items.length ? `Queue, ${items.length} in progress` : 'Queue'
+  const left = remainingWork(items)
+  const label = left ? `Queue, ${left} left to process` : 'Queue'
   const summary = useQueueSummary(items)
+  const empty = items.length === 0
 
   return (
     <Tooltip
@@ -267,7 +273,8 @@ const QueueButton = ({
             {summary.running.map((task) => (
               <div key={task.id} className="min-w-0">
                 <p className="font-medium">{task.map}</p>
-                <p className="text-muted tabular-nums">{task.task}</p>
+                {task.title && <p className="truncate">{task.title}</p>}
+                <p className="text-muted tabular-nums">{task.detail}</p>
               </div>
             ))}
             {summary.waiting > 0 && (
@@ -287,7 +294,14 @@ const QueueButton = ({
           label={label}
           tooltip={false}
           render={<Link to="/queue" onClick={onNavigate} viewTransition={viewTransition} />}
-          className={cn(pending && 'shimmer', className)}
+          className={cn(
+            pending && 'shimmer',
+            className,
+            // Fades out with the last job; `invisible` lands after the fade and takes it out of
+            // the tab order.
+            'transition-[color,translate,opacity,scale,visibility]',
+            empty && 'invisible scale-90 opacity-0',
+          )}
         >
           <QueueRing items={items} />
         </IconButton>

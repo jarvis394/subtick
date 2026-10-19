@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, unwrap } from '@/lib/api'
+import { queueRecording } from '@/lib/optimistic-queue'
 import type { MatchDetail } from '@/lib/queries'
 
 /**
- * Queues a moment for recording. The match cache is updated first, so the moment's card moves into
- * the Queue at once; the request follows, and a failure puts the cache back as the server has it.
+ * Queues a moment for recording. The match and queue caches are updated first, so the moment's
+ * card moves into the Queue (and the queue button counts it) at once; the request follows, and a
+ * failure puts the caches back as the server has them.
  */
 export const useRecordMoment = (matchId: string) => {
   const queryClient = useQueryClient()
@@ -23,9 +25,17 @@ export const useRecordMoment = (matchId: string) => {
   return useMutation({
     mutationFn: (id: string) => unwrap(api.highlights({ id }).record.post()),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: key })
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: key }),
+        queryClient.cancelQueries({ queryKey: ['queue'] }),
+      ])
+      queueRecording(queryClient, matchId, id)
       markQueued(id)
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: key }),
+        queryClient.invalidateQueries({ queryKey: ['queue'] }),
+      ]),
   })
 }

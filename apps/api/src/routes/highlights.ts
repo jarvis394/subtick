@@ -138,7 +138,7 @@ export const highlightRoutes = (ctx: Context) => {
         // Only candidates (never queued) and failures can be (re)queued; anything else is a no-op.
         const [row] = await db
           .update(highlight)
-          .set({ status: 'queued', requestedBy: user.id })
+          .set({ status: 'queued', requestedBy: user.id, error: null })
           .where(
             and(
               eq(highlight.id, params.id),

@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { X } from 'lucide-react'
+import { RotateCw, X } from 'lucide-react'
 import type { ClipSegment, HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
+import { FailureNote } from '@/components/failure-note'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
@@ -29,6 +30,8 @@ export interface Moment {
   requester?: { name: string; image: string | null; isViewer: boolean } | null
   /** The viewer may take it off the queue. */
   canCancel?: boolean
+  /** Why its last recording failed. */
+  error?: string | null
 }
 
 /** "Requested by you" / "by Name" / "Picked automatically", for a queued or failed moment. */
@@ -40,6 +43,47 @@ export const requestedLabel = (moment: Moment) =>
 /** The moment's line under its title: round, length and its standout kill tags. */
 export const momentDetails = (moment: Moment) =>
   [`Round ${moment.round}`, clipLength(moment), ...tagSummary(moment.kills)].join(' · ')
+
+/** A queued or failed moment's dialog footer: what it waits on, with Retry or Cancel. */
+export const MomentDialogFooter = ({ moment, matchId }: { moment: Moment; matchId: string }) => {
+  const record = useRecordMoment(matchId)
+  const cancel = useCancelMoment(matchId)
+  const failed = moment.status === 'failed'
+  return (
+    <>
+      <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted">
+        {!failed && <Spinner className="size-3 shrink-0" />}
+        <span className="truncate">
+          {failed ? 'Recording failed' : 'Waiting to record'} · {requestedLabel(moment)}
+        </span>
+      </span>
+      {failed ? (
+        <Button
+          size="sm"
+          tone="brand"
+          onClick={() => record.mutate(moment.id)}
+          loading={record.isPending}
+        >
+          <RotateCw /> Retry
+        </Button>
+      ) : moment.canCancel ? (
+        <Dialog.Close
+          render={
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="danger"
+              onClick={() => cancel.mutate(moment.id)}
+              disabled={cancel.isPending}
+            />
+          }
+        >
+          <X /> Cancel recording
+        </Dialog.Close>
+      ) : null}
+    </>
+  )
+}
 
 /**
  * A moment waiting on its clip, as the match page's Queue lists it: recording, or failed with a
@@ -72,40 +116,8 @@ export const MomentRow = ({
         moment={moment}
         player={owner}
         subtitle={momentDetails(moment)}
-        footer={
-          <>
-            <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted">
-              {!failed && <Spinner className="size-3 shrink-0" />}
-              <span className="truncate">
-                {failed ? 'Recording failed' : 'Waiting to record'} · {requestedLabel(moment)}
-              </span>
-            </span>
-            {failed ? (
-              <Button
-                size="sm"
-                tone="brand"
-                onClick={() => record.mutate(moment.id)}
-                loading={record.isPending}
-              >
-                Retry
-              </Button>
-            ) : moment.canCancel ? (
-              <Dialog.Close
-                render={
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    tone="danger"
-                    onClick={() => cancel.mutate(moment.id)}
-                    disabled={cancel.isPending}
-                  />
-                }
-              >
-                <X /> Cancel recording
-              </Dialog.Close>
-            ) : null}
-          </>
-        }
+        notice={failed && <FailureNote error={moment.error} />}
+        footer={<MomentDialogFooter moment={moment} matchId={match.match.id} />}
         trigger={
           <Dialog.Trigger className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 py-2 pl-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
             <MomentBadge moment={moment} />

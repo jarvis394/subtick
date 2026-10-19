@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { and, eq, inArray, schema } from '@subtick/db'
 import { closeOnSignal, createWorker } from '@subtick/queue'
 import { createContext } from './context'
+import { failureReason } from './failure'
 import { RECORDER_VERSION, recordMatch } from './record'
 
 const ctx = createContext()
@@ -51,7 +52,7 @@ worker.on('failed', async (job, error) => {
       // Left `queued`, they would show as recording forever and could not be retried.
       ctx.db
         .update(schema.highlight)
-        .set({ status: 'failed' })
+        .set({ status: 'failed', error: failureReason('job', error) })
         .where(
           and(
             inArray(schema.highlight.id, job.data.highlightIds),

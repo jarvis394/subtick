@@ -117,17 +117,31 @@ export const stageLabel = (item: QueueItem) =>
     ? `Recording ${item.clips} ${item.clips === 1 ? 'clip' : 'clips'}`
     : STAGE_LABELS[item.stage]
 
-/** A running item in a sentence: "Recording 2K with the deagle · 40%", "Analyzing demo · 63%". */
+/**
+ * A running item as what it works on and where it's at: "3K with the M4A1-S" over "Recording 53%",
+ * or just "Analyzing demo · 63%" before there are clips.
+ */
 export const taskLabel = (item: QueueItem, streamed: ProgressMap) => {
   const { progress, clip } = liveProgress(item, streamed)
   const title = clip && item.moments.find((m) => m.id === clip.id)?.title
-  if (clip && title) return `${title} · ${phaseLabel(clip)}`
-  return progress !== undefined
-    ? `${STAGE_LABELS[item.stage]} · ${percent(progress)}`
-    : STAGE_LABELS[item.stage]
+  if (clip && title) return { title, detail: phaseLabel(clip) }
+  return {
+    title: undefined,
+    detail:
+      progress !== undefined
+        ? `${STAGE_LABELS[item.stage]} · ${percent(progress)}`
+        : STAGE_LABELS[item.stage],
+  }
 }
 
-/** One line per running match for the queue button's tooltip, and how many wait behind them. */
+/**
+ * Work left in the queue: each clip still to record, plus one per match not analyzed yet. A match
+ * that only has clips left counts as its clips, not as a match on top of them.
+ */
+export const remainingWork = (items: QueueItem[]) =>
+  items.reduce((sum, item) => sum + (item.stage === 'recording' ? item.clips : 1), 0)
+
+/** One entry per running match for the queue button's tooltip, and how many wait behind them. */
 export const useQueueSummary = (items: QueueItem[]) => {
   const streamed = useProgressMap()
   const running = items
@@ -135,28 +149,28 @@ export const useQueueSummary = (items: QueueItem[]) => {
     .map((item) => ({
       id: item.matchId,
       map: matchName(item.map, item.status),
-      task: taskLabel(item, streamed),
+      ...taskLabel(item, streamed),
     }))
   return { running, waiting: items.length - running.length }
 }
 
-/** Running items' progress, averaged. */
+/** Running items' progress, averaged; undefined while none of them reports any. */
 const useRunningProgress = (items: QueueItem[]) => {
   const streamed = useProgressMap()
-  const running = items.filter((item) => item.state === 'active')
-  if (!running.length) return { running: false, progress: undefined }
-  const values = running.map((item) => liveProgress(item, streamed).progress ?? 0)
-  // A stage without progress (analysis) leaves the ring sweeping instead of stuck at 0.
-  if (values.every((v) => v === 0)) return { running: true, progress: undefined }
-  return { running: true, progress: values.reduce((a, b) => a + b, 0) / values.length }
+  const values = items
+    .filter((item) => item.state === 'active')
+    .map((item) => liveProgress(item, streamed).progress ?? 0)
+  if (values.every((v) => v === 0)) return undefined
+  return values.reduce((a, b) => a + b, 0) / values.length
 }
 
 /**
- * The queue button's icon. Idle, the plain queue icon; with work, a ring filled to the running
- * jobs' progress (sweeping while a stage reports none) around how many matches are in line.
+ * The queue button's icon: a ring filled to the running jobs' progress (an empty track while none
+ * reports any) around how much work is left.
  */
 export const QueueRing = ({ items }: { items: QueueItem[] }) => {
-  const { running, progress } = useRunningProgress(items)
+  const progress = useRunningProgress(items)
+  const count = remainingWork(items)
   const busy = items.length > 0
 
   return (
@@ -176,26 +190,18 @@ export const QueueRing = ({ items }: { items: QueueItem[] }) => {
           !busy && 'scale-75 opacity-0',
         )}
       >
-        {running ? (
-          <ProgressRing
-            progress={progress}
-            size={22}
-            stroke={2.5}
-            className="size-[22px]! text-foreground/50"
-            trackClassName="stroke-foreground/10"
-          />
-        ) : (
-          // Only waiting work: an empty track.
-          <ProgressRing
-            progress={0}
-            size={22}
-            stroke={2.5}
-            className="size-[22px]! text-transparent"
-            trackClassName="stroke-foreground/10"
-          />
-        )}
+        <ProgressRing
+          progress={progress ?? 0}
+          size={22}
+          stroke={2.5}
+          className={cn(
+            'size-[22px]!',
+            progress === undefined ? 'text-transparent' : 'text-foreground/50',
+          )}
+          trackClassName="stroke-foreground/10"
+        />
         <span className="text-[10px] leading-none font-semibold text-foreground tabular-nums">
-          {items.length > 9 ? '9+' : items.length || ''}
+          {count > 9 ? '9+' : count || ''}
         </span>
       </span>
     </span>

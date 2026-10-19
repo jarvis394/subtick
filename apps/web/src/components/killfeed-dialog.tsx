@@ -117,7 +117,10 @@ export const KillfeedDialog = ({
   player,
   subtitle,
   trigger,
+  notice,
   footer,
+  open,
+  onOpenChange,
   onClosed,
 }: {
   match: MatchDetail
@@ -132,9 +135,14 @@ export const KillfeedDialog = ({
   /** Whose moment it is. */
   player: HighlightPlayer
   subtitle: string
-  trigger: ReactNode
+  /** Opens it; left out when the dialog is controlled with `open`. */
+  trigger?: ReactNode
+  /** Between the feed and the footer (why its recording failed). */
+  notice?: ReactNode
   /** Actions under the feed (cancel or retry a queued clip). */
   footer?: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   /** Called once the dialog has finished closing (its exit animation done). */
   onClosed?: () => void
 }) => {
@@ -142,7 +150,11 @@ export const KillfeedDialog = ({
   const preview = mapPreviewUrl(match.match.map)
 
   return (
-    <Dialog.Root onOpenChangeComplete={(open) => !open && onClosed?.()}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => onOpenChange?.(next)}
+      onOpenChangeComplete={(next) => !next && onClosed?.()}
+    >
       {trigger}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
@@ -199,6 +211,7 @@ export const KillfeedDialog = ({
               )}
             </ol>
           </div>
+          {notice}
           {footer && (
             <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
               {footer}

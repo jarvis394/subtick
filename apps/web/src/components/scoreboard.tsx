@@ -163,7 +163,9 @@ const END_CAPS = cn(
   'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-surface)_6px)]',
 )
 const EndCap = () => <td aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
-const EndCapHead = () => <th aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
+const EndCapHead = () => (
+  <th aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
+)
 
 const IDENTITY: Shape = {
   // Phones: square on the screen edge, rounded on the right. md+: left end of the avatar+name island.

@@ -226,6 +226,8 @@ export const listQueue = async (
         kills: h.kills.map((k) => ({ tags: k.tags })),
         clutch: h.clutch,
         state: stateOf(h),
+        /** Why it failed, when it did. */
+        error: h.status === 'failed' ? h.error : null,
         /** For the clip being recorded: loading the demo, capturing (with progress), encoding. */
         phase: h.id === current ? (reported?.id === current ? reported.phase : 'recording') : null,
         progress: h.id === current && reported?.id === current ? (reported.progress ?? null) : null,
