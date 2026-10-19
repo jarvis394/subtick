@@ -4,6 +4,7 @@ import { FlaskConical } from 'lucide-react'
 import { useMatch } from '@tanstack/react-router'
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/ui/button'
+import { AutoHeight } from '@/components/ui/presence'
 
 // Each tab loads when first opened.
 const DevMatchesTab = lazy(() => import('./matches-tab').then((m) => ({ default: m.DevMatchesTab })))
@@ -88,11 +89,17 @@ export default function DevMenu() {
                   <Tabs.Indicator className="absolute top-0 left-0 z-0 h-7 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-md bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
                 </Tabs.List>
               </div>
-              {TABS.map((tab) => (
-                <Tabs.Panel key={tab.value} value={tab.value} className="outline-none">
-                  <Suspense fallback={null}>{tab.panel(close, matchId)}</Suspense>
-                </Tabs.Panel>
-              ))}
+              {/* Within a range: the menu neither collapses while a tab's code loads nor outgrows the
+                screen, and its height eases as a tab's content or the tab itself changes. */}
+              <div className="max-h-[min(28rem,60dvh)] overflow-y-auto">
+                <AutoHeight innerClassName="min-h-56">
+                  {TABS.map((tab) => (
+                    <Tabs.Panel key={tab.value} value={tab.value} className="outline-none">
+                      <Suspense fallback={null}>{tab.panel(close, matchId)}</Suspense>
+                    </Tabs.Panel>
+                  ))}
+                </AutoHeight>
+              </div>
             </Tabs.Root>
           </Popover.Popup>
         </Popover.Positioner>

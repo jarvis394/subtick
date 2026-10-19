@@ -42,7 +42,7 @@ export const DevMatchesTab = ({ onNavigate }: { onNavigate: () => void }) => {
 
       {/* Mounted with the first data, so what's already there doesn't animate in. */}
       {data && (
-        <div className="-mr-1 grid max-h-80 overflow-y-auto pr-1">
+        <div className="grid">
           <Section
             title="Staged"
             hint="Turn up on the next check for new matches"

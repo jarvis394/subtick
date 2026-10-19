@@ -96,7 +96,7 @@ export const DevHighlightsTab = ({
       )}
 
       {data && (
-        <div className="-mr-1 grid max-h-80 overflow-y-auto pr-1">
+        <div className="grid">
           <FadeList>
             {data.map((fake) => (
               <FadeItem key={fake.id}>
