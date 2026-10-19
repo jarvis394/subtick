@@ -28,7 +28,7 @@ export const KindTabs = ({
         </Tabs.Tab>
       ))}
       {/* Follows top/height too: the filter wraps onto several rows on narrow screens. */}
-      <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg bg-surface shadow-sm shadow-black/10 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
+      <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg border bg-surface-3 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
     </Tabs.List>
   </Tabs.Root>
 )
