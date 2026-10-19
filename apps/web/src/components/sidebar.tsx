@@ -1,5 +1,4 @@
 import { Menu } from '@base-ui/react/menu'
-import { mapName } from '@subtick/domain'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
@@ -13,7 +12,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
-import { MapIcon } from '@/components/map-icon'
+import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
 import { ProgressRing, QueueRing, liveProgress, useQueueSummary } from '@/components/queue-ring'
 import { perspectiveScore } from '@/components/match-table'
@@ -159,7 +158,7 @@ const RecentRow = ({
         params={{ id: match.id }}
         onClick={onNavigate}
         viewTransition={viewTransition}
-        title={collapsed ? mapName(match.map) : undefined}
+        title={collapsed ? matchName(match.map, match.status) : undefined}
         className={cn(
           rowClass(collapsed),
           'h-10 px-2',
@@ -182,7 +181,9 @@ const RecentRow = ({
         <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
           <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
             <span className="flex min-w-0 items-center">
-              <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+              <span className="truncate text-foreground/90">
+                {matchName(match.map, match.status)}
+              </span>
               <NewDot matchId={match.id} />
             </span>
             <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">

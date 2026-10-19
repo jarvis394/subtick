@@ -1,5 +1,4 @@
 import { Tabs } from '@base-ui/react/tabs'
-import { mapName } from '@subtick/domain'
 import { type QueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, CircleStop, Plus, RotateCw } from 'lucide-react'
@@ -7,8 +6,9 @@ import { useEffect, useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
-import { MapIcon } from '@/components/map-icon'
+import { MapIcon, matchName } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
+import { MatchProgress } from '@/components/match-progress'
 import { MatchStatusBadge, isProcessing } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
@@ -106,8 +106,20 @@ function MatchPage() {
   return (
     <div className="grid gap-10">
       <MatchHeader id={id} head={head} />
-      <FadeSwap swapKey={data ? 'ready' : 'loading'} enterDelay={data ? 0 : 120}>
-        {data ? <MatchBody data={data} /> : <BodySkeleton />}
+      {/* Until the demo is analyzed there's nothing but its progress; the match fades in after. */}
+      <FadeSwap
+        swapKey={data ? (analyzed(data) ? 'ready' : 'pending') : 'loading'}
+        enterDelay={data ? 0 : 120}
+      >
+        {data ? (
+          analyzed(data) ? (
+            <MatchBody data={data} />
+          ) : (
+            <MatchProgress match={data.match} />
+          )
+        ) : (
+          <BodySkeleton />
+        )}
       </FadeSwap>
       <ClipViewerDialog
         clipId={clip}
@@ -125,6 +137,10 @@ function MatchPage() {
     </div>
   )
 }
+
+/** The parser has written the match's stats; before that it only has a pipeline status. */
+const analyzed = (data: MatchDetail) =>
+  data.players.length > 0 || data.match.status === 'ready' || data.match.status === 'recording'
 
 const BodySkeleton = () => (
   <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
@@ -158,7 +174,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
             <div className="flex items-center gap-4">
               <MapIcon map={head.map} className="size-14 text-2xl" />
               <div>
-                <h1 className="font-serif text-4xl tracking-tight">{mapName(head.map)}</h1>
+                <h1 className="font-serif text-4xl tracking-tight">{matchName(head.map, head.status)}</h1>
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
                   <span>{formatDate(head.playedAt)}</span>
                   {head.roundsPlayed !== null && (

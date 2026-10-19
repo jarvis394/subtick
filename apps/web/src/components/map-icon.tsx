@@ -1,4 +1,5 @@
-import { mapName } from '@subtick/domain'
+import { type MatchStatus, isProcessingStatus, mapName } from '@subtick/domain'
+import { Map as MapGlyph } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -31,9 +32,16 @@ const PREVIEWS = urls(
   }),
 )
 
+/**
+ * A match's name: its map, which only the demo says. Until the demo is analyzed it's a new match;
+ * one that never got that far (expired, failed) stays on an unknown map.
+ */
+export const matchName = (map: string | null, status: MatchStatus) =>
+  map ? mapName(map) : isProcessingStatus(status) ? 'New match' : mapName(map)
+
 export const mapPreviewUrl = (map: string | null) => (map ? PREVIEWS.get(map) : undefined)
 
-/** Emblem, or a monogram tile for maps without art. */
+/** Emblem, a monogram tile for maps without art, or a map glyph while the map isn't known. */
 export const MapIcon = ({ map, className }: { map: string | null; className?: string }) => {
   const emblem = map ? EMBLEMS.get(map) : undefined
   if (emblem) {
@@ -54,7 +62,7 @@ export const MapIcon = ({ map, className }: { map: string | null; className?: st
         className,
       )}
     >
-      {mapName(map).charAt(0)}
+      {map ? mapName(map).charAt(0) : <MapGlyph className="size-[45%]" />}
     </span>
   )
 }

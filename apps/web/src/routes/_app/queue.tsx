@@ -1,10 +1,9 @@
-import { mapName } from '@subtick/domain'
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { Check, CircleAlert, Clock, ListVideo, Sparkles, X } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
-import { MapIcon } from '@/components/map-icon'
+import { MapIcon, matchName } from '@/components/map-icon'
 import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
@@ -162,7 +161,7 @@ const QueueRow = ({ item }: { item: QueueItem }) => {
         <MapIcon map={item.map} className="size-9 shrink-0 rounded-lg text-[14px]" />
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium">{mapName(item.map)}</span>
+            <span className="truncate text-sm font-medium">{matchName(item.map, item.status)}</span>
             <span className="shrink-0 text-[12px] text-muted/70 tabular-nums">
               {shortAge(item.playedAt)}
             </span>
@@ -184,7 +183,7 @@ const QueueRow = ({ item }: { item: QueueItem }) => {
           variant="ghost"
           onClick={() => cancel.mutate(item.matchId)}
           loading={cancel.isPending}
-          aria-label={`Cancel ${mapName(item.map)}`}
+          aria-label={`Cancel ${matchName(item.map, item.status)}`}
         >
           <X /> <span className="max-sm:hidden">Cancel</span>
         </Button>

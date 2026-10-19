@@ -1,5 +1,5 @@
-import { mapName } from '@subtick/domain'
 import { ListVideo } from 'lucide-react'
+import { matchName } from '@/components/map-icon'
 import { type ClipProgress, percent, useProgressMap } from '@/hooks/use-match-events'
 import type { QueueItem } from '@/lib/queries'
 import { cn } from '@/lib/utils'
@@ -132,7 +132,11 @@ export const useQueueSummary = (items: QueueItem[]) => {
   const streamed = useProgressMap()
   const running = items
     .filter((item) => item.state === 'active')
-    .map((item) => ({ id: item.matchId, map: mapName(item.map), task: taskLabel(item, streamed) }))
+    .map((item) => ({
+      id: item.matchId,
+      map: matchName(item.map, item.status),
+      task: taskLabel(item, streamed),
+    }))
   return { running, waiting: items.length - running.length }
 }
 

@@ -1,8 +1,7 @@
-import { mapName } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import { Clapperboard } from 'lucide-react'
 import { useState } from 'react'
-import { MapIcon } from '@/components/map-icon'
+import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchStatusBadge } from '@/components/match-status'
 import { RankBadge } from '@/components/rank-badge'
 import { NewDot } from '@/components/new-dot'
@@ -81,7 +80,7 @@ const MatchRow = ({ match }: { match: MatchListItem }) => {
         <MapIcon map={match.map} />
         <span className="min-w-0">
           <span className="flex min-w-0 items-center">
-            <span className="truncate font-medium">{mapName(match.map)}</span>
+            <span className="truncate font-medium">{matchName(match.map, match.status)}</span>
             <NewDot matchId={match.id} />
           </span>
           <span className="flex items-center gap-1 text-[12px] whitespace-nowrap text-muted md:hidden">
