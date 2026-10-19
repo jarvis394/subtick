@@ -18,6 +18,8 @@ import { EmptyState } from '@/components/empty-state'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
+import { KillfeedDialog } from '@/components/killfeed-dialog'
+import { momentDetails } from '@/components/moment-row'
 import { FadeImage } from '@/components/ui/fade-image'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
@@ -365,27 +367,34 @@ const Player = ({
           </Title>
           <ShareActions clip={clip} />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="flex min-w-0 items-center gap-2.5">
+        <div className="mt-3 flex flex-wrap items-center gap-x-0.5 gap-y-2">
+          {/* The buttons' own padding spaces the dots on their side; this matches it. */}
+          <div className="mr-2.5 flex min-w-0 items-center gap-2.5">
             <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
             <span className="truncate text-[15px] font-medium">{clip.player.name}</span>
           </div>
           <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·
           </span>
-          <Link
-            to="/matches/$id"
-            params={{ id: clip.matchId }}
-            onClick={onClose}
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<Link to="/matches/$id" params={{ id: clip.matchId }} onClick={onClose} />}
             // Its own line on phones, where it would wrap anyway.
-            className="flex min-w-0 items-center gap-1.5 text-sm text-muted hover:text-foreground max-sm:basis-full"
+            // On the match page the link is the current page, which would light it like a hovered
+            // button; it should look like its neighbour.
+            className="min-w-0 text-[15px] aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground max-sm:basis-full max-sm:justify-start"
           >
             <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
             <span className="truncate">
-              {mapName(clip.map)} · Round {clip.round}
-              {clip.playedAt && ` · ${formatDate(clip.playedAt)}`}
+              {mapName(clip.map)}
+              {clip.playedAt && ` ${formatDate(clip.playedAt)}`}
             </span>
-          </Link>
+          </Button>
+          <span aria-hidden className="text-border-strong select-none max-sm:hidden">
+            ·
+          </span>
+          <RoundButton clip={clip} />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <Badge tone="brand" className={TAG_CASE}>
@@ -423,6 +432,41 @@ const useCopied = () => {
     timer.current = setTimeout(() => setCopied(false), COPIED_MS)
   }
   return { copied, copy }
+}
+
+/** "Round N": opens the moment's killfeed. The match is only read once it's asked for. */
+const RoundButton = ({ clip }: { clip: ReelClip }) => {
+  const [open, setOpen] = useState(false)
+  const [asked, setAsked] = useState(false)
+  const { data } = useQuery({ ...matchQuery(clip.matchId), enabled: asked })
+  const moment = data?.highlights.find((h) => h.id === clip.id)
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          setAsked(true)
+          setOpen(true)
+        }}
+        onPointerEnter={() => setAsked(true)}
+        className="text-[15px]"
+      >
+        Round {clip.round}
+      </Button>
+      {data && moment && (
+        <KillfeedDialog
+          open={open}
+          onOpenChange={setOpen}
+          match={data}
+          moment={moment}
+          player={clip.player}
+          subtitle={momentDetails(moment)}
+        />
+      )}
+    </>
+  )
 }
 
 /**
