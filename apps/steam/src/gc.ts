@@ -29,6 +29,8 @@ export interface ResolvedMatch {
    * `party_ids` empty, so this is usually empty too.
    */
   parties: Record<string, string>
+  /** Final score keyed by starting side, for 5v5 matches only; the parser overwrites it. */
+  score: { startedCt: number; startedT: number } | null
 }
 
 export class GcUnavailableError extends Error {}
@@ -142,8 +144,10 @@ export const createGameCoordinator = (
       return {
         demoUrl: last?.map || null,
         playedAt: info.matchtime ? new Date(info.matchtime * 1000) : null,
-        players: reservation?.account_ids.map(accountIdToSteamId) ?? [],
+        // Wingman pads the 10 slots with account id 0.
+        players: reservation?.account_ids.filter(Boolean).map(accountIdToSteamId) ?? [],
         parties: reservation ? partiesOf(reservation) : {},
+        score: last ? finalScore(last) : null,
       }
     },
 
@@ -163,4 +167,14 @@ const partiesOf = ({ account_ids, party_ids }: GlobalOffensive.Reservation) => {
     if (party) parties[accountIdToSteamId(accountId)] = String(party)
   })
   return parties
+}
+
+/**
+ * The last round's `team_scores`, when they can be trusted: in Premier and Competitive they match
+ * the demo, in Wingman they don't (a 8:6 match came back as 7:7). The GC never says the map.
+ */
+const finalScore = ({ team_scores, max_rounds }: GlobalOffensive.RoundStats) => {
+  const [startedCt, startedT] = team_scores
+  if (max_rounds !== 24 || startedCt === undefined || startedT === undefined) return null
+  return { startedCt, startedT }
 }

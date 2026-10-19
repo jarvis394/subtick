@@ -43,6 +43,8 @@ export const resolveMatch = async (
     .set({
       demoUrl: resolved.demoUrl,
       playedAt: resolved.playedAt,
+      scoreStartedCt: resolved.score?.startedCt ?? null,
+      scoreStartedT: resolved.score?.startedT ?? null,
       parties: Object.keys(parties).length ? parties : null,
     })
     .where(eq(schema.match.id, matchId))

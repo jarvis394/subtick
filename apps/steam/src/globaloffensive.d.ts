@@ -10,9 +10,13 @@ declare module 'globaloffensive' {
       party_ids: number[]
     }
     interface RoundStats {
+      /** The demo URL once the match is over; there is no map name anywhere in the reply. */
       map: string | null
       reservation: Reservation | null
+      /** `[0]` is the team of `account_ids[0..4]`, which is the team that started CT. */
       team_scores: number[]
+      /** 24 for Premier and Competitive (MR12), 16 for Wingman. */
+      max_rounds: number | null
     }
     interface MatchInfo {
       matchid: string | null
