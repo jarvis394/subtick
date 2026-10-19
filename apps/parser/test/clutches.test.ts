@@ -56,6 +56,27 @@ describe('detectClutches', () => {
     ])
   })
 
+  test('a clutcher who dies before the round ends has not won it (bomb finishes the round)', () => {
+    const timeline = buildTestTimeline([
+      {
+        winner: 'T',
+        kills: [
+          { at: 1, attacker: 'ct1', victim: 't1' },
+          { at: 2, attacker: 'ct1', victim: 't2' },
+          { at: 3, attacker: 'ct1', victim: 't3' },
+          { at: 4, attacker: 'ct1', victim: 't4' },
+          { at: 5, attacker: 't5', victim: 'ct2' },
+          { at: 6, attacker: 't5', victim: 'ct3' },
+          { at: 7, attacker: 't5', victim: 'ct4' },
+          { at: 8, attacker: 't5', victim: 'ct5' },
+          { at: 50, attacker: 'ct1', victim: 't5' },
+        ],
+        endsAt: 60,
+      },
+    ])
+    expect(detectClutches(timeline).find((c) => c.steamId === 't5')).toMatchObject({ won: false })
+  })
+
   test('no clutch when the round ends with several players alive', () => {
     const timeline = buildTestTimeline([
       { winner: 'T', kills: [{ at: 1, attacker: 't1', victim: 'ct1' }], endsAt: 90 },

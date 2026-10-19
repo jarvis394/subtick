@@ -57,7 +57,8 @@ export const detectClutches = (timeline: MatchTimeline): Clutch[] => {
           side,
           opponents: enemies,
           startTick: tick,
-          won: round.winner === side,
+          // Dying after the clutch started (a bomb finishing the round for you) is not a win.
+          won: round.winner === side && !roundKills.some((k) => k.victim === steamId),
           kills: 0,
         })
       }

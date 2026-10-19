@@ -18,7 +18,7 @@ import { computeStats } from './stats'
 import { type MatchTimeline, buildTimeline } from './timeline'
 
 /** Bump when analysis output changes, so stored matches can be re-analyzed. */
-export const PARSER_VERSION = 6
+export const PARSER_VERSION = 7
 
 export interface MatchAnalysis {
   timeline: MatchTimeline
