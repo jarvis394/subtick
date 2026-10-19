@@ -1,13 +1,16 @@
 import { Drawer } from '@base-ui/react/drawer'
 import { Menu as MenuIcon } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
 import { IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { useMatchEvents } from '@/hooks/use-match-events'
 import { cn } from '@/lib/utils'
+
+/** Dev builds only; the import is dropped from production bundles. */
+const DevMenu = import.meta.env.DEV ? lazy(() => import('@/components/dev-menu')) : null
 
 /**
  * Sidebar on md+, a top bar with a full-screen drawer below that.
@@ -142,6 +145,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
       </Drawer.Indent>
+      {DevMenu && (
+        <Suspense>
+          <DevMenu />
+        </Suspense>
+      )}
     </Drawer.Provider>
   )
 }

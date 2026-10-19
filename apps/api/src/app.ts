@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import type { Context } from './context'
 import { adminRoutes } from './routes/admin'
+import { devRoutes } from './routes/dev'
 import { eventRoutes } from './routes/events'
 import { highlightRoutes } from './routes/highlights'
 import { matchRoutes } from './routes/matches'
@@ -23,7 +24,8 @@ export const createApp = (ctx: Context) =>
         .use(queueRoutes(ctx))
         .use(eventRoutes(ctx))
         .use(adminRoutes(ctx))
-        .use(recorderAgentRoutes(ctx)),
+        .use(recorderAgentRoutes(ctx))
+        .use(devRoutes(ctx)),
     )
     .onError(({ code, error, request }) => {
       if (code === 'VALIDATION' || code === 'NOT_FOUND') return

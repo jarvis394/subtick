@@ -20,7 +20,7 @@ export const KindTabs = ({
           key={f.id}
           value={f.id}
           className={cn(
-            'relative z-10 h-8 cursor-pointer rounded-lg px-3 text-sm text-muted outline-none select-none transition-colors',
+            'relative z-10 h-8 cursor-pointer pointer-coarse:h-10 rounded-lg px-3 text-sm text-muted outline-none select-none transition-colors',
             'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:text-foreground',
           )}
         >

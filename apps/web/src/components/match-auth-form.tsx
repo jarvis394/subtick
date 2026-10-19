@@ -50,7 +50,7 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
           href={HELP_URL}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-0.5 text-accent hover:underline"
+          className="link inline-flex items-center gap-0.5 text-link"
         >
           Steam Help → Access to Your Match History <ExternalLink className="size-3" />
         </a>

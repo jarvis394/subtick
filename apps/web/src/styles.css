@@ -26,6 +26,8 @@
   --ct: #3f78bd;
   --t: #b9852a;
   --ring: rgb(41 116 207 / 0.5);
+  /* Links and the app's own notices: the accent, deep enough to read on the light surface. */
+  --link: #2363b0;
   /* Text selection: a light accent tint here, the deeper blue in dark mode. */
   --selection: rgb(41 116 207 / 0.25);
 }
@@ -41,6 +43,7 @@
     --foreground: #f2f2f2;
     --muted: #8f8f8f;
     --accent-hover: #3d86dc;
+    --link: rgb(118 168 232);
     --selection: rgb(56 87 115);
     --success: #5fb36a;
     --danger: #e0614f;
@@ -49,7 +52,9 @@
   }
 }
 
-:root[data-theme='dark'] {
+/* `.theme-dark` gives one subtree the dark tokens in either theme (the dev menu is always black). */
+:root[data-theme='dark'],
+.theme-dark {
   --background: #111111;
   --surface: #181818;
   --surface-2: #212121;
@@ -59,6 +64,7 @@
   --foreground: #f2f2f2;
   --muted: #8f8f8f;
   --accent-hover: #3d86dc;
+  --link: rgb(118 168 232);
   --selection: rgb(56 87 115);
   --success: #5fb36a;
   --danger: #e0614f;
@@ -78,6 +84,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
   --color-brand: var(--brand);
   --color-danger: var(--danger);
   --color-danger-solid: var(--danger-solid);
@@ -259,5 +266,19 @@
   }
   to {
     translate: 300% 0;
+  }
+}
+
+/* Links: underlined with a gap, the underline in the text color, faint until hovered. */
+@utility link {
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  border-radius: var(--radius-sm);
+  transition: text-decoration-color 150ms;
+  &:hover,
+  &:focus-visible {
+    text-decoration-color: currentColor;
   }
 }

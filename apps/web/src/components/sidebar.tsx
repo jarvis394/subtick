@@ -7,12 +7,11 @@ import {
   Clapperboard,
   LogOut,
   PanelLeft,
-  RotateCw,
   Settings,
   Server,
   Swords,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
@@ -21,10 +20,15 @@ import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
+import { NewDot } from '@/components/new-dot'
+import { RefreshIcon } from '@/components/ui/refresh-icon'
 import { Skeleton } from '@/components/ui/surface'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Wordmark } from '@/components/wordmark'
+import { useDelayed } from '@/hooks/use-delayed'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
+import { justFound } from '@/lib/new-matches'
+import { useRefreshNotice } from '@/hooks/use-refresh-notice'
 import { percent, useMatchProgress, useProgressMap } from '@/hooks/use-match-events'
 import { authClient } from '@/lib/auth'
 import { shortAge } from '@/lib/format'
@@ -139,9 +143,17 @@ const RecentRow = ({
   })
   const polled = useQueuedProgress(queued)
   const progress = streamed ?? polled
+  // Only a row that just turned up grows in; one that was already there stays put.
+  const [entering] = useState(() => justFound(match.id))
 
   return (
-    <div className="group/row relative">
+    <div
+      className={cn(
+        'group/row relative',
+        entering &&
+          'h-10 overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
+      )}
+    >
       <Link
         to="/matches/$id"
         params={{ id: match.id }}
@@ -161,7 +173,10 @@ const RecentRow = ({
         <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
         <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
           <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-            <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+            <span className="flex min-w-0 items-center">
+              <span className="truncate text-foreground/90">{mapName(match.map)}</span>
+              <NewDot matchId={match.id} />
+            </span>
             <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
               {shortAge(match.playedAt ?? match.discoveredAt)}
             </span>
@@ -278,7 +293,7 @@ const useQueuedProgress = (item: QueueItem | undefined) => {
   return item ? liveProgress(item, streamed).progress : undefined
 }
 
-const SKELETON_WIDTHS = ['w-28', 'w-36', 'w-24', 'w-32', 'w-28']
+const SKELETON_WIDTHS = ['w-14', 'w-16', 'w-12', 'w-16', 'w-14']
 
 const menuItemClass =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
@@ -306,8 +321,11 @@ export const SidebarContent = ({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const pendingPath = usePendingPath()
+  // Nothing until a load has run a while: most finish sooner and never show the skeleton.
+  const showSkeleton = useDelayed(!recent && !recentFailed, 400)
   const setUp = isSetUp(me)
   const refresh = useRefreshMatches()
+  const notice = useRefreshNotice(refresh)
 
   const signOut = async () => {
     await authClient.signOut()
@@ -379,22 +397,28 @@ export const SidebarContent = ({
 
         <div className="mt-5 px-2">
           <div className={cn('flex h-7 items-center pr-1 pl-[11px]', fade(collapsed))}>
-            <p className="flex-1 text-[12px] font-medium whitespace-nowrap text-muted/70">
-              Recents
-            </p>
+            <FadeSwap className="flex-1" swapKey={notice ? 'notice' : 'title'}>
+              {notice ? (
+                <p className="text-[12px] font-medium whitespace-nowrap text-link">{notice}</p>
+              ) : (
+                <p className="text-[12px] font-medium whitespace-nowrap text-muted/70">Recents</p>
+              )}
+            </FadeSwap>
             {setUp && (
               <IconButton
                 size="xs"
                 label="Check for new matches"
-                onClick={() => refresh.mutate()}
-                loading={refresh.isPending}
+                onClick={refresh.mutate}
+                disabled={refresh.isPending}
                 tabIndex={collapsed ? -1 : undefined}
               >
-                <RotateCw />
+                <RefreshIcon spinning={refresh.isPending} />
               </IconButton>
             )}
           </div>
-          <FadeSwap swapKey={recent ? 'ready' : recentFailed ? 'failed' : 'loading'}>
+          <FadeSwap
+            swapKey={recent ? 'ready' : recentFailed ? 'failed' : showSkeleton ? 'loading' : 'idle'}
+          >
             {recent ? (
               <>
                 {recent.items.length === 0 && (
@@ -448,14 +472,25 @@ export const SidebarContent = ({
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-0.5" aria-hidden>
-                {SKELETON_WIDTHS.map((width, i) => (
-                  <div key={i} className="flex h-10 items-center gap-2 px-2">
-                    <Skeleton className="size-6 shrink-0 rounded-md" />
-                    <Skeleton className={cn('h-3.5 rounded-md', width, fade(collapsed))} />
-                  </div>
-                ))}
-              </div>
+              showSkeleton && (
+                // Laid out like RecentRow: map icon, name and age, score on the right.
+                <div className="grid gap-0.5" aria-hidden>
+                  {SKELETON_WIDTHS.map((width, i) => (
+                    <div key={i} className="flex h-10 items-center gap-2.5 px-2">
+                      <Skeleton className="size-6 shrink-0 rounded-full" />
+                      <span
+                        className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}
+                      >
+                        <span className="flex flex-1 items-center gap-1.5">
+                          <Skeleton className={cn('h-3.5 rounded', width)} />
+                          <Skeleton className="h-2.5 w-4 rounded" />
+                        </span>
+                        <Skeleton className="h-3 w-8 rounded" />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </FadeSwap>
         </div>

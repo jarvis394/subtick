@@ -230,7 +230,7 @@ function RecorderCard({
             <Link
               to="/matches/$id"
               params={{ id: recorder.currentMatchId }}
-              className="text-accent hover:underline"
+              className="link text-link"
             >
               match
             </Link>

@@ -1,9 +1,10 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { RotateCw, Swords } from 'lucide-react'
+import { Swords } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { MatchTable } from '@/components/match-table'
 import { Button } from '@/components/ui/button'
+import { RefreshIcon } from '@/components/ui/refresh-icon'
 import { Skeleton } from '@/components/ui/surface'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { matchesQuery } from '@/lib/queries'
@@ -25,10 +26,10 @@ function MatchesPage() {
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => refresh.mutate()}
-          loading={refresh.isPending}
+          onClick={refresh.mutate}
+          disabled={refresh.isPending}
         >
-          <RotateCw />
+          <RefreshIcon spinning={refresh.isPending} />
           Check for new
         </Button>
       </div>

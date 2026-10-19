@@ -13,6 +13,7 @@ import { isProcessing } from '@/components/match-status'
 import { Button } from '@/components/ui/button'
 import { Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
+import { useDelayed } from '@/hooks/use-delayed'
 import { dayLabel } from '@/lib/format'
 import { KIND_FILTERS, clipListSearch, clipMask } from '@/lib/highlights'
 import { type Clip, clipFacetsQuery, clipsQuery, recentMatchesQuery } from '@/lib/queries'
@@ -23,6 +24,37 @@ export const Route = createFileRoute('/_app/')({
 })
 
 const ALL_MAPS = '__all'
+
+/** How long a load runs before skeletons show: most loads finish sooner and never show them. */
+const SKELETON_DELAY_MS = 400
+
+/** Stands in for a day of clips: laid out like the heading and cards it's replaced by. */
+const HighlightsSkeleton = () => (
+  <section aria-hidden>
+    <div className="mb-4 flex h-5 items-center">
+      <Skeleton className="h-3.5 w-40 rounded" />
+    </div>
+    <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i}>
+          <Skeleton className="aspect-video" />
+          <div className="mt-3 flex gap-3">
+            <Skeleton className="mt-0.5 size-8 shrink-0 rounded-full" />
+            {/* Line boxes the size of the title's (15px) and the meta line's (13px). */}
+            <div className="min-w-0 flex-1">
+              <div className="flex h-[22.5px] items-center">
+                <Skeleton className="h-3.5 w-3/4 rounded" />
+              </div>
+              <div className="mt-0.5 flex h-[19.5px] items-center">
+                <Skeleton className="h-3 w-1/2 rounded" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+)
 
 /** Clips grouped under day headings (by when the match was played). */
 const groupByDay = (clips: Clip[]) => {
@@ -48,11 +80,15 @@ function HighlightsPage() {
   const processing = recent.data?.items.filter((m) => isProcessing(m.status)).length ?? 0
 
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
+  const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
   const filtered = kind !== 'all' || Boolean(search.map) || Boolean(search.mine)
   // One view per filter, so switching between cached filters crossfades too. Loading stays a
   // single view: skeletons don't refade when the filter changes again mid-load.
+  // Before the delay a load shows nothing ('idle'): the old view fades out and the page waits.
   const view = clips.isPending
-    ? 'loading'
+    ? showSkeleton
+      ? 'loading'
+      : 'idle'
     : `${items.length === 0 ? 'empty' : 'results'}:${kind}:${search.map ?? ''}:${search.mine ? 'mine' : ''}`
   const mapItems = [
     { value: ALL_MAPS, label: 'All maps' },
@@ -135,13 +171,9 @@ function HighlightsPage() {
         </Switch>
       </div>
 
-      <FadeSwap swapKey={view} enterDelay={view === 'loading' ? 120 : 0} appear={false}>
+      <FadeSwap swapKey={view} appear={false}>
         {clips.isPending ? (
-          <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} className="aspect-video" />
-            ))}
-          </div>
+          showSkeleton && <HighlightsSkeleton />
         ) : items.length === 0 ? (
           <EmptyState
             icon={filtered ? <SearchX /> : <Clapperboard />}
@@ -156,8 +188,14 @@ function HighlightsPage() {
           <div className="grid gap-12">
             {groupByDay(items).map((group) => (
               <section key={group.label}>
-                <h2 className="mb-4 text-sm font-medium text-muted">{group.label}</h2>
-                <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+                <h2 className="mb-4 text-sm font-medium">
+                  {group.label}
+                  <span className="text-muted">
+                    {' · '}
+                    {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                   {group.clips.map((clip) =>
                     clip.clip ? (
                       <HighlightCard

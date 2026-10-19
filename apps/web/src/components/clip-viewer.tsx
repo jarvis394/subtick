@@ -130,13 +130,13 @@ export const ClipViewerDialog = ({
               <ScrollArea.Content className="min-h-full md:px-16 md:pt-12 md:pb-6">
                 <Dialog.Popup
                   className={cn(
-                    'relative min-h-dvh bg-background outline-none md:min-h-0 md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
+                    'relative min-h-dvh bg-background outline-none md:min-h-0 md:overflow-clip md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
                     'transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
                     'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
                   )}
                 >
                   {/* Stays at the top of the screen while the dialog scrolls under it. */}
-                  <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background pr-2 pl-4 md:hidden">
+                  <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background pr-2.5 pl-4 md:hidden">
                     <span className="text-[15px] font-medium">Highlights</span>
                     <CloseButton />
                   </header>
@@ -170,7 +170,7 @@ export const ClipViewerDialog = ({
 
 /**
  * The pseudo-element is a hit margin so a slightly-off tap still closes: 10px, which fills the
- * phone's 56px bar exactly.
+ * phone's 56px bar exactly, and ends at the screen edge (the bar's right padding is 10px too).
  */
 const CloseButton = ({ className }: { className?: string }) => (
   <Dialog.Close
@@ -238,7 +238,9 @@ export const ClipViewer = ({
   }, [])
 
   const position =
-    index === -1 ? undefined : `${index + 1} of ${reel.items.length}${reel.hasNextPage ? '+' : ''}`
+    index === -1
+      ? undefined
+      : `${index + 1} / ${reel.items.length}${reel.isFetchingNextPage ? '+' : ''}`
 
   const reelPanel = (
     <Reel
@@ -248,6 +250,8 @@ export const ClipViewer = ({
       isMatch={'match' in source}
       modal={modal}
       onSelect={onSelect}
+      onPrev={prev && (() => go(prev))}
+      onNext={next && (() => go(next))}
     />
   )
 
@@ -256,8 +260,10 @@ export const ClipViewer = ({
     (single.error instanceof ApiError ? single.error.status === 404 : single.isSuccess && !fetched)
 
   return (
-    <div className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'gap-y-8 lg:gap-x-8')}>
-      <div className={cn('min-w-0', modal && 'pb-4 md:pb-6')}>
+    <div className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'lg:gap-x-8')}>
+      {/* Below lg the column (and the player in it) dissolves into the grid, so the video is a
+        grid item of its own and can stay stuck at the top while the reel scrolls under it. */}
+      <div className={cn('min-w-0 max-lg:contents', modal && 'lg:pb-6')}>
         {!modal && (
           <Link
             to="/"
@@ -280,6 +286,8 @@ export const ClipViewer = ({
             onEnded={() => go(next)}
             modal={modal}
             onClose={onClose}
+            autoplay={autoplay}
+            onAutoplayChange={setAutoplay}
           />
         ) : (
           <div>
@@ -291,19 +299,6 @@ export const ClipViewer = ({
           </div>
         )}
 
-        {current && (
-          <div className={cn('mt-5 flex flex-wrap items-center gap-2', modal && CONTENT_INSET)}>
-            <Button variant="secondary" size="sm" disabled={!prev} onClick={() => go(prev)}>
-              <ChevronUp /> Previous
-            </Button>
-            <Button variant="secondary" size="sm" disabled={!next} onClick={() => go(next)}>
-              <ChevronDown /> Next
-            </Button>
-            <Switch checked={autoplay} onCheckedChange={setAutoplay} className="ml-auto">
-              Autoplay next
-            </Switch>
-          </div>
-        )}
       </div>
 
       {/* In the dialog the reel is laid over this box, so the player column alone sets the
@@ -314,10 +309,10 @@ export const ClipViewer = ({
 }
 
 /**
- * In the dialog the video runs nearly edge to edge: full-bleed on phones, like the match table, and
- * with a narrower inset than the text below it from md up.
+ * In the dialog the video runs nearly edge to edge: full-bleed below lg, like the match table on
+ * phones, and with a narrower inset than the text below it from lg up.
  */
-const VIDEO_FRAME = 'md:mx-3 md:mt-3 md:rounded-lg overflow-hidden'
+const VIDEO_FRAME = 'lg:mx-3 lg:mt-3 lg:rounded-lg'
 const CONTENT_INSET = 'px-4 md:px-6'
 
 /** Pause after a clip ends before autoplay moves on, so the switch doesn't feel like a cut. */
@@ -329,8 +324,12 @@ const Player = ({
   onEnded,
   modal,
   onClose,
+  autoplay,
+  onAutoplayChange,
 }: {
   clip: ReelClip
+  autoplay: boolean
+  onAutoplayChange: (on: boolean) => void
   /** The clip autoplay moves to, preloaded once this one is showing. */
   next?: ReelClip
   /** Autoplay's cue; only called while `next` is set. */
@@ -343,15 +342,23 @@ const Player = ({
   const tags = tagSummary(clip.kills)
 
   return (
-    <div>
+    <div className="max-lg:contents">
       <VideoStage
         clip={clip}
         next={next}
         onEnded={onEnded}
-        className={modal ? VIDEO_FRAME : 'rounded-xl'}
+        className={cn(
+          // Under the phone header (the dialog's or the app's), at the very top from md.
+          'z-10 max-lg:sticky max-lg:top-14 md:max-lg:top-0',
+          modal
+            ? VIDEO_FRAME
+            : // The page's gutters: filled, so the reel doesn't show beside the stuck video.
+              // Sideways only, so nothing above it is covered.
+              'rounded-md max-lg:shadow-[-1rem_0_var(--color-surface),1rem_0_var(--color-surface)] md:max-lg:shadow-[-2rem_0_var(--color-surface),2rem_0_var(--color-surface)]',
+        )}
       />
 
-      <div className={cn(modal && CONTENT_INSET)}>
+      <div className={cn(modal ? cn(CONTENT_INSET, 'max-lg:pb-4 md:max-lg:pb-6') : 'max-lg:pb-8')}>
         {/* Buttons stay on the first line; a long title wraps beside them. */}
         <div className="mt-5 flex items-start gap-3">
           <Title className="min-w-0 flex-1 text-xl leading-8 font-semibold tracking-tight text-balance">
@@ -364,14 +371,15 @@ const Player = ({
             <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
             <span className="truncate text-[15px] font-medium">{clip.player.name}</span>
           </div>
-          <span aria-hidden className="text-border-strong select-none">
+          <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·
           </span>
           <Link
             to="/matches/$id"
             params={{ id: clip.matchId }}
             onClick={onClose}
-            className="flex min-w-0 items-center gap-1.5 text-sm text-muted hover:text-foreground"
+            // Its own line on phones, where it would wrap anyway.
+            className="flex min-w-0 items-center gap-1.5 text-sm text-muted hover:text-foreground max-sm:basis-full"
           >
             <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
             <span className="truncate">
@@ -380,16 +388,26 @@ const Player = ({
             </span>
           </Link>
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Badge tone="brand">{KIND_LABEL[clip.kind]}</Badge>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <Badge tone="brand" className={TAG_CASE}>
+            {KIND_LABEL[clip.kind]}
+          </Badge>
           {tags.map((tag) => (
-            <Badge key={tag}>{tag}</Badge>
+            <Badge key={tag} className={TAG_CASE}>
+              {tag}
+            </Badge>
           ))}
+          <Switch checked={autoplay} onCheckedChange={onAutoplayChange} className="ml-auto">
+            Autoplay next
+          </Switch>
         </div>
       </div>
     </div>
   )
 }
+
+/** Kinds and tags read as written ("Ace", "Low HP"), the same as on the cards and in the reel. */
+const TAG_CASE = 'normal-case tracking-normal'
 
 /** How long a copy confirms itself before going back. */
 const COPIED_MS = 1500
@@ -489,7 +507,7 @@ const VideoStage = ({
   }
 
   return (
-    <div className={cn('relative aspect-video bg-black', className)}>
+    <div className={cn('relative aspect-video overflow-hidden bg-black', className)}>
       {layers.map((layer, i) => (
         <VideoLayer
           key={layer.clip.id}
@@ -579,8 +597,13 @@ const Reel = ({
   isMatch,
   modal,
   onSelect,
+  onPrev,
+  onNext,
 }: {
   reel: ReturnType<typeof useReel>
+  /** Unset at either end of the reel. */
+  onPrev?: () => void
+  onNext?: () => void
   activeId: string
   /** "3 of 12", once the playing clip is found in the reel. */
   position?: string
@@ -619,20 +642,29 @@ const Reel = ({
           ? // In the dialog it takes the player column's height rather than adding its own: laid
             // over its grid cell (ClipViewer wraps it in a relative box), it never sets the row.
             'px-4 pb-4 md:px-6 md:pb-6 lg:absolute lg:inset-0 lg:p-0'
-          : 'lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:self-start',
+          : // Down to the bottom of the screen, through the page's bottom padding.
+            'lg:sticky lg:top-10 lg:-mb-10 lg:max-h-[calc(100dvh-2.5rem)] lg:self-start',
       )}
     >
       <div
         className={cn(
-          'mb-2 pb-2 flex items-baseline justify-between gap-3 text-sm',
+          'mb-2 pb-1 flex items-center gap-2 text-sm',
           // Item padding (p-2) lines the heading up with the thumbnails.
           modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
       >
-        <h2 className="font-medium text-muted">
+        <h2 className="flex-1 font-medium text-muted">
           {isMatch ? 'From this match' : 'More highlights'}
         </h2>
-        {position && <span className="text-muted/70 tabular-nums">{position}</span>}
+        {position && <span className="text-muted tabular-nums">{position}</span>}
+        <div className="flex">
+          <IconButton size="sm" label="Previous (K)" disabled={!onPrev} onClick={onPrev}>
+            <ChevronUp />
+          </IconButton>
+          <IconButton size="sm" label="Next (J)" disabled={!onNext} onClick={onNext}>
+            <ChevronDown />
+          </IconButton>
+        </div>
       </div>
       {/* Scrolls on its own from lg up; below that it is as tall as its clips. */}
       <ScrollArea.Root
@@ -652,7 +684,7 @@ const Reel = ({
         >
           {/* One column that may shrink below its content, so long titles truncate instead of
             widening every row past the reel. */}
-          <ol className={cn('grid grid-cols-1 content-start gap-1', modal && 'lg:pr-3 lg:pb-3')}>
+          <ol className={cn('grid grid-cols-1 content-start', modal && 'lg:pr-3 lg:pb-3')}>
             {reel.isPending &&
               Array.from({ length: 6 }, (_, i) => (
                 <li key={i} className="flex gap-3 p-2">
@@ -706,7 +738,7 @@ const ReelItem = ({
       type="button"
       onClick={onSelect}
       aria-current={active ? 'true' : undefined}
-      className="group relative isolate flex w-full cursor-pointer gap-3 rounded-xl p-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      className="group relative isolate flex w-full cursor-pointer gap-3 rounded-xl p-2 text-left select-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
     >
       {/* The card's background is its own layer, so it can scale in on hover and out on leave. */}
       <span

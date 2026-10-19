@@ -26,7 +26,12 @@ export const RankBadge = ({
   showChange?: boolean
   className?: string
 }) => {
-  if (!rank || rank.after === 0) return <span className={cn('text-muted', className)}>–</span>
+  if (!rank || rank.after === 0)
+    return (
+      <span title="No rank for this match" className={cn('text-muted', className)}>
+        –
+      </span>
+    )
 
   if (rank.mode !== 'premier') {
     const name = skillGroupName(rank.after)

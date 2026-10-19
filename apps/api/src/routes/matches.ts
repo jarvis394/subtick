@@ -1,10 +1,10 @@
 import { and, desc, eq, inArray, lt, schema, sql } from '@subtick/db'
 import { isCancelled, isShareCode } from '@subtick/domain'
-import { enqueue } from '@subtick/queue'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { actorOf, cancelMatch, importShareCode, retryMatch } from '../services/matches'
+import { syncNow } from '../services/sync-now'
 import { withParties } from '../services/parties'
 import { getProfiles } from '../services/profiles'
 import { notOneKill, withClipUrls } from '../services/highlights'
@@ -24,7 +24,7 @@ const {
 } = schema
 
 export const matchRoutes = (ctx: Context) => {
-  const { db, auth, queues } = ctx
+  const { db, auth } = ctx
 
   /** Spending or stopping pipeline work is for people who have the match, and admins. */
   const canManage = async (user: { id: string; role?: string | null }, matchId: string) => {
@@ -228,13 +228,15 @@ export const matchRoutes = (ctx: Context) => {
     .post(
       '/refresh',
       async ({ user }) => {
-        // Looks for new matches now instead of at the next scheduled sync.
         const links = await db
           .select({ steamId: steamLink.steamId })
           .from(steamLink)
           .where(eq(steamLink.userId, user.id))
-        await Promise.all(links.map((l) => enqueue(queues.syncUser, { steamId: l.steamId })))
-        return { syncing: links.length }
+        return syncNow(
+          ctx,
+          user.id,
+          links.map((l) => l.steamId),
+        )
       },
       { auth: true },
     )

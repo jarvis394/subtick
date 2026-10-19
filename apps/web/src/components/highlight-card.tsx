@@ -23,6 +23,9 @@ export interface HighlightPlayer {
   avatarUrl: string | null
 }
 
+/** Kinds rare enough to stand out in the feed: their badge is black on white. */
+const RARE = new Set<ClipCardData['kind']>(['ace', 'clutch'])
+
 const shallowEqual = <T extends object>(a: T, b: T) => {
   const keys = Object.keys(a) as (keyof T)[]
   return keys.length === Object.keys(b).length && keys.every((k) => Object.is(a[k], b[k]))
@@ -61,7 +64,7 @@ export const HighlightCard = memo(
           aria-label={`Watch ${highlight.title}`}
           // Otherwise a drag on the thumbnail drags the link out instead.
           draggable={false}
-          className="relative block aspect-video overflow-hidden rounded-xl bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="group/thumb relative block aspect-video overflow-hidden rounded-xl bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={() => void video.current?.play().catch(() => {})}
           onMouseLeave={() => {
             const el = video.current
@@ -95,15 +98,22 @@ export const HighlightCard = memo(
               playing ? 'opacity-100' : 'opacity-0',
             )}
           />
-          <div className="pointer-events-none absolute inset-x-2 top-2 flex items-start justify-between">
-            <Badge className="bg-black/55 text-white backdrop-blur">
+          {/* Along the bottom: the top corners are where CS2 draws its radar and killfeed. */}
+          <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between">
+            <Badge
+              className={cn(
+                'tracking-normal normal-case backdrop-blur',
+                RARE.has(highlight.kind) ? 'bg-white text-black' : 'bg-black/55 text-white',
+              )}
+            >
               {KIND_LABEL[highlight.kind]}
             </Badge>
             <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-white backdrop-blur">
               {clock(Math.max(0, Math.min(total, Math.ceil(total - elapsed))))}
             </span>
           </div>
-          <span className="pointer-events-none absolute inset-0 grid place-items-center">
+          {/* Only where there's no hover preview to say "this plays": touch, or keyboard focus. */}
+          <span className="pointer-events-none absolute inset-0 grid place-items-center opacity-0 group-focus-visible/thumb:opacity-100 pointer-coarse:opacity-100">
             {/* Opacity lives on the blurred circle itself: on a parent it would become the
               backdrop root and the blur would vanish mid-fade. */}
             <span

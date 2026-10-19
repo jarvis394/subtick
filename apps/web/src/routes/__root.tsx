@@ -7,7 +7,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     <div className="grid min-h-dvh place-items-center p-6 text-center">
       <div>
         <p className="font-serif text-2xl">Nothing here</p>
-        <a href="/" className="mt-2 inline-block text-sm text-accent hover:underline">
+        <a href="/" className="link mt-2 inline-block text-sm text-link">
           Back to highlights
         </a>
       </div>

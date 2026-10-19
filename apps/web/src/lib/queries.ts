@@ -1,6 +1,7 @@
 import type { HighlightKind } from '@subtick/domain'
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 import { ApiError, api, unwrap } from './api'
+import { observeMatches } from './new-matches'
 import { clearStoredMe, readStoredMe, writeStoredMe } from './stored-me'
 
 export interface ClipFilters {
@@ -18,8 +19,11 @@ const fetchMe = async () => {
   writeStoredMe(me)
   return me
 }
-const fetchMatches = (cursor?: string, limit = 20) =>
-  unwrap(api.matches.get({ query: { cursor, limit } }))
+const fetchMatches = async (cursor?: string, limit = 20) => {
+  const page = await unwrap(api.matches.get({ query: { cursor, limit } }))
+  observeMatches(page.items)
+  return page
+}
 const fetchMatch = (id: string) => unwrap(api.matches({ id }).get())
 const fetchClips = (offset: number, filters: ClipFilters) =>
   unwrap(
@@ -82,7 +86,10 @@ export const clipsQuery = (filters: ClipFilters) =>
 
 /** One recorded clip, for opening the viewer straight from a link. */
 export const clipQuery = (id: string) =>
-  queryOptions({ queryKey: ['highlights', 'clip', id], queryFn: () => fetchClip(id) })
+  queryOptions({
+    queryKey: ['highlights', 'clip', id],
+    queryFn: () => fetchClip(id),
+  })
 
 export const clipFacetsQuery = queryOptions({
   queryKey: ['highlights', 'facets'],

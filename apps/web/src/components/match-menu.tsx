@@ -127,7 +127,7 @@ export const MatchMenu = ({
           <IconButton
             size="xs"
             label="Match actions"
-            // It sits on a row that's already lit surface-2 while hovered.
+            tooltip={false}
             className={cn('[--bg-hover:var(--color-surface-3)]', triggerClassName)}
           />
         }

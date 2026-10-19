@@ -44,7 +44,7 @@ const styles = {
     brand: 'text-brand [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
   },
   link: {
-    neutral: 'text-accent',
+    neutral: 'text-link',
     danger: 'text-danger',
     brand: 'text-brand',
   },
@@ -89,8 +89,7 @@ const boxClass = (variant: Exclude<ButtonVariant, 'link'>, tone: ButtonTone, siz
 
 const linkClass = (tone: ButtonTone) =>
   cn(
-    'cursor-pointer rounded-sm underline decoration-current/40 underline-offset-2 outline-none',
-    'transition-[text-decoration-color] duration-150 hover:decoration-current focus-visible:decoration-current',
+    'link cursor-pointer outline-none',
     'disabled:cursor-not-allowed disabled:opacity-50',
     styles.link[tone],
   )
@@ -214,7 +213,7 @@ export const Button = ({
 
 export interface IconButtonProps extends Omit<ButtonProps, 'variant' | 'children'> {
   /** What the button does: its accessible name and its tooltip. */
-  label: string
+  label?: string
   variant?: 'ghost' | 'secondary'
   /** `false` when the trigger already has a richer tooltip of its own, or its label is obvious. */
   tooltip?: boolean

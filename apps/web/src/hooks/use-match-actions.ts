@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useMutationState, useQueryClient } from '@tanstack/react-query'
 import { flushSync } from 'react-dom'
 import { api, unwrap } from '@/lib/api'
+import { focusedNow } from '@/lib/focus-clock'
 import type { MatchDetail, QueueItem } from '@/lib/queries'
 
 /** Everything that shows a match's pipeline state. */
@@ -81,18 +82,34 @@ export const useCancelMoment = (matchId: string, { morph = false } = {}) => {
   })
 }
 
-/** Asks Steam for new matches now instead of at the next scheduled sync. */
+const REFRESH_KEY = ['refresh-matches']
+
+/** `at` is the focus-clock reading when the check finished, so a later view can tell it is stale. */
+type RefreshResult = { newMatches: number; done: boolean; at: number }
+
+/**
+ * Asks Steam for new matches now, and resolves once the sync has run, with what it found. Every
+ * caller shares one refresh: a check started anywhere spins every refresh button, and its result
+ * reaches them all.
+ */
 export const useRefreshMatches = () => {
   const queryClient = useQueryClient()
-  return useMutation({
+  const { mutate } = useMutation({
+    mutationKey: REFRESH_KEY,
     mutationFn: async () => {
       // A spin short enough to read as instant still says the click landed.
       const [result] = await Promise.all([
         unwrap(api.matches.refresh.post()),
         new Promise((resolve) => setTimeout(resolve, 600)),
       ])
-      return result
+      return { ...result, at: focusedNow() }
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['matches'] }),
   })
+  const isPending = useIsMutating({ mutationKey: REFRESH_KEY }) > 0
+  const data = useMutationState({
+    filters: { mutationKey: REFRESH_KEY, status: 'success' },
+    select: (m) => m.state.data as RefreshResult,
+  }).at(-1)
+  return { isPending, data, mutate: () => !isPending && mutate() }
 }

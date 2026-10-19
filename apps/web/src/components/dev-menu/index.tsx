@@ -1,0 +1,74 @@
+import { Popover } from '@base-ui/react/popover'
+import { Tabs } from '@base-ui/react/tabs'
+import { FlaskConical } from 'lucide-react'
+import { useState } from 'react'
+import { IconButton } from '@/components/ui/button'
+import { DevMatchesTab } from './matches-tab'
+
+/** Sections of the menu; each is a tab. `close` dismisses the menu, e.g. before navigating. */
+const TABS = [
+  {
+    value: 'matches',
+    label: 'Matches',
+    panel: (close: () => void) => <DevMatchesTab onNavigate={close} />,
+  },
+] as const
+
+/** Same switcher as Manage instance. */
+const tabClass =
+  'relative z-10 flex h-7 cursor-pointer items-center rounded-md px-2.5 text-[13px] whitespace-nowrap text-muted transition-colors outline-none select-none hover:text-foreground data-active:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+
+/**
+ * Dev builds only (app-shell leaves it out of production bundles): a floating button that opens
+ * local helpers. Black and on the dark tokens in both themes, so it reads as tooling rather than
+ * part of the app.
+ */
+export default function DevMenu() {
+  const [open, setOpen] = useState(false)
+  const close = () => setOpen(false)
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
+      <div className="theme-dark fixed right-4 bottom-4 z-50 [view-transition-class:chrome] [view-transition-name:dev-menu]">
+        <Popover.Trigger
+          render={
+            <IconButton
+              label="Dev tools"
+              tooltip={false}
+              className="size-10 rounded-full border border-border-strong shadow-lg shadow-black/30 [--bg:black]"
+            />
+          }
+        >
+          <FlaskConical />
+        </Popover.Trigger>
+      </div>
+      <Popover.Portal>
+        <Popover.Positioner side="top" align="end" sideOffset={8} className="z-50">
+          <Popover.Popup className="theme-dark w-80 origin-(--transform-origin) rounded-2xl border border-border-strong bg-black text-foreground shadow-2xl shadow-black/40 outline-none transition-[scale,opacity] duration-200 ease-out-quart data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-starting-style:scale-[0.96] data-starting-style:opacity-0">
+            <Tabs.Root defaultValue={TABS[0].value}>
+              <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
+                <Popover.Title className="text-[12px] font-medium text-muted">
+                  Dev tools
+                </Popover.Title>
+                <Tabs.List className="relative flex gap-0.5" aria-label="Sections">
+                  {TABS.map((tab) => (
+                    <Tabs.Tab key={tab.value} value={tab.value} className={tabClass}>
+                      {tab.label}
+                    </Tabs.Tab>
+                  ))}
+                  <Tabs.Indicator className="absolute top-0 left-0 z-0 h-7 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-md bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
+                </Tabs.List>
+              </div>
+              {TABS.map((tab) => (
+                <Tabs.Panel key={tab.value} value={tab.value} className="outline-none">
+                  {tab.panel(close)}
+                </Tabs.Panel>
+              ))}
+            </Tabs.Root>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
