@@ -18,8 +18,7 @@ import { EmptyState } from '@/components/empty-state'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
-import { KillfeedDialog } from '@/components/killfeed-dialog'
-import { momentDetails } from '@/components/moment-row'
+import { RoundMoment } from '@/components/round-moment'
 import { FadeImage } from '@/components/ui/fade-image'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
@@ -394,7 +393,16 @@ const Player = ({
           <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·
           </span>
-          <RoundButton clip={clip} />
+          <RoundMoment
+            matchId={clip.matchId}
+            momentId={clip.id}
+            player={clip.player}
+            trigger={(handlers) => (
+              <Button variant="ghost" size="sm" className="text-[15px]" {...handlers}>
+                Round {clip.round}
+              </Button>
+            )}
+          />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <Badge tone="brand" className={TAG_CASE}>
@@ -432,41 +440,6 @@ const useCopied = () => {
     timer.current = setTimeout(() => setCopied(false), COPIED_MS)
   }
   return { copied, copy }
-}
-
-/** "Round N": opens the moment's killfeed. The match is only read once it's asked for. */
-const RoundButton = ({ clip }: { clip: ReelClip }) => {
-  const [open, setOpen] = useState(false)
-  const [asked, setAsked] = useState(false)
-  const { data } = useQuery({ ...matchQuery(clip.matchId), enabled: asked })
-  const moment = data?.highlights.find((h) => h.id === clip.id)
-
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          setAsked(true)
-          setOpen(true)
-        }}
-        onPointerEnter={() => setAsked(true)}
-        className="text-[15px]"
-      >
-        Round {clip.round}
-      </Button>
-      {data && moment && (
-        <KillfeedDialog
-          open={open}
-          onOpenChange={setOpen}
-          match={data}
-          moment={moment}
-          player={clip.player}
-          subtitle={momentDetails(moment)}
-        />
-      )}
-    </>
-  )
 }
 
 /**
