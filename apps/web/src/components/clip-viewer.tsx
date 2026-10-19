@@ -8,13 +8,12 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Clapperboard,
   Link2,
   Share2,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { EmptyState } from '@/components/empty-state'
+import { ErrorPage } from '@/components/error-page'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
@@ -265,7 +264,7 @@ export const ClipViewer = ({
       {/* Below lg the column (and the player in it) dissolves into the grid, so the video is a
         grid item of its own and can stay stuck at the top while the reel scrolls under it. */}
       <div className={cn('min-w-0 max-lg:contents', modal && 'lg:pb-6')}>
-        {!modal && (
+        {!modal && !missing && (
           <Link
             to="/"
             className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
@@ -275,10 +274,11 @@ export const ClipViewer = ({
         )}
 
         {missing ? (
-          <EmptyState
-            icon={<Clapperboard />}
+          <ErrorPage
             title="Clip not found"
             description="It may not have been recorded yet, or the link is wrong."
+            className="min-h-80"
+            onBack={onClose}
           />
         ) : current ? (
           <Player
@@ -375,34 +375,44 @@ const Player = ({
           <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link to="/matches/$id" params={{ id: clip.matchId }} onClick={onClose} />}
-            // Its own line on phones, where it would wrap anyway.
-            // On the match page the link is the current page, which would light it like a hovered
-            // button; it should look like its neighbour.
-            className="min-w-0 text-[15px] aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground max-sm:basis-full max-sm:justify-start"
-          >
-            <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
-            <span className="truncate">
-              {mapName(clip.map)}
-              {clip.playedAt && ` ${formatDate(clip.playedAt)}`}
+          {/* Its own line on phones, pulled left by the buttons' padding so the text lines up with
+            the avatar. */}
+          <div className="flex min-w-0 items-center gap-x-0.5 max-sm:-ml-2.5 max-sm:basis-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              render={<Link to="/matches/$id" params={{ id: clip.matchId }} onClick={onClose} />}
+              // On the match page the link is the current page, which would light it like a hovered
+              // button; it should look like its neighbour.
+              className="min-w-0 text-[15px] aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground"
+            >
+              <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
+              <span className="truncate">
+                {mapName(clip.map)}
+                {clip.playedAt && (
+                  <>
+                    <span aria-hidden className="mx-1.5 text-border-strong">
+                      ·
+                    </span>
+                    {formatDate(clip.playedAt)}
+                  </>
+                )}
+              </span>
+            </Button>
+            <span aria-hidden className="text-border-strong select-none">
+              ·
             </span>
-          </Button>
-          <span aria-hidden className="text-border-strong select-none max-sm:hidden">
-            ·
-          </span>
-          <RoundMoment
-            matchId={clip.matchId}
-            momentId={clip.id}
-            player={clip.player}
-            trigger={(handlers) => (
-              <Button variant="ghost" size="sm" className="text-[15px]" {...handlers}>
-                Round {clip.round}
-              </Button>
-            )}
-          />
+            <RoundMoment
+              matchId={clip.matchId}
+              momentId={clip.id}
+              player={clip.player}
+              trigger={(handlers) => (
+                <Button variant="ghost" size="sm" className="text-[15px]" {...handlers}>
+                  Round {clip.round}
+                </Button>
+              )}
+            />
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <Badge tone="brand" className={TAG_CASE}>

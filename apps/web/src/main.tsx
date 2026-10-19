@@ -3,6 +3,7 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MotionConfig } from 'motion/react'
+import { ErrorPage } from './components/error-page'
 import { Toaster } from './components/ui/toaster'
 import { ApiError } from './lib/api'
 import { notifyError } from './lib/notify'
@@ -48,6 +49,8 @@ const isClip = (path?: string) => !!path && /^\/clips\/[^/]+\/?$/.test(path)
 const router = createRouter({
   routeTree,
   context: { queryClient },
+  defaultErrorComponent: ({ error, reset }) => <ErrorPage error={error} reset={reset} />,
+  defaultNotFoundComponent: () => <ErrorPage />,
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
