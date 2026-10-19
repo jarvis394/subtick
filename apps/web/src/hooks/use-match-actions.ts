@@ -1,5 +1,4 @@
 import { useIsMutating, useMutation, useMutationState, useQueryClient } from '@tanstack/react-query'
-import { flushSync } from 'react-dom'
 import { api, unwrap } from '@/lib/api'
 import { focusedNow } from '@/lib/focus-clock'
 import type { MatchDetail, QueueItem } from '@/lib/queries'
@@ -15,30 +14,34 @@ const useRefreshMatch = () => {
     ])
 }
 
+/** `inlineError` when the caller shows the failure itself; otherwise it's toasted. */
+type ActionOptions = { inlineError?: boolean }
+
 /** Stops a match's processing; Retry picks it up again. */
-export const useCancelMatch = () => {
+export const useCancelMatch = ({ inlineError = false }: ActionOptions = {}) => {
   const refresh = useRefreshMatch()
   return useMutation({
+    meta: { inlineError },
     mutationFn: (id: string) => unwrap(api.matches({ id }).cancel.post()),
     onSettled: (_data, _error, id) => refresh(id),
   })
 }
 
 /** Runs a failed, expired or cancelled match through the pipeline again. */
-export const useRetryMatch = () => {
+export const useRetryMatch = ({ inlineError = false }: ActionOptions = {}) => {
   const refresh = useRefreshMatch()
   return useMutation({
+    meta: { inlineError },
     mutationFn: (id: string) => unwrap(api.matches({ id }).retry.post()),
     onSettled: (_data, _error, id) => refresh(id),
   })
 }
 
 /**
- * Takes a queued clip off the recording queue. The match cache drops it first; with `morph` (the
- * Create highlights page) that happens inside a `queue` view transition, so its card visibly moves
- * from the Queue back to its round, the way recording moved it there.
+ * Takes a queued clip off the recording queue. The match cache drops it first, so its card moves
+ * from the Queue back to its round at once.
  */
-export const useCancelMoment = (matchId: string, { morph = false } = {}) => {
+export const useCancelMoment = (matchId: string) => {
   const queryClient = useQueryClient()
   const refresh = useRefreshMatch()
   const key = ['match', matchId]
@@ -67,16 +70,7 @@ export const useCancelMoment = (matchId: string, { morph = false } = {}) => {
             })),
           },
       )
-      if (
-        morph &&
-        document.startViewTransition &&
-        !matchMedia('(prefers-reduced-motion: reduce)').matches
-      )
-        document.startViewTransition({
-          update: () => flushSync(() => markCandidate(id)),
-          types: ['queue'],
-        })
-      else markCandidate(id)
+      markCandidate(id)
     },
     onSettled: () => refresh(matchId),
   })

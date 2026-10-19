@@ -37,6 +37,7 @@ function UserRow({ user }: { user: AdminUser }) {
   const { data: me } = useSuspenseQuery(meQuery)
   const queryClient = useQueryClient()
   const setRole = useMutation({
+    meta: { inlineError: true },
     mutationFn: (role: AdminUser['role']) =>
       unwrap(api.admin.users({ id: user.id }).patch({ role })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),

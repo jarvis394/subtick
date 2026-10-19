@@ -12,7 +12,7 @@ import type { MatchDetail } from '@/lib/queries'
 
 /**
  * A moment on the Create highlights page: an outlined card that opens its killfeed, with its
- * action on the side. `moment-card` lets the queue view transition morph it into the Queue.
+ * action on the side.
  */
 export const MomentCard = ({
   moment,
@@ -34,14 +34,14 @@ export const MomentCard = ({
   cancelling: boolean
 }) => {
   // An action picked in the dialog runs once it has closed, so the card's move between the Queue
-  // and its round (a view transition) plays on the page, not under the closing dialog.
+  // and its round plays on the page, not under the closing dialog.
   const afterClose = useRef<(() => void) | null>(null)
   const closeThen = (action: () => void) => () => {
     afterClose.current = action
   }
 
   return (
-    <div className="moment-card flex min-w-0 items-center gap-3 rounded-2xl border pr-3">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border pr-3">
       <KillfeedDialog
         match={match}
         moment={moment}

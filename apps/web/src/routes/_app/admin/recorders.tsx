@@ -5,7 +5,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { Badge, Card, Skeleton } from '@/components/ui/surface'
-import { Collapse, usePresence } from '@/components/ui/presence'
+import { FadeItem, FadeList } from '@/components/ui/presence'
 import { type AdminRecorder, recordersQuery } from '@/lib/admin'
 import { api, unwrap } from '@/lib/api'
 import { timeAgo } from '@/lib/format'
@@ -32,10 +32,8 @@ function RecordersPage() {
   const recorders = useQuery(recordersQuery)
   const [adding, setAdding] = useState(false)
   const [issued, setIssued] = useState<Issued | null>(null)
-  const cards = usePresence(recorders.data ?? [], (recorder) => recorder.id, recorders.isSuccess)
 
   return (
-    // Flex, not grid: a removed card's negative margin can then cancel its gap as it collapses.
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted">
@@ -64,19 +62,18 @@ function RecordersPage() {
           GPU using the token it gives you.
         </Card>
       ) : (
-        cards.map(({ key, item: recorder, exiting, entering }) => (
-          // The section's gap moves inside, so a removed recorder takes its gap with it.
-          <Collapse key={key} exiting={exiting} entering={entering} className="-mt-4">
-            <div className="pt-4">
+        <FadeList>
+          {recorders.data?.map((recorder) => (
+            <FadeItem key={recorder.id}>
               <RecorderCard
                 recorder={recorder}
                 token={issued?.id === recorder.id ? issued.token : null}
                 onToken={(token) => setIssued({ id: recorder.id, token })}
                 onDismissToken={() => setIssued(null)}
               />
-            </div>
-          </Collapse>
-        ))
+            </FadeItem>
+          ))}
+        </FadeList>
       )}
     </section>
   )
@@ -91,6 +88,7 @@ function AddRecorderForm({
 }) {
   const queryClient = useQueryClient()
   const add = useMutation({
+    meta: { inlineError: true },
     mutationFn: (name: string) => unwrap(api.admin.recorders.post({ name })),
     onSuccess: async (issued) => {
       await queryClient.invalidateQueries({ queryKey: ['admin'] })
@@ -182,6 +180,7 @@ function RecorderCard({
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin'] })
 
   const update = useMutation({
+    meta: { inlineError: true },
     mutationFn: (body: { paused?: boolean }) =>
       unwrap(api.admin.recorders({ id: recorder.id }).patch(body)),
     onSuccess: refresh,

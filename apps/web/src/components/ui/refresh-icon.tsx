@@ -1,47 +1,55 @@
 import { RotateCw } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import {
+  type AnimationPlaybackControls,
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+} from 'motion/react'
+import { useEffect } from 'react'
+import { EASE_OUT_QUART } from '@/lib/motion'
 
 /** One turn while spinning; the last turn after a stop eases out over about as long. */
-const TURN_MS = 700
+const TURN_S = 0.7
+
+const MotionRotateCw = motion.create(RotateCw)
 
 /**
  * The refresh arrow, turning while `spinning`. It eases into the first turn, and when spinning
  * stops it carries on to the end of the turn it's on and settles there, instead of snapping back.
  */
 export const RefreshIcon = ({ spinning, className }: { spinning: boolean; className?: string }) => {
-  const icon = useRef<SVGSVGElement>(null)
-  const spin = useRef<Animation | null>(null)
+  const rotate = useMotionValue(0)
+  const reduce = useReducedMotion()
 
   useEffect(() => {
-    const el = icon.current
-    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (reduce) return
     if (spinning) {
+      let cancelled = false
+      let loop: AnimationPlaybackControls | undefined
       // One eased turn to get going, then steady turns from there.
-      const start = el.animate([{ rotate: '0deg' }, { rotate: '360deg' }], {
-        duration: TURN_MS * 1.3,
-        easing: 'cubic-bezier(0.5, 0, 0.75, 1)',
-      })
-      spin.current = start
-      start.onfinish = () => {
-        spin.current = el.animate([{ rotate: '0deg' }, { rotate: '360deg' }], {
-          duration: TURN_MS,
-          iterations: Infinity,
-        })
+      const start = animate(rotate, [0, 360], { duration: TURN_S * 1.3, ease: [0.5, 0, 0.75, 1] })
+      const keepTurning = async () => {
+        await start
+        if (!cancelled)
+          loop = animate(rotate, [0, 360], { duration: TURN_S, ease: 'linear', repeat: Infinity })
       }
-      return
+      void keepTurning()
+      return () => {
+        cancelled = true
+        start.stop()
+        loop?.stop()
+      }
     }
-    const running = spin.current
-    if (!running) return
-    spin.current = null
     // Finish the turn from wherever it got to.
-    const angle = Number.parseFloat(getComputedStyle(el).rotate) || 0
-    running.onfinish = null
-    running.cancel()
-    el.animate([{ rotate: `${angle}deg` }, { rotate: '360deg' }], {
-      duration: TURN_MS * (0.6 + ((360 - angle) / 360) * 0.6),
-      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    const angle = rotate.get() % 360
+    if (angle === 0) return
+    const finish = animate(rotate, [angle, 360], {
+      duration: TURN_S * (0.6 + ((360 - angle) / 360) * 0.6),
+      ease: EASE_OUT_QUART,
     })
-  }, [spinning])
+    return () => finish.stop()
+  }, [spinning, reduce, rotate])
 
-  return <RotateCw ref={icon} className={className} />
+  return <MotionRotateCw style={{ rotate }} className={className} />
 }

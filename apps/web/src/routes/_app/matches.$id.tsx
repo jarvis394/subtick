@@ -3,7 +3,7 @@ import { mapName } from '@subtick/domain'
 import { type QueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, CircleStop, Plus, RotateCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
@@ -14,13 +14,14 @@ import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
 import { Button } from '@/components/ui/button'
-import { Collapse, Presence, usePresence } from '@/components/ui/presence'
+import { AutoHeight, FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
 import { useMatchProgress } from '@/hooks/use-match-events'
 import { formatDate } from '@/lib/format'
 import { clipMask, clipViewerSearch } from '@/lib/highlights'
 import { type MatchDetail, type MatchListItem, matchQuery, meQuery } from '@/lib/queries'
+import { markSeen } from '@/lib/new-matches'
 import { cn } from '@/lib/utils'
 
 /** Everything the page header shows, so it can render before the full match has loaded. */
@@ -94,6 +95,7 @@ const tabClass =
 
 function MatchPage() {
   const { id } = Route.useParams()
+  useEffect(() => markSeen(id), [id])
   const { preview } = Route.useLoaderData()
   const { clip } = Route.useSearch()
   const navigate = Route.useNavigate()
@@ -134,8 +136,8 @@ const BodySkeleton = () => (
 
 function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
   const { data: me } = useSuspenseQuery(meQuery)
-  const retry = useRetryMatch()
-  const cancel = useCancelMatch()
+  const retry = useRetryMatch({ inlineError: true })
+  const cancel = useCancelMatch({ inlineError: true })
   const progress = useMatchProgress(id, head?.status ?? 'ready')
   const canManage = Boolean(head && (head.mine || me.user.isAdmin))
   const canRetry = canManage && head && (head.status === 'failed' || head.status === 'expired')
@@ -256,10 +258,10 @@ function MatchBody({ data }: { data: MatchDetail }) {
   const highlights = data.highlights.filter((h) => scope === 'all' || mySteamIds.has(h.steamId))
   const clips = highlights.filter((h) => h.clip)
   // Asked for and not out yet; candidates are picked on the Create highlights page.
-  const queue = highlights.filter(
-    (h) => !h.clip && (h.status === 'queued' || h.status === 'failed'),
-  )
-  const queued = usePresence(queue, (h) => h.id)
+  // In the order the recorder works through them (demo order).
+  const queue = highlights
+    .filter((h) => !h.clip && (h.status === 'queued' || h.status === 'failed'))
+    .toSorted((a, b) => a.startTick - b.startTick)
   const canCreate = data.highlights.some((h) => h.status === 'candidate')
   const players = new Map(
     data.players.map((p) => [p.steamId, { name: p.name, avatarUrl: p.avatarUrl }]),
@@ -305,13 +307,12 @@ function MatchBody({ data }: { data: MatchDetail }) {
             {data.match.status !== 'ready'
               ? 'Highlights appear once the demo is analyzed.'
               : canCreate
-                ? 'Nothing recorded yet. Pick moments to record with Create more.'
-                : 'No standout moments in this one.'}
+                ? 'Nothing recorded yet.'
+                : 'No standout moments in this match.'}
           </p>
         ) : (
-          // A flex column, not a grid: the Queue's negative margin can then cancel the gap as it
-          // collapses (a grid row stops at zero and the gap would jump away at the end).
-          <div className="flex flex-col gap-10">
+          // No gap: the Queue's box stays (at no height) while empty, so it spaces itself.
+          <div className="grid">
             {clips.length > 0 && (
               <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                 {clips.map((h) => (
@@ -324,28 +325,26 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 ))}
               </div>
             )}
-            {/* Cancelled and recorded moments collapse out; the block goes with the last one. */}
-            <Presence show={queue.length > 0} className="-mt-10">
+            {/* Cancelled and recorded moments fade out; the block goes with the last one. */}
+            <Presence show={queue.length > 0}>
               {/* Long titles truncate instead of widening the page. */}
-              <div className="min-w-0 pt-10">
+              <div className={cn('min-w-0', clips.length > 0 && 'pt-10')}>
                 <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
-                <div className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-                  {queued.map(({ key, item: m, exiting, entering }) => (
-                    <Collapse
-                      key={key}
-                      exiting={exiting}
-                      entering={entering}
-                      className="border-b last:border-0"
-                    >
-                      <MomentRow
-                        moment={m}
-                        match={data}
-                        player={scope === 'all' ? playerOf(m.steamId) : undefined}
-                        owner={playerOf(m.steamId)}
-                      />
-                    </Collapse>
-                  ))}
-                </div>
+                {/* Eases to its new height as rows come and go, so the border never jumps. */}
+                <AutoHeight className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
+                  <FadeList>
+                    {queue.map((m) => (
+                      <FadeItem key={m.id} className="border-b last:border-0">
+                        <MomentRow
+                          moment={m}
+                          match={data}
+                          player={scope === 'all' ? playerOf(m.steamId) : undefined}
+                          owner={playerOf(m.steamId)}
+                        />
+                      </FadeItem>
+                    ))}
+                  </FadeList>
+                </AutoHeight>
               </div>
             </Presence>
           </div>

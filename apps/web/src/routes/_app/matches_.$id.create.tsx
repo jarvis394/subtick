@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, SearchX } from 'lucide-react'
+import { LayoutGroup, motion } from 'motion/react'
+import type { ReactNode, Ref } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { KindTabs } from '@/components/kind-tabs'
 import { MomentCard } from '@/components/moment-card'
+import { FadeItem, FadeList, fade } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { useCancelMoment } from '@/hooks/use-match-actions'
@@ -26,13 +29,32 @@ const byRound = (moments: Highlight[]) => {
   return [...rounds]
 }
 
+// Recording or cancelling a moment fades its card out of one section and into the other, and
+// everything around it slides to its new place.
+const Section = ({
+  ref,
+  title,
+  children,
+}: {
+  ref?: Ref<HTMLElement>
+  title: string
+  children: ReactNode
+}) => (
+  <motion.section ref={ref} {...fade}>
+    <h2 className="mb-3 text-sm font-medium text-muted">{title}</h2>
+    <div className="grid gap-3 md:grid-cols-2">
+      <FadeList>{children}</FadeList>
+    </div>
+  </motion.section>
+)
+
 function CreateHighlightsPage() {
   const { id } = Route.useParams()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { data } = useQuery(matchQuery(id))
   const record = useRecordMoment(id)
-  const cancel = useCancelMoment(id, { morph: true })
+  const cancel = useCancelMoment(id)
 
   const kind = search.kind ?? 'all'
   const kinds: readonly string[] = KIND_FILTERS.find((f) => f.id === kind)!.kinds
@@ -43,7 +65,11 @@ function CreateHighlightsPage() {
       (kinds.length === 0 || kinds.includes(h.kind)) &&
       (!search.mine || h.steamId === viewer),
   )
-  const queue = shown.filter((h) => h.status === 'queued' || h.status === 'failed')
+  // In the order the recorder works through them (demo order), so a newly queued moment lands
+  // where it will actually be recorded.
+  const queue = shown
+    .filter((h) => h.status === 'queued' || h.status === 'failed')
+    .toSorted((a, b) => a.startTick - b.startTick)
   const rounds = byRound(shown.filter((h) => h.status === 'candidate'))
 
   const players = new Map(data?.players.map((p) => [p.steamId, p]))
@@ -52,16 +78,17 @@ function CreateHighlightsPage() {
     return { name: p?.name ?? 'Unknown', avatarUrl: p?.avatarUrl ?? null }
   }
   const card = (h: Highlight) => (
-    <MomentCard
-      key={h.id}
-      moment={h}
-      match={data!}
-      player={playerOf(h.steamId)}
-      onRecord={() => record.mutate(h.id)}
-      recording={record.isPending && record.variables === h.id}
-      onCancel={() => cancel.mutate(h.id)}
-      cancelling={cancel.isPending && cancel.variables === h.id}
-    />
+    <FadeItem key={h.id}>
+      <MomentCard
+        moment={h}
+        match={data!}
+        player={playerOf(h.steamId)}
+        onRecord={() => record.mutate(h.id)}
+        recording={record.isPending && record.variables === h.id}
+        onCancel={() => cancel.mutate(h.id)}
+        cancelling={cancel.isPending && cancel.variables === h.id}
+      />
+    </FadeItem>
   )
 
   return (
@@ -112,20 +139,22 @@ function CreateHighlightsPage() {
           }
         />
       ) : (
-        <div className="grid gap-10">
-          {queue.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-medium text-muted">Queue</h2>
-              <div className="grid gap-3 md:grid-cols-2">{queue.map(card)}</div>
-            </section>
-          )}
-          {rounds.map(([round, moments]) => (
-            <section key={round}>
-              <h2 className="mb-3 text-sm font-medium text-muted">Round {round}</h2>
-              <div className="grid gap-3 md:grid-cols-2">{moments.map(card)}</div>
-            </section>
-          ))}
-        </div>
+        <LayoutGroup>
+          <div className="grid gap-10">
+            <FadeList>
+              {queue.length > 0 && (
+                <Section key="queue" title="Queue">
+                  {queue.map(card)}
+                </Section>
+              )}
+              {rounds.map(([round, moments]) => (
+                <Section key={`round-${round}`} title={`Round ${round}`}>
+                  {moments.map(card)}
+                </Section>
+              ))}
+            </FadeList>
+          </div>
+        </LayoutGroup>
       )}
     </div>
   )

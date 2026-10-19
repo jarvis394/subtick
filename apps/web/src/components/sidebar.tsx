@@ -170,7 +170,15 @@ const RecentRow = ({
           pending && 'shimmer',
         )}
       >
-        <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
+        {/* In the rail the name (and its new-match dot) fades out, so a dot fades in on the map. */}
+        <span className="relative flex shrink-0">
+          <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
+          <NewDot
+            matchId={match.id}
+            hidden={!collapsed}
+            className="absolute -top-0.5 -right-0.5 ml-0"
+          />
+        </span>
         <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>
           <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
             <span className="flex min-w-0 items-center">

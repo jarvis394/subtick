@@ -11,8 +11,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { MorphLabel } from '@/components/ui/morph-label'
-import { Collapse, usePresence } from '@/components/ui/presence'
-import { Reveal } from '@/components/ui/reveal'
+import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Badge, Card } from '@/components/ui/surface'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
@@ -32,7 +31,6 @@ const linkSteam = () => void startSteamFlow('link', '/settings')
 
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
-  const steamLinks = usePresence(me.steamLinks, (link) => link.steamId)
   const { error, email: emailStatus } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -131,10 +129,9 @@ function SettingsPage() {
               </Row>
             </Group>
           )}
-          {steamLinks.map(({ key, item: link, exiting, entering }) => (
-            // The section's gap moves inside, so an unlinked account takes its gap with it.
-            <Collapse key={key} exiting={exiting} entering={entering} className="-mt-3">
-              <div className="pt-3">
+          <FadeList>
+            {me.steamLinks.map((link) => (
+              <FadeItem key={link.steamId}>
                 <SteamLinkGroup
                   link={link}
                   onAddEmail={() => {
@@ -142,9 +139,9 @@ function SettingsPage() {
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                 />
-              </div>
-            </Collapse>
-          ))}
+              </FadeItem>
+            ))}
+          </FadeList>
         </Section>
       </div>
     </div>
@@ -161,7 +158,6 @@ const Section = ({
   action?: ReactNode
   children: ReactNode
 }) => (
-  // Flex, not grid: a collapsing item's negative margin can then cancel its gap.
   <section className="flex flex-col gap-3">
     <div className="flex h-8 items-center justify-between gap-4">
       <h2 className="text-[15px] font-medium">{title}</h2>
@@ -216,6 +212,7 @@ function SteamLinkGroup({
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(!link.hasMatchAuth)
   const unlink = useMutation({
+    meta: { inlineError: true },
     mutationFn: () => unwrap(api['steam-links']({ steamId: link.steamId }).delete()),
     onSuccess: () => queryClient.invalidateQueries(),
   })
@@ -233,7 +230,7 @@ function SteamLinkGroup({
         description={
           <>
             Steam account
-            <Reveal open={lastSignIn}>
+            <Presence show={lastSignIn}>
               <p className="pt-1 leading-relaxed text-danger">
                 This is your only way to sign in.
                 <br />
@@ -249,7 +246,7 @@ function SteamLinkGroup({
                 </Button>{' '}
                 first, then unlink it
               </p>
-            </Reveal>
+            </Presence>
           </>
         }
       >
@@ -307,6 +304,7 @@ function DeleteAccountDialog() {
   const [open, setOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const remove = useMutation({
+    meta: { inlineError: true },
     mutationFn: async () => {
       const { error } = await authClient.deleteUser({})
       if (error) throw error

@@ -18,6 +18,7 @@ const ERRORS: Record<string, string> = {
 export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: () => void }) => {
   const queryClient = useQueryClient()
   const save = useMutation({
+    meta: { inlineError: true },
     mutationFn: (body: { authCode: string; shareCode: string }) =>
       unwrap(api['steam-links']({ steamId })['match-auth'].put(body)),
     onSuccess: async () => {

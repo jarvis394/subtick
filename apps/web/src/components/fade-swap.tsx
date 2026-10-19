@@ -1,9 +1,7 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import type { ReactNode } from 'react'
+import { EASE_OUT_QUART } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-
-const EXIT_MS = 150
-
-type Layer = { key: string; node: ReactNode }
 
 /**
  * Crossfades between views when `swapKey` changes. The old view stays mounted in the same grid cell
@@ -28,61 +26,33 @@ export const FadeSwap = ({
   appear?: boolean
   className?: string
   children: ReactNode
-}) => {
-  const [current, setCurrent] = useState(swapKey)
-  const [exiting, setExiting] = useState<Layer[]>([])
-  const [swapped, setSwapped] = useState(false)
-  // The current view as last painted: what stays on screen while it fades out.
-  const painted = useRef(children)
+}) => (
+  <div className={cn('grid', className)}>
+    <AnimatePresence initial={appear}>
+      <Layer key={swapKey} enterDelay={enterDelay}>
+        {children}
+      </Layer>
+    </AnimatePresence>
+  </div>
+)
 
-  if (current !== swapKey) {
-    setCurrent(swapKey)
-    setSwapped(true)
-    setExiting((layers) => [
-      ...layers.filter((l) => l.key !== current && l.key !== swapKey),
-      { key: current, node: painted.current },
-    ])
-  }
-
-  useLayoutEffect(() => {
-    painted.current = children
-  })
-
-  // Every outgoing view has finished fading by one exit after the latest swap.
-  useEffect(() => {
-    if (exiting.length === 0) return
-    const timer = setTimeout(() => setExiting([]), EXIT_MS)
-    return () => clearTimeout(timer)
-  }, [exiting])
-
-  // Keyed, and in a fixed order, so a view keeps its DOM node going from current to exiting (or
-  // back) and its opacity transition carries over. Moving the node would restart it.
-  const layers = [...exiting.filter((l) => l.key !== swapKey), { key: swapKey, node: children }]
-  layers.sort((a, b) => (a.key < b.key ? -1 : 1))
-
+const Layer = ({ enterDelay, children }: { enterDelay: number; children: ReactNode }) => {
+  const present = useIsPresent()
   return (
-    <div className={cn('grid', className)}>
-      {layers.map((layer) => {
-        const isCurrent = layer.key === swapKey
-        return (
-          <div
-            key={layer.key}
-            inert={!isCurrent}
-            style={isCurrent ? { transitionDelay: `${enterDelay}ms` } : undefined}
-            className={cn(
-              'col-start-1 row-start-1 min-w-0 transition-opacity',
-              isCurrent
-                ? cn(
-                    'relative z-1 duration-200 ease-out-quart',
-                    (appear || swapped) && 'starting:opacity-0',
-                  )
-                : 'pointer-events-none opacity-0 duration-150 ease-out',
-            )}
-          >
-            {layer.node}
-          </div>
-        )
-      })}
-    </div>
+    <motion.div
+      inert={!present}
+      className={cn(
+        'col-start-1 row-start-1 min-w-0',
+        present ? 'relative z-1' : 'pointer-events-none',
+      )}
+      initial={{ opacity: 0 }}
+      animate={{
+        opacity: 1,
+        transition: { duration: 0.2, delay: enterDelay / 1000, ease: EASE_OUT_QUART },
+      }}
+      exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
+    >
+      {children}
+    </motion.div>
   )
 }

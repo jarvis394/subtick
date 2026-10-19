@@ -298,7 +298,6 @@ export const ClipViewer = ({
             </div>
           </div>
         )}
-
       </div>
 
       {/* In the dialog the reel is laid over this box, so the player column alone sets the

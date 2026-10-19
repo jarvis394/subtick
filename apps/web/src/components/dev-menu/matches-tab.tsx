@@ -2,9 +2,10 @@ import { mapName } from '@subtick/domain'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Plus, X } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { MapIcon } from '@/components/map-icon'
 import { Button, IconButton } from '@/components/ui/button'
+import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { api, unwrap } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,8 @@ const fakesQuery = {
   queryFn: () => unwrap(api.dev.matches.get()),
 }
 
-type FakeCard = Awaited<ReturnType<typeof fakesQuery.queryFn>>['pending'][number]
+type Fakes = Awaited<ReturnType<typeof fakesQuery.queryFn>>
+type FakeCard = Fakes['pending'][number]
 
 /** Stages fake matches for the next "Check for new", and lists the ones it made. */
 export const DevMatchesTab = ({ onNavigate }: { onNavigate: () => void }) => {
@@ -38,42 +40,51 @@ export const DevMatchesTab = ({ onNavigate }: { onNavigate: () => void }) => {
         Add random match
       </Button>
 
-      <div className="-mr-1 grid max-h-80 overflow-y-auto pr-1">
-        <Section title="Staged" hint="Turn up on the next check for new matches">
-          {data?.pending.map((fake) => (
-            <FakeRow key={fake.id} fake={fake} />
-          ))}
-        </Section>
-        <Section title="Added">
-          {data?.added.map((fake) => (
-            <FakeRow key={fake.id} fake={fake} onNavigate={onNavigate} />
-          ))}
-        </Section>
-        {data && !data.pending.length && !data.added.length && (
-          <p className="py-4 text-center text-[12px] text-muted">No fake matches yet</p>
-        )}
-      </div>
+      {/* Mounted with the first data, so what's already there doesn't animate in. */}
+      {data && (
+        <div className="-mr-1 grid max-h-80 overflow-y-auto pr-1">
+          <Section
+            title="Staged"
+            hint="Turn up on the next check for new matches"
+            fakes={data.pending}
+          />
+          <Section title="Added" fakes={data.added} onNavigate={onNavigate} />
+          <Presence show={!data.pending.length && !data.added.length}>
+            <p className="py-4 text-center text-[12px] text-muted">No fake matches yet</p>
+          </Presence>
+        </div>
+      )}
     </div>
   )
 }
 
+/** A titled list of fakes; rows fade in and out, and the section goes with its last. */
 const Section = ({
   title,
   hint,
-  children,
+  fakes,
+  onNavigate,
 }: {
   title: string
   hint?: string
-  children: ReactNode[] | undefined
-}) =>
-  children?.length ? (
+  fakes: FakeCard[]
+  onNavigate?: () => void
+}) => (
+  <Presence show={fakes.length > 0}>
     <section className="grid pb-1">
       <p className="mb-1 px-1 text-[11px] font-medium text-muted" title={hint}>
-        {title} · {children.length}
+        {title} · {fakes.length}
       </p>
-      {children}
+      <FadeList>
+        {fakes.map((fake) => (
+          <FadeItem key={fake.id}>
+            <FakeRow fake={fake} onNavigate={onNavigate} />
+          </FadeItem>
+        ))}
+      </FadeList>
     </section>
-  ) : null
+  </Presence>
+)
 
 // Room on the right for the delete button, which sits over the card rather than inside the link.
 const cardClass =
@@ -85,13 +96,25 @@ const cardClass =
  */
 const FakeRow = ({ fake, onNavigate }: { fake: FakeCard; onNavigate?: () => void }) => {
   const queryClient = useQueryClient()
-  // Collapses as soon as it's asked to go, then the refetch drops it for good.
-  const [removing, setRemoving] = useState(false)
+  // Dropped from the cache at once, so it fades out; a failure puts it back.
   const remove = useMutation({
     mutationFn: () => unwrap(api.dev.matches({ id: fake.id }).delete()),
-    onMutate: () => setRemoving(true),
-    onError: () => setRemoving(false),
-    onSuccess: () =>
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: fakesQuery.queryKey })
+      const previous = queryClient.getQueryData<Fakes>(fakesQuery.queryKey)
+      queryClient.setQueryData<Fakes>(
+        fakesQuery.queryKey,
+        (data) =>
+          data && {
+            pending: data.pending.filter((f) => f.id !== fake.id),
+            added: data.added.filter((f) => f.id !== fake.id),
+          },
+      )
+      return { previous }
+    },
+    onError: (_error, _variables, context) =>
+      queryClient.setQueryData(fakesQuery.queryKey, context?.previous),
+    onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: fakesQuery.queryKey }),
         queryClient.invalidateQueries({ queryKey: ['matches'] }),
@@ -99,42 +122,34 @@ const FakeRow = ({ fake, onNavigate }: { fake: FakeCard; onNavigate?: () => void
   })
 
   return (
-    <div
-      className={cn(
-        'grid transition-[grid-template-rows,opacity] duration-200 ease-out-quart',
-        removing ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] starting:opacity-0',
-      )}
-    >
-      <div className="min-h-0 overflow-hidden pb-1">
-        <div className="relative">
-          {onNavigate ? (
-            <Link
-              to="/matches/$id"
-              params={{ id: fake.id }}
-              onClick={onNavigate}
-              className={cn(
-                cardClass,
-                'transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-              )}
-            >
-              <FakeSummary fake={fake} />
-            </Link>
-          ) : (
-            <div className={cardClass}>
-              <FakeSummary fake={fake} />
-            </div>
-          )}
-          <IconButton
-            size="sm"
-            label="Delete"
-            aria-label={`Delete fake ${mapName(fake.map)} match`}
-            onClick={() => remove.mutate()}
-            disabled={removing}
-            className="absolute top-1/2 right-1.5 -translate-y-1/2"
+    <div className="pb-1">
+      <div className="relative">
+        {onNavigate ? (
+          <Link
+            to="/matches/$id"
+            params={{ id: fake.id }}
+            onClick={onNavigate}
+            className={cn(
+              cardClass,
+              'transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            )}
           >
-            <X />
-          </IconButton>
-        </div>
+            <FakeSummary fake={fake} />
+          </Link>
+        ) : (
+          <div className={cardClass}>
+            <FakeSummary fake={fake} />
+          </div>
+        )}
+        <IconButton
+          size="sm"
+          label="Delete"
+          aria-label={`Delete fake ${mapName(fake.map)} match`}
+          onClick={() => remove.mutate()}
+          className="absolute top-1/2 right-1.5 -translate-y-1/2"
+        >
+          <X />
+        </IconButton>
       </div>
     </div>
   )

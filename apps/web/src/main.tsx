@@ -1,8 +1,11 @@
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { MotionConfig } from 'motion/react'
+import { Toaster } from './components/ui/toaster'
 import { ApiError } from './lib/api'
+import { notifyError } from './lib/notify'
 import { isSessionError } from './lib/queries'
 import { routeTree } from './routeTree.gen'
 import './styles.css'
@@ -12,10 +15,22 @@ const queryClient = new QueryClient({
   // sign out here (the router's beforeLoad only runs on navigation).
   queryCache: new QueryCache({
     onError: (error, query) => {
-      if (query.queryKey[0] !== 'me' || !isSessionError(error)) return
+      if (query.queryKey[0] !== 'me' || !isSessionError(error)) {
+        // A first load shows its own error state; a failed refresh of data already on screen
+        // would otherwise go unnoticed, leaving it quietly stale.
+        if (query.state.data !== undefined && !isSessionError(error))
+          notifyError('Couldn’t refresh', error, query.queryHash)
+        return
+      }
       queryClient.clear()
       if (['/login', '/signup'].includes(router.state.location.pathname)) return
       void router.navigate({ to: '/login', search: { redirect: router.state.location.href } })
+    },
+  }),
+  // Mutations that show their own error (a form's message) opt out with `meta: { inlineError }`.
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (!mutation.meta?.inlineError) notifyError('That didn’t go through', error)
     },
   }),
   defaultOptions: {
@@ -52,6 +67,12 @@ const stopWatchingFirstLoad = router.subscribe('onResolved', () => {
   stopWatchingFirstLoad()
 })
 
+declare module '@tanstack/react-query' {
+  interface Register {
+    mutationMeta: { inlineError?: boolean }
+  }
+}
+
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
@@ -60,8 +81,12 @@ declare module '@tanstack/react-router' {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    {/* Reduced motion keeps fades but drops movement (transforms and layout animations). */}
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </MotionConfig>
   </StrictMode>,
 )

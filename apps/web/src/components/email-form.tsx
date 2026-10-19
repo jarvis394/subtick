@@ -20,6 +20,7 @@ const ERRORS: Record<string, string> = {
  */
 export const EmailForm = ({ adding }: { adding: boolean }) => {
   const send = useMutation({
+    meta: { inlineError: true },
     mutationFn: async (body: { email: string; password?: string }) => {
       const { data, error } = await authClient.$fetch<{ email: string }>('/email/change', {
         method: 'POST',

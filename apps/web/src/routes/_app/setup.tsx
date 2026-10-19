@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/surface'
 import { describeAuthError, startSteamFlow } from '@/lib/auth'
+import { notifyError } from '@/lib/notify'
 import { meQuery } from '@/lib/queries'
 import { skipSetup } from '@/lib/setup'
 import { cn } from '@/lib/utils'
@@ -75,7 +76,10 @@ function SetupPage() {
               loading={linking}
               onClick={() => {
                 setLinking(true)
-                void startSteamFlow('link', '/setup').catch(() => setLinking(false))
+                void startSteamFlow('link', '/setup').catch((e: unknown) => {
+                  setLinking(false)
+                  notifyError('Couldn’t start the Steam sign-in', e)
+                })
               }}
             >
               <SteamIcon />

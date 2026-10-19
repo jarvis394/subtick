@@ -8,7 +8,7 @@ import { MapIcon } from '@/components/map-icon'
 import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
-import { Collapse, Presence, usePresence } from '@/components/ui/presence'
+import { AutoHeight, FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import {
   ProgressRing,
   clipState,
@@ -64,7 +64,7 @@ function QueuePage() {
                 />
               </Presence>
               <Presence show={waiting.length > 0}>
-                <Group title="Up next" items={waiting} recordingAhead={recordingAhead} numbered />
+                <Group title="Up next" items={waiting} recordingAhead={recordingAhead} />
               </Presence>
             </div>
           )
@@ -86,47 +86,51 @@ function QueuePage() {
 const Group = ({
   title,
   items,
-  numbered,
   recordingAhead,
   className,
 }: {
   title: string
   items: QueueItem[]
-  numbered?: boolean
   recordingAhead: (item: QueueItem) => number
   className?: string
 }) => {
-  // Finished and cancelled matches collapse out instead of the list jumping.
-  const rows = usePresence(items, (item) => item.matchId)
+  // Finished and cancelled matches fade out and the rest slide up, instead of the list jumping.
   return (
     <section className={cn('min-w-0', className)}>
       <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted">
         {title}
         <span className="text-muted/60 tabular-nums">{items.length}</span>
       </h2>
-      {/* Flex, not grid: a leaving card's negative margin can then cancel its gap. */}
-      <div role="list" className="flex flex-col gap-4">
-        {rows.map(({ key, item, exiting, entering }) => (
-          <Collapse key={key} exiting={exiting} entering={entering} className="-mt-4">
-            <div className="pt-4">
-              <div className="rounded-2xl border">
-                <QueueRow
-                  item={item}
-                  position={numbered && !exiting ? items.indexOf(item) + 1 : undefined}
-                />
-                <Presence show={item.moments.length > 0}>
-                  <ClipGroups item={item} ahead={recordingAhead(item)} />
-                </Presence>
-              </div>
-            </div>
-          </Collapse>
-        ))}
-      </div>
+      {/* Eases to its new height, so the group below slides instead of jumping. */}
+      <AutoHeight>
+        <div role="list" className="flex flex-col gap-4">
+          <FadeList>
+            {items.map((item) => (
+              <FadeItem key={item.matchId}>
+                {/* Its border eases to the new height as clips come and go. */}
+                {/* With clips at the bottom, its bottom corners = the clip cards' radius (12px) + the
+                    padding around them, so the corners nest. */}
+                <AutoHeight
+                  className={cn(
+                    'rounded-2xl border transition-[border-radius] duration-300 ease-out-quart',
+                    item.moments.length > 0 && 'rounded-b-3xl sm:rounded-b-[28px]',
+                  )}
+                >
+                  <QueueRow item={item} />
+                  <Presence show={item.moments.length > 0}>
+                    <ClipGroups item={item} ahead={recordingAhead(item)} />
+                  </Presence>
+                </AutoHeight>
+              </FadeItem>
+            ))}
+          </FadeList>
+        </div>
+      </AutoHeight>
     </section>
   )
 }
 
-const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) => {
+const QueueRow = ({ item }: { item: QueueItem }) => {
   const cancel = useCancelMatch()
   const { progress } = useLiveProgress(item)
 
@@ -155,11 +159,6 @@ const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) =>
         params={{ id: item.matchId }}
         className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
-        {position !== undefined && (
-          <span className="w-4 shrink-0 text-right font-mono text-[12px] text-muted/60 tabular-nums">
-            {position}
-          </span>
-        )}
         <MapIcon map={item.map} className="size-9 shrink-0 rounded-lg text-[14px]" />
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-2">
@@ -244,38 +243,38 @@ const ClipGroups = ({ item, ahead }: { item: QueueItem; ahead: number }) => {
       .filter((m) => m.state === 'waiting' || m.state === 'recording').length
     return before <= 1 ? 'Up next' : `After ${before} clips`
   }
-  // A group whose last clip was cancelled collapses out with it.
-  const groups = usePresence(byRequester(item.moments), (g) => g[0]!.requester?.id ?? 'auto')
+  // A group whose last clip was cancelled fades out with it.
   return (
-    // Flex, not grid: a leaving group's negative margin can then cancel its gap.
     <div className="flex flex-col gap-4 border-t p-3 sm:p-4">
-      {groups.map(({ key, item: group, exiting, entering }) => {
-        const requester = group[0]!.requester
-        return (
-          <Collapse key={key} exiting={exiting} entering={entering} className="-mt-4">
-            <section className="min-w-0 pt-4">
-              <h3 className="mb-2 flex items-center gap-2 text-[12px] font-medium text-muted">
-                {requester ? (
-                  <Avatar src={requester.image} name={requester.name} className="size-5" />
-                ) : (
-                  <span className="grid size-5 place-items-center rounded-full bg-surface-2">
-                    <Sparkles className="size-3" />
-                  </span>
-                )}
-                {requester
-                  ? `Requested by ${requester.isViewer ? 'you' : requester.name}`
-                  : 'Picked automatically'}
-              </h3>
-              <ClipList
-                matchId={item.matchId}
-                moments={group}
-                current={current}
-                waitingFor={waitingFor}
-              />
-            </section>
-          </Collapse>
-        )
-      })}
+      <FadeList>
+        {byRequester(item.moments).map((group) => {
+          const requester = group[0]!.requester
+          return (
+            <FadeItem key={requester?.id ?? 'auto'}>
+              <section className="min-w-0">
+                <h3 className="mb-2 flex items-center gap-2 text-[12px] font-medium text-muted">
+                  {requester ? (
+                    <Avatar src={requester.image} name={requester.name} className="size-5" />
+                  ) : (
+                    <span className="grid size-5 place-items-center rounded-full bg-surface-2">
+                      <Sparkles className="size-3" />
+                    </span>
+                  )}
+                  {requester
+                    ? `Requested by ${requester.isViewer ? 'you' : requester.name}`
+                    : 'Picked automatically'}
+                </h3>
+                <ClipList
+                  matchId={item.matchId}
+                  moments={group}
+                  current={current}
+                  waitingFor={waitingFor}
+                />
+              </section>
+            </FadeItem>
+          )
+        })}
+      </FadeList>
     </div>
   )
 }
@@ -291,20 +290,21 @@ const ClipList = ({
   current?: ClipProgress
   waitingFor: (clip: QueueClip) => string
 }) => {
-  // Cancelled clips collapse out of the grid.
-  const entries = usePresence(moments, (m) => m.id)
+  // Cancelled clips fade out of the grid.
   return (
     <div className="grid gap-2 sm:grid-cols-2">
-      {entries.map(({ key, item, exiting, entering }) => (
-        <Collapse key={key} exiting={exiting} entering={entering}>
-          <QueueClipCard
-            matchId={matchId}
-            clip={item}
-            current={current}
-            waitingFor={waitingFor(item)}
-          />
-        </Collapse>
-      ))}
+      <FadeList>
+        {moments.map((item) => (
+          <FadeItem key={item.id}>
+            <QueueClipCard
+              matchId={matchId}
+              clip={item}
+              current={current}
+              waitingFor={waitingFor(item)}
+            />
+          </FadeItem>
+        ))}
+      </FadeList>
     </div>
   )
 }

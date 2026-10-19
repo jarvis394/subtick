@@ -1,12 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { type Ref, useLayoutEffect, useRef, useState } from 'react'
+import { EASE_OUT_STRONG } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-
-/** Strong ease-out: the change starts at once and settles softly. */
-const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'
-const IN_MS = 220
-/** The incoming text waits a beat, so it isn't muddled with the outgoing one at full strength. */
-const IN_DELAY_MS = 40
-const OUT_MS = 120
 
 /**
  * A label that morphs when its text changes (Add email ↔ Cancel): the old text fades out over the
@@ -25,73 +20,72 @@ export const MorphLabel = ({
   align?: 'center' | 'start'
 }) => {
   const incoming = useRef<HTMLSpanElement>(null)
-  const outgoing = useRef<HTMLSpanElement>(null)
-  const [shown, setShown] = useState(children)
-  const [leaving, setLeaving] = useState<{ text: string; id: number } | null>(null)
   const [width, setWidth] = useState<number>()
-
-  // Updated during render, so the old text never misses a frame between leaving and fading out.
-  if (shown !== children) {
-    setLeaving((previous) => ({ text: shown, id: (previous?.id ?? 0) + 1 }))
-    setShown(children)
-  }
+  const reduce = useReducedMotion()
 
   useLayoutEffect(() => {
     if (incoming.current) setWidth(incoming.current.offsetWidth)
-  }, [shown])
-
-  // WAAPI rather than CSS keyframes: it runs on exactly the elements that just changed, every time.
-  useLayoutEffect(() => {
-    if (!leaving) return
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return setLeaving(null)
-    incoming.current?.animate(
-      [
-        { opacity: 0, scale: '0.96' },
-        { opacity: 1, scale: '1' },
-      ],
-      {
-        duration: IN_MS,
-        delay: IN_DELAY_MS,
-        easing: EASE_OUT,
-        fill: 'backwards',
-      },
-    )
-    const out = outgoing.current?.animate([{ opacity: 1 }, { opacity: 0, scale: '0.96' }], {
-      duration: OUT_MS,
-      easing: 'ease-out',
-      fill: 'forwards',
-    })
-    out?.finished
-      .then(() => setLeaving((current) => (current?.id === leaving.id ? null : current)))
-      // Cancelled by the next change, which replaces this one.
-      .catch(() => {})
-  }, [leaving])
+  }, [children])
 
   return (
-    <span
+    <motion.span
       className={cn(
         'relative inline-flex whitespace-nowrap',
         align === 'center' ? 'justify-center' : 'justify-start',
-        'transition-[width] duration-250 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none',
       )}
-      style={{ width }}
+      initial={false}
+      animate={width === undefined ? undefined : { width }}
+      transition={reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG }}
     >
-      {leaving && (
-        <span
-          key={leaving.id}
-          ref={outgoing}
-          aria-hidden
-          className={cn(
-            'pointer-events-none absolute top-0',
-            align === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0',
-          )}
-        >
-          {leaving.text}
-        </span>
+      <AnimatePresence initial={false}>
+        <Text key={children} ref={incoming} align={align} reduce={!!reduce}>
+          {children}
+        </Text>
+      </AnimatePresence>
+    </motion.span>
+  )
+}
+
+const Text = ({
+  ref,
+  align,
+  reduce,
+  children,
+}: {
+  ref: Ref<HTMLSpanElement>
+  align: 'center' | 'start'
+  reduce: boolean
+  children: string
+}) => {
+  const present = useIsPresent()
+  return (
+    <motion.span
+      ref={present ? ref : undefined}
+      aria-hidden={!present || undefined}
+      className={cn(
+        present
+          ? 'shrink-0'
+          : cn(
+              'pointer-events-none absolute top-0',
+              align === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0',
+            ),
       )}
-      <span key={shown} ref={incoming} className="shrink-0">
-        {shown}
-      </span>
-    </span>
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        // The incoming text waits a beat, so it isn't muddled with the outgoing one at full strength.
+        transition: reduce
+          ? { duration: 0 }
+          : { duration: 0.22, delay: 0.04, ease: EASE_OUT_STRONG },
+      }}
+      exit={{
+        opacity: 0,
+        scale: 0.96,
+        transition: { duration: reduce ? 0 : 0.12, ease: 'easeOut' },
+      }}
+    >
+      {children}
+    </motion.span>
   )
 }
