@@ -128,20 +128,24 @@ function CreateHighlightsPage() {
             <Skeleton key={i} className="h-16 rounded-2xl" />
           ))}
         </div>
-      ) : queue.length === 0 && rounds.length === 0 ? (
-        <EmptyState
-          icon={<SearchX />}
-          title="No moments to record here"
-          description={
-            kind !== 'all' || search.mine
-              ? 'Try another kind, or turn off Only mine'
-              : 'Every moment in this match is recorded or queued'
-          }
-        />
       ) : (
         <LayoutGroup>
           <div className="grid gap-10">
             <FadeList>
+              {/* In the list with the sections, so it fades with them as filters change. */}
+              {queue.length === 0 && rounds.length === 0 && (
+                <FadeItem key="empty">
+                  <EmptyState
+                    icon={<SearchX />}
+                    title="No moments to record here"
+                    description={
+                      kind !== 'all' || search.mine
+                        ? 'Try another kind, or turn off Only mine'
+                        : 'Every moment in this match is recorded or queued'
+                    }
+                  />
+                </FadeItem>
+              )}
               {queue.length > 0 && (
                 <Section key="queue" title="Queue">
                   {queue.map(card)}

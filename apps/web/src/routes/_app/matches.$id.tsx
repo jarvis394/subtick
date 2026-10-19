@@ -322,7 +322,9 @@ function MatchBody({ data }: { data: MatchDetail }) {
             )}
           </div>
         </div>
-        {clips.length === 0 && queue.length === 0 ? (
+        {/* Placeholder and sections are always mounted, so each fades in and out (and the page
+          eases to the new height) as clips and the queue come and go. */}
+        <Presence show={clips.length === 0 && queue.length === 0}>
           <p className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted">
             {data.match.status !== 'ready'
               ? 'Highlights appear once the demo is analyzed.'
@@ -330,45 +332,46 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 ? 'Nothing recorded yet.'
                 : 'No standout moments in this match.'}
           </p>
-        ) : (
-          // No gap: the Queue's box stays (at no height) while empty, so it spaces itself.
-          <div className="grid grid-cols-[minmax(0,1fr)]">
-            {clips.length > 0 && (
-              <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-                {clips.map((h) => (
+        </Presence>
+        {/* No gap: the Queue's box stays (at no height) while empty, so it spaces itself. */}
+        <div className="grid grid-cols-[minmax(0,1fr)]">
+          {/* The box eases to the grid's height as clips come and go. */}
+          <AutoHeight innerClassName="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+            <FadeList>
+              {clips.map((h) => (
+                <FadeItem key={h.id}>
                   <HighlightCard
-                    key={h.id}
                     highlight={{ ...h, clip: h.clip!, map: data.match.map }}
                     player={playerOf(h.steamId)}
                     context={`Round ${h.round}`}
                   />
-                ))}
-              </div>
-            )}
-            {/* Cancelled and recorded moments fade out; the block goes with the last one. */}
-            <Presence show={queue.length > 0}>
-              {/* Long titles truncate instead of widening the page. */}
-              <div className={cn('min-w-0', clips.length > 0 && 'pt-10')}>
-                <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
-                {/* Eases to its new height as rows come and go, so the border never jumps. */}
-                <AutoHeight className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-                  <FadeList>
-                    {queue.map((m) => (
-                      <FadeItem key={m.id} className="border-b last:border-0">
-                        <MomentRow
-                          moment={m}
-                          match={data}
-                          player={scope === 'all' ? playerOf(m.steamId) : undefined}
-                          owner={playerOf(m.steamId)}
-                        />
-                      </FadeItem>
-                    ))}
-                  </FadeList>
-                </AutoHeight>
-              </div>
-            </Presence>
-          </div>
-        )}
+                </FadeItem>
+              ))}
+            </FadeList>
+          </AutoHeight>
+          {/* Cancelled and recorded moments fade out; the block goes with the last one. */}
+          <Presence show={queue.length > 0}>
+            {/* Long titles truncate instead of widening the page. */}
+            <div className={cn('min-w-0', clips.length > 0 && 'pt-10')}>
+              <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
+              {/* Eases to its new height as rows come and go, so the border never jumps. */}
+              <AutoHeight className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
+                <FadeList>
+                  {queue.map((m) => (
+                    <FadeItem key={m.id} className="border-b last:border-0">
+                      <MomentRow
+                        moment={m}
+                        match={data}
+                        player={scope === 'all' ? playerOf(m.steamId) : undefined}
+                        owner={playerOf(m.steamId)}
+                      />
+                    </FadeItem>
+                  ))}
+                </FadeList>
+              </AutoHeight>
+            </div>
+          </Presence>
+        </div>
       </section>
 
       {data.rounds.length > 0 && (
