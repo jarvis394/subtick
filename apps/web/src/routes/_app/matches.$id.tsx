@@ -13,7 +13,7 @@ import { MatchStatusBadge, isProcessing } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
 import { RoundTimeline } from '@/components/round-timeline'
 import { Scoreboard } from '@/components/scoreboard'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Collapse, Presence, usePresence } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
@@ -183,20 +183,21 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                       variant="secondary"
                       className="ml-1"
                       onClick={() => retry.mutate(id)}
-                      disabled={retry.isPending}
+                      loading={retry.isPending}
                     >
-                      <RotateCw className="size-3.5" /> {head.cancelled ? 'Resume' : 'Retry'}
+                      <RotateCw /> {head.cancelled ? 'Resume' : 'Retry'}
                     </Button>
                   )}
                   {canCancel && (
                     <Button
                       size="sm"
-                      variant="danger-ghost"
+                      variant="ghost"
+                      tone="danger"
                       className="ml-1"
                       onClick={() => cancel.mutate(id)}
-                      disabled={cancel.isPending}
+                      loading={cancel.isPending}
                     >
-                      <CircleStop className="size-3.5" /> Cancel
+                      <CircleStop /> Cancel
                     </Button>
                   )}
                 </p>
@@ -272,18 +273,17 @@ function MatchBody({ data }: { data: MatchDetail }) {
           <h2 className="font-serif text-xl tracking-tight">Highlights</h2>
           <div className="flex items-center gap-3">
             {canCreate && (
-              <Link
-                to="/matches/$id/create"
-                params={{ id: data.match.id }}
-                className={buttonClass('contrast', 'sm')}
+              <Button
+                variant="primary"
+                size="sm"
+                render={<Link to="/matches/$id/create" params={{ id: data.match.id }} />}
               >
-                <ButtonLayer />
                 <Plus />
                 {/* One flex item, so the button's gap doesn't widen the space before "more". */}
                 <span>
                   Create<span className="max-sm:hidden"> more</span>
                 </span>
-              </Link>
+              </Button>
             )}
             {myPlayer && (
               <Tabs.Root value={scope} onValueChange={(v) => setScope(v as typeof scope)}>

@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { FadeImage } from '@/components/ui/fade-image'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
@@ -161,7 +161,7 @@ export const ClipViewerDialog = ({
           {/* From md up beside the card's top corner, on the backdrop, and held there while the
             dialog scrolls: outside the scroll area. Lines up with the card's right edge, which
             stops moving once the card reaches its max width (80rem plus the 4rem side margins). */}
-          <CloseButton className="absolute top-12 right-[calc(1rem+max(0px,(100vw-88rem)/2))] transition-[color,opacity] group-data-ending-style/dialog:opacity-0 group-data-starting-style/dialog:opacity-0 max-md:hidden md:after:-inset-3 md:hover:bg-transparent" />
+          <CloseButton className="absolute top-12 right-[calc(1rem+max(0px,(100vw-88rem)/2))] transition-[color,opacity] group-data-ending-style/dialog:opacity-0 group-data-starting-style/dialog:opacity-0 max-md:hidden md:after:-inset-3 md:[--bg-hover:transparent]" />
         </Dialog.Viewport>
       </Dialog.Portal>
     </Dialog.Root>
@@ -169,21 +169,20 @@ export const ClipViewerDialog = ({
 }
 
 /**
- * The pseudo-element is a hit margin so a slightly-off tap still closes: 10px by default, which
- * fills the phone's 56px bar exactly.
+ * The pseudo-element is a hit margin so a slightly-off tap still closes: 10px, which fills the
+ * phone's 56px bar exactly.
  */
 const CloseButton = ({ className }: { className?: string }) => (
   <Dialog.Close
-    aria-label="Close"
-    className={cn(
-      'relative grid size-9 cursor-pointer place-items-center rounded-full text-muted outline-none after:absolute after:-inset-2.5 hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
-      // On the backdrop: no fill, just a dimmed icon. A solid gray, not white at partial opacity,
-      // which would darken where the X's strokes overlap.
-      'transition-colors duration-150',
-      className,
-    )}
+    render={
+      <IconButton
+        label="Close"
+        tooltip={false}
+        className={cn('after:absolute after:-inset-2.5', className)}
+      />
+    }
   >
-    <X className="size-5" />
+    <X />
   </Dialog.Close>
 )
 
@@ -435,14 +434,12 @@ const ShareActions = ({ clip }: { clip: ReelClip }) => {
         <Share2 />
         <MorphLabel>{shareCopy.copied ? 'Copied' : 'Share'}</MorphLabel>
       </Button>
-      <button
-        type="button"
+      <IconButton
+        variant="secondary"
+        size="sm"
+        label={linkCopy.copied ? 'Link copied' : 'Copy link'}
         onClick={() => linkCopy.copy(url)}
-        aria-label={linkCopy.copied ? 'Link copied' : 'Copy link'}
-        title={linkCopy.copied ? 'Link copied' : 'Copy link'}
-        className={buttonClass('secondary', 'icon', 'size-8 rounded-lg')}
       >
-        <ButtonLayer />
         <span className="grid place-items-center *:col-start-1 *:row-start-1">
           <Link2
             className={cn(
@@ -457,7 +454,7 @@ const ShareActions = ({ clip }: { clip: ReelClip }) => {
             )}
           />
         </span>
-      </button>
+      </IconButton>
     </div>
   )
 }

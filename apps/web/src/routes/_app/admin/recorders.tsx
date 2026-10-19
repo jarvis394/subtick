@@ -112,7 +112,7 @@ function AddRecorderForm({
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={add.isPending}>
+          <Button type="submit" variant="primary" loading={add.isPending}>
             Add
           </Button>
         </div>
@@ -127,7 +127,7 @@ const CopyButton = ({ text }: { text: string }) => {
   return (
     <Button
       size="sm"
-      variant="outline"
+      variant="secondary"
       onClick={async () => {
         await navigator.clipboard.writeText(text)
         setCopied(true)
@@ -254,9 +254,9 @@ function RecorderCard({
       <div className="flex flex-wrap gap-2 border-t pt-4">
         <Button
           size="sm"
-          variant="outline"
+          variant="secondary"
           onClick={() => update.mutate({ paused: !recorder.paused })}
-          disabled={update.isPending}
+          loading={update.isPending}
         >
           {recorder.paused ? 'Resume' : 'Pause'}
         </Button>
@@ -267,18 +267,18 @@ function RecorderCard({
             if (confirm(`New token for ${recorder.name}? The current one stops working.`))
               rotate.mutate()
           }}
-          disabled={rotate.isPending}
+          loading={rotate.isPending}
         >
           New token
         </Button>
         <Button
           size="sm"
           variant="ghost"
-          className="text-danger hover:text-danger"
+          tone="danger"
           onClick={() => {
             if (confirm(`Remove ${recorder.name}? Its token stops working.`)) remove.mutate()
           }}
-          disabled={remove.isPending}
+          loading={remove.isPending}
         >
           Remove
         </Button>

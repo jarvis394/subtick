@@ -72,14 +72,14 @@ function SetupPage() {
             <Button
               variant="secondary"
               className="justify-self-start"
-              disabled={linking}
+              loading={linking}
               onClick={() => {
                 setLinking(true)
                 void startSteamFlow('link', '/setup').catch(() => setLinking(false))
               }}
             >
               <SteamIcon />
-              {linking ? 'Opening Steam…' : 'Connect Steam'}
+              Connect Steam
             </Button>
             {error && <p className="text-sm text-danger">{describeAuthError(error)}</p>}
           </div>

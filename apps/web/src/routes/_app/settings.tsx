@@ -68,7 +68,8 @@ function SettingsPage() {
             >
               <Button
                 size="sm"
-                variant="danger-ghost"
+                variant="ghost"
+                tone="danger"
                 onClick={async () => {
                   await authClient.signOut()
                   clearStoredMe()
@@ -236,16 +237,16 @@ function SteamLinkGroup({
               <p className="pt-1 leading-relaxed text-danger">
                 This is your only way to sign in.
                 <br />
-                <button
-                  type="button"
+                <Button
+                  variant="link"
+                  tone="danger"
                   onClick={() => {
                     unlink.reset()
                     onAddEmail()
                   }}
-                  className="cursor-pointer underline underline-offset-2 outline-none hover:no-underline focus-visible:no-underline"
                 >
                   Add an email
-                </button>{' '}
+                </Button>{' '}
                 first, then unlink it
               </p>
             </Reveal>
@@ -254,9 +255,10 @@ function SteamLinkGroup({
       >
         <Button
           size="sm"
-          variant="danger-ghost"
+          variant="ghost"
+          tone="danger"
           onClick={() => unlink.mutate()}
-          disabled={unlink.isPending}
+          loading={unlink.isPending}
         >
           Unlink
         </Button>
@@ -334,7 +336,9 @@ function DeleteAccountDialog() {
         }
       }}
     >
-      <Dialog.Trigger render={<Button size="sm" variant="danger-ghost" />}>Delete</Dialog.Trigger>
+      <Dialog.Trigger render={<Button size="sm" variant="ghost" tone="danger" />}>
+        Delete
+      </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
@@ -373,9 +377,15 @@ function DeleteAccountDialog() {
             </Field>
             {message && <p className="text-[13px] text-danger">{message}</p>}
             <div className="flex justify-end gap-2">
-              <Dialog.Close render={<Button variant="secondary" />}>Cancel</Dialog.Close>
-              <Button type="submit" variant="danger" disabled={!confirmed || remove.isPending}>
-                {remove.isPending ? 'Deleting…' : 'Delete account'}
+              <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
+              <Button
+                type="submit"
+                variant="primary"
+                tone="danger"
+                disabled={!confirmed}
+                loading={remove.isPending}
+              >
+                Delete account
               </Button>
             </div>
           </form>

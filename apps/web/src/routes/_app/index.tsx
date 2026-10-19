@@ -91,7 +91,7 @@ function HighlightsPage() {
             })
           }
         >
-          <Select.Trigger className="flex h-9 min-w-36 cursor-pointer items-center gap-2 rounded-[10px] border border-border-strong px-3 text-sm outline-none select-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2">
+          <Select.Trigger className="flex h-9 min-w-36 cursor-pointer items-center gap-2 rounded-control border border-border-strong px-3 text-sm outline-none select-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2">
             <Select.Value className="flex-1 text-left" />
             <Select.Icon>
               <ChevronDown className="size-4 text-muted" />
@@ -175,9 +175,9 @@ function HighlightsPage() {
                 <Button
                   variant="secondary"
                   onClick={() => clips.fetchNextPage()}
-                  disabled={clips.isFetchingNextPage}
+                  loading={clips.isFetchingNextPage}
                 >
-                  {clips.isFetchingNextPage ? 'Loading…' : 'Show more'}
+                  Show more
                 </Button>
               </div>
             )}

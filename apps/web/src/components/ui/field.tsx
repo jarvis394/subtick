@@ -2,11 +2,11 @@ import { Field as BaseField } from '@base-ui/react/field'
 import { Input as BaseInput } from '@base-ui/react/input'
 import { Eye, EyeOff } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useState } from 'react'
-import { ButtonLayer, buttonClass } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export const inputClass = cn(
-  'h-10 w-full rounded-[10px] border border-border-strong bg-surface px-3 text-[15px] text-foreground select-text',
+  'h-10 w-full rounded-control border border-border-strong bg-surface px-3 text-[15px] text-foreground select-text',
   'placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-150',
   'focus:border-accent focus:ring-3 focus:ring-ring/40 data-invalid:border-danger',
   // Invalid stays red while focused, ring included.
@@ -27,20 +27,14 @@ export const PasswordInput = ({ className, ...props }: ComponentProps<typeof Inp
         type={visible ? 'text' : 'password'}
         className={cn('pr-11', typeof className === 'string' && className)}
       />
-      <button
-        type="button"
-        onClick={() => setVisible(!visible)}
-        aria-label={visible ? 'Hide password' : 'Show password'}
+      <IconButton
+        label={visible ? 'Hide password' : 'Show password'}
         aria-pressed={visible}
-        className={buttonClass(
-          'ghost',
-          'icon',
-          'absolute top-1/2 right-1 size-9 -translate-y-1/2 rounded-lg [&_svg]:size-[18px]',
-        )}
+        onClick={() => setVisible(!visible)}
+        className="absolute top-1/2 right-1 -translate-y-1/2"
       >
-        <ButtonLayer />
         {visible ? <EyeOff /> : <Eye />}
-      </button>
+      </IconButton>
     </div>
   )
 }

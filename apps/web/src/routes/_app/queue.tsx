@@ -7,7 +7,7 @@ import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon } from '@/components/map-icon'
 import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { Collapse, Presence, usePresence } from '@/components/ui/presence'
 import {
   ProgressRing,
@@ -184,7 +184,7 @@ const QueueRow = ({ item, position }: { item: QueueItem; position?: number }) =>
           size="sm"
           variant="ghost"
           onClick={() => cancel.mutate(item.matchId)}
-          disabled={cancel.isPending}
+          loading={cancel.isPending}
           aria-label={`Cancel ${mapName(item.map)}`}
         >
           <X /> <span className="max-sm:hidden">Cancel</span>
@@ -345,17 +345,15 @@ const QueueClipCard = ({
         <ClipStatus state={state} phase={phase} waitingFor={waitingFor} />
       </div>
       {clip.canCancel && (
-        <button
-          type="button"
-          onClick={() => cancel.mutate(clip.id)}
-          disabled={cancel.isPending}
+        <IconButton
+          size="xs"
+          label="Cancel recording"
           aria-label={`Cancel recording ${clip.title}`}
-          title="Cancel recording"
-          className={buttonClass('ghost', 'icon', 'size-7 rounded-lg [&_svg]:size-3.5')}
+          onClick={() => cancel.mutate(clip.id)}
+          loading={cancel.isPending}
         >
-          <ButtonLayer />
           <X />
-        </button>
+        </IconButton>
       )}
     </div>
   )

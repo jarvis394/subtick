@@ -20,8 +20,8 @@ import { ProgressRing, QueueRing, liveProgress, useQueueSummary } from '@/compon
 import { perspectiveScore } from '@/components/match-table'
 import { isProcessing } from '@/components/match-status'
 import { Avatar } from '@/components/ui/avatar'
-import { ButtonLayer, buttonClass } from '@/components/ui/button'
-import { Skeleton, Spinner } from '@/components/ui/surface'
+import { Button, IconButton } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/surface'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Wordmark } from '@/components/wordmark'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
@@ -257,21 +257,16 @@ const QueueButton = ({
         )
       }
       trigger={
-        <Link
-          to="/queue"
-          onClick={onNavigate}
-          viewTransition={viewTransition}
-          aria-label={label}
-          className={cn(
-            buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-[18px]'),
-            'data-[status=active]:text-foreground data-[status=active]:[--bg:var(--color-surface-2)]',
-            pending && 'shimmer',
-            className,
-          )}
+        // The tooltip is the queue's summary, so the button's own label tooltip is off.
+        <IconButton
+          size="lg"
+          label={label}
+          tooltip={false}
+          render={<Link to="/queue" onClick={onNavigate} viewTransition={viewTransition} />}
+          className={cn(pending && 'shimmer', className)}
         >
-          <ButtonLayer />
           <QueueRing items={items} />
-        </Link>
+        </IconButton>
       }
     />
   )
@@ -328,17 +323,13 @@ export const SidebarContent = ({
     <div className="flex h-full w-full min-w-64 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-1.5 px-3">
         {onToggle && (
-          <button
-            type="button"
+          <IconButton
+            size="sm"
+            label={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
             onClick={onToggle}
-            aria-label={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-            title={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-            // A ghost icon button, so its background presses in like every other button's.
-            className={buttonClass('ghost', 'icon', 'size-8 rounded-lg [&_svg]:size-[18px]')}
           >
-            <ButtonLayer />
             <PanelLeft />
-          </button>
+          </IconButton>
         )}
         <Link
           to="/"
@@ -353,21 +344,15 @@ export const SidebarContent = ({
           <Wordmark />
         </Link>
         {!setUp && (
-          <Link
-            to="/setup"
-            onClick={onNavigate}
-            viewTransition={viewTransition}
+          <Button
+            size="xs"
+            render={<Link to="/setup" onClick={onNavigate} viewTransition={viewTransition} />}
             tabIndex={collapsed ? -1 : undefined}
-            className={buttonClass(
-              'secondary',
-              'sm',
-              cn('ml-auto h-7 rounded-md px-2 text-[12px]', fade(collapsed)),
-            )}
+            className={cn('ml-auto', fade(collapsed))}
           >
-            <ButtonLayer />
             <span aria-hidden className="size-1.5 rounded-full bg-accent" />
             Finish setup
-          </Link>
+          </Button>
         )}
       </div>
 
@@ -398,27 +383,15 @@ export const SidebarContent = ({
               Recents
             </p>
             {setUp && (
-              <button
-                type="button"
+              <IconButton
+                size="xs"
+                label="Check for new matches"
                 onClick={() => refresh.mutate()}
-                disabled={refresh.isPending}
+                loading={refresh.isPending}
                 tabIndex={collapsed ? -1 : undefined}
-                aria-label="Check for new matches"
-                title="Check for new matches"
-                className={buttonClass(
-                  'ghost',
-                  'icon',
-                  'size-6 rounded-md disabled:cursor-default disabled:opacity-100',
-                )}
               >
-                <ButtonLayer />
-                <RotateCw
-                  className={cn(
-                    'size-3.5',
-                    refresh.isPending && 'animate-spin [animation-duration:600ms]',
-                  )}
-                />
-              </button>
+                <RotateCw />
+              </IconButton>
             )}
           </div>
           <FadeSwap swapKey={recent ? 'ready' : recentFailed ? 'failed' : 'loading'}>
@@ -464,15 +437,15 @@ export const SidebarContent = ({
                 )}
               >
                 <p className="text-[13px] font-medium">Couldn't load matches</p>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="mt-2"
                   onClick={() => void refetch()}
-                  disabled={isFetching}
-                  className="mt-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                  loading={isFetching}
                 >
-                  {isFetching && <Spinner className="size-3" />}
                   Try again
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="grid gap-0.5" aria-hidden>
@@ -501,18 +474,19 @@ export const SidebarContent = ({
       >
         <Menu.Root>
           <Menu.Trigger
-            className={cn(
-              // A compact pill sized to the name; the email lives in the menu.
-              'group/button relative isolate flex h-10 max-w-full cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-1.5 text-left outline-none',
-              // The press-in background layer every button has; lit while the menu is open.
-              '[--bg:transparent] [--bg-hover:var(--color-surface-2)] data-popup-open:[--bg:var(--color-surface-2)]',
-              'focus-visible:ring-2 focus-visible:ring-ring',
-              // Narrows with the rail rather than at once, so the name fades instead of being cut.
-              '[transition:max-width_200ms_var(--ease-out-quart)] motion-reduce:transition-none',
-              collapsed && 'max-w-10',
-            )}
+            render={
+              <Button
+                variant="ghost"
+                className={cn(
+                  // A compact pill sized to the name; the email lives in the menu.
+                  'h-10 max-w-full justify-start gap-2 overflow-hidden rounded-lg px-1.5 text-left font-normal text-foreground hover:text-foreground',
+                  // Narrows with the rail rather than at once, so the name fades instead of being cut.
+                  'transition-[max-width] duration-200 ease-out-quart motion-reduce:transition-none',
+                  collapsed && 'max-w-10',
+                )}
+              />
+            }
           >
-            <ButtonLayer />
             <Avatar src={avatar} name={me.user.name} className="size-7" />
             <span className={cn('flex min-w-0 items-center gap-3 pr-1.5', fade(collapsed))}>
               <span className="truncate text-sm font-medium">{me.user.name}</span>

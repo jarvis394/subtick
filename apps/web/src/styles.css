@@ -87,6 +87,16 @@
   --color-side-ct: var(--ct);
   --color-side-t: var(--t);
   --color-ring: var(--ring);
+  /* Button fills derived from the palette, so both themes follow without their own values. */
+  --color-contrast-hover: color-mix(in oklab, var(--foreground) 88%, var(--background));
+  --color-brand-solid-hover: color-mix(in oklab, var(--brand) 88%, black);
+  --color-brand-soft: color-mix(in oklab, var(--brand) 14%, transparent);
+  --color-brand-soft-hover: color-mix(in oklab, var(--brand) 22%, transparent);
+  --color-danger-soft: color-mix(in oklab, var(--danger) 12%, transparent);
+  --color-danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+
+  /* Medium controls: md buttons, inputs, selects, tab bars. */
+  --radius-control: 10px;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;

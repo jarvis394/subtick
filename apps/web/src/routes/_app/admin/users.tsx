@@ -61,9 +61,9 @@ function UserRow({ user }: { user: AdminUser }) {
       {!isMe && (
         <Button
           size="sm"
-          variant={admin ? 'ghost' : 'outline'}
+          variant={admin ? 'ghost' : 'secondary'}
           onClick={() => setRole.mutate(admin ? 'user' : 'admin')}
-          disabled={setRole.isPending}
+          loading={setRole.isPending}
         >
           {admin ? 'Remove admin' : 'Make admin'}
         </Button>

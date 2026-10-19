@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { matchesQuery } from '@/lib/queries'
-import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/matches/')({
   loader: ({ context }) => context.queryClient.prefetchInfiniteQuery(matchesQuery),
@@ -27,12 +26,9 @@ function MatchesPage() {
           size="sm"
           variant="secondary"
           onClick={() => refresh.mutate()}
-          disabled={refresh.isPending}
-          className="disabled:opacity-100"
+          loading={refresh.isPending}
         >
-          <RotateCw
-            className={cn(refresh.isPending && 'animate-spin [animation-duration:600ms]')}
-          />
+          <RotateCw />
           Check for new
         </Button>
       </div>
@@ -52,9 +48,9 @@ function MatchesPage() {
           <Button
             variant="secondary"
             onClick={() => matches.fetchNextPage()}
-            disabled={matches.isFetchingNextPage}
+            loading={matches.isFetchingNextPage}
           >
-            {matches.isFetchingNextPage ? 'Loading…' : 'Show more'}
+            Show more
           </Button>
         </div>
       )}

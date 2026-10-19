@@ -15,7 +15,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { isProcessing } from '@/components/match-status'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
-import { ButtonLayer, buttonClass } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/button'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { cn } from '@/lib/utils'
 
@@ -123,20 +123,15 @@ export const MatchMenu = ({
   return (
     <Menu.Root open={open} onOpenChange={setOpen}>
       <Menu.Trigger
-        aria-label="Match actions"
-        title="Match actions"
-        className={buttonClass(
-          'ghost',
-          'icon',
-          cn(
-            'size-7 rounded-md [&_svg]:size-4',
-            // Lit while its menu is open, like a hovered button.
-            'data-popup-open:text-foreground data-popup-open:[--bg:var(--color-surface-3)] [--bg-hover:var(--color-surface-3)]',
-            triggerClassName,
-          ),
-        )}
+        render={
+          <IconButton
+            size="xs"
+            label="Match actions"
+            // It sits on a row that's already lit surface-2 while hovered.
+            className={cn('[--bg-hover:var(--color-surface-3)]', triggerClassName)}
+          />
+        }
       >
-        <ButtonLayer />
         <Ellipsis />
       </Menu.Trigger>
       <Menu.Portal>

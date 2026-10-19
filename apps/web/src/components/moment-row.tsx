@@ -5,7 +5,7 @@ import type { HighlightPlayer } from '@/components/highlight-card'
 import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
 import { Avatar } from '@/components/ui/avatar'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/surface'
 import { useCancelMoment } from '@/hooks/use-match-actions'
 import { useRecordMoment } from '@/hooks/use-record-moment'
@@ -83,9 +83,9 @@ export const MomentRow = ({
             {failed ? (
               <Button
                 size="sm"
-                variant="brand-soft"
+                tone="brand"
                 onClick={() => record.mutate(moment.id)}
-                disabled={record.isPending}
+                loading={record.isPending}
               >
                 Retry
               </Button>
@@ -94,7 +94,8 @@ export const MomentRow = ({
                 render={
                   <Button
                     size="sm"
-                    variant="danger-ghost"
+                    variant="ghost"
+                    tone="danger"
                     onClick={() => cancel.mutate(moment.id)}
                     disabled={cancel.isPending}
                   />
@@ -119,9 +120,9 @@ export const MomentRow = ({
       {failed ? (
         <Button
           size="sm"
-          variant="brand-soft"
+          tone="brand"
           onClick={() => record.mutate(moment.id)}
-          disabled={record.isPending}
+          loading={record.isPending}
         >
           Retry
         </Button>
@@ -131,17 +132,15 @@ export const MomentRow = ({
             <Spinner className="size-3" /> Recording
           </span>
           {moment.canCancel && (
-            <button
-              type="button"
-              onClick={() => cancel.mutate(moment.id)}
-              disabled={cancel.isPending}
+            <IconButton
+              size="sm"
+              label="Cancel recording"
               aria-label={`Cancel recording ${moment.title}`}
-              title="Cancel recording"
-              className={buttonClass('ghost', 'icon', 'size-8 rounded-lg')}
+              onClick={() => cancel.mutate(moment.id)}
+              loading={cancel.isPending}
             >
-              <ButtonLayer />
               <X />
-            </button>
+            </IconButton>
           )}
         </span>
       )}

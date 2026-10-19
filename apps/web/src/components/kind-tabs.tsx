@@ -13,7 +13,7 @@ export const KindTabs = ({
   <Tabs.Root value={value} onValueChange={(next) => onChange(next as KindFilter)}>
     <Tabs.List
       aria-label="Kind"
-      className="relative flex flex-wrap gap-1 rounded-[10px] bg-surface-2/70 p-0.5"
+      className="relative flex flex-wrap gap-1 rounded-control bg-surface-2/70 p-0.5"
     >
       {KIND_FILTERS.map((f) => (
         <Tabs.Tab

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { type CSSProperties, type FormEvent, useState } from 'react'
 import { SteamIcon } from '@/components/steam-icon'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Field, Input, PasswordInput } from '@/components/ui/field'
 import { Wordmark } from '@/components/wordmark'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
@@ -127,10 +127,11 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
               size="lg"
               className="w-full [view-transition-name:auth-steam] [view-transition-class:auth]"
               onClick={steam}
-              disabled={pending !== null}
+              disabled={pending === 'email'}
+              loading={pending === 'steam'}
             >
               <SteamIcon />
-              {pending === 'steam' ? 'Opening Steam…' : 'Continue with Steam'}
+              Continue with Steam
             </Button>
 
             <p className="text-center text-xs text-muted [view-transition-name:auth-or] [view-transition-class:auth]">
@@ -199,17 +200,14 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
               <ErrorText message={errors.form} gap="0.75rem" style={part('error')} />
               <Button
                 type="submit"
-                variant="contrast"
+                variant="primary"
                 size="lg"
                 className="mt-1 w-full"
                 style={part('submit')}
-                disabled={pending !== null}
+                disabled={pending === 'steam'}
+                loading={pending === 'email'}
               >
-                {pending === 'email'
-                  ? 'One moment…'
-                  : mode === 'sign-in'
-                    ? 'Continue with email'
-                    : 'Create account'}
+                {mode === 'sign-in' ? 'Continue with email' : 'Create account'}
               </Button>
             </form>
           </div>
@@ -217,15 +215,19 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
       </div>
 
       {/* Pinned to the bottom of the page, apart from the form. */}
-      <Link
-        to={mode === 'sign-in' ? '/signup' : '/login'}
-        search={{ redirect: search.redirect }}
-        className={buttonClass('ghost', 'md', 'mt-8')}
+      <Button
+        variant="ghost"
+        className="mt-8"
         style={part('switch')}
+        render={
+          <Link
+            to={mode === 'sign-in' ? '/signup' : '/login'}
+            search={{ redirect: search.redirect }}
+          />
+        }
       >
-        <ButtonLayer />
         {COPY[mode].switch}
-      </Link>
+      </Button>
     </div>
   )
 }

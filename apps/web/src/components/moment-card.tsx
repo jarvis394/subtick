@@ -6,7 +6,7 @@ import { KillfeedDialog } from '@/components/killfeed-dialog'
 import { MomentBadge } from '@/components/moment-badge'
 import { type Moment, momentDetails, requestedLabel } from '@/components/moment-row'
 import { Avatar } from '@/components/ui/avatar'
-import { Button, ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/surface'
 import type { MatchDetail } from '@/lib/queries'
 
@@ -69,7 +69,8 @@ export const MomentCard = ({
                   render={
                     <Button
                       size="sm"
-                      variant="danger-ghost"
+                      variant="ghost"
+                      tone="danger"
                       onClick={closeThen(onCancel)}
                       disabled={cancelling}
                     />
@@ -83,7 +84,8 @@ export const MomentCard = ({
                 render={
                   <Button
                     size="sm"
-                    variant={moment.status === 'failed' ? 'brand-soft' : 'contrast'}
+                    variant={moment.status === 'failed' ? 'secondary' : 'primary'}
+                    tone={moment.status === 'failed' ? 'brand' : 'neutral'}
                     onClick={closeThen(onRecord)}
                     disabled={recording}
                   />
@@ -121,25 +123,23 @@ export const MomentCard = ({
             <Spinner className="size-3" /> Recording
           </span>
           {moment.canCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={cancelling}
+            <IconButton
+              size="sm"
+              label="Cancel recording"
               aria-label={`Cancel recording ${moment.title}`}
-              title="Cancel recording"
-              className={buttonClass('ghost', 'icon', 'size-8 rounded-lg')}
+              onClick={onCancel}
+              loading={cancelling}
             >
-              <ButtonLayer />
               <X />
-            </button>
+            </IconButton>
           )}
         </span>
       ) : (
         <Button
           size="sm"
-          variant={moment.status === 'failed' ? 'brand-soft' : 'secondary'}
+          tone={moment.status === 'failed' ? 'brand' : 'neutral'}
           onClick={onRecord}
-          disabled={recording}
+          loading={recording}
         >
           {moment.status === 'failed' ? 'Retry' : 'Record'}
         </Button>

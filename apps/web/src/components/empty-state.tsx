@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { ButtonLayer, buttonClass } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { meQuery } from '@/lib/queries'
 import { isSetUp } from '@/lib/setup'
 
@@ -31,10 +31,9 @@ export const EmptyState = ({
         {setUp ? description : 'Finish setup to start picking up your matches.'}
       </p>
       {!setUp && (
-        <Link to="/setup" className={buttonClass('secondary', 'sm', 'mt-5')}>
-          <ButtonLayer />
+        <Button size="sm" className="mt-5" render={<Link to="/setup" />}>
           Finish setup
-        </Link>
+        </Button>
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { mapPreviewUrl } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
+import { IconButton } from '@/components/ui/button'
 import { clipTime } from '@/lib/format'
 import {
   BLIND_ICON,
@@ -159,10 +160,11 @@ export const KillfeedDialog = ({
               </div>
             </div>
             <Dialog.Close
-              aria-label="Close"
-              className="-mt-1 -mr-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-muted outline-none hover:bg-surface-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              render={
+                <IconButton size="sm" label="Close" tooltip={false} className="-mt-1 -mr-1" />
+              }
             >
-              <X className="size-4" />
+              <X />
             </Dialog.Close>
           </div>
           <div className="relative isolate overflow-hidden bg-[#0d0d0d]">

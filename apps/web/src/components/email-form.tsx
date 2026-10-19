@@ -46,13 +46,9 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
           </p>
           <p className="text-muted">
             Open it within an hour to {adding ? 'add' : 'switch to'} this email.{' '}
-            <button
-              type="button"
-              onClick={() => send.reset()}
-              className="cursor-pointer text-accent outline-none hover:underline focus-visible:underline"
-            >
+            <Button variant="link" onClick={() => send.reset()}>
               Use another address
-            </button>
+            </Button>
           </p>
         </div>
       </div>
@@ -95,8 +91,8 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
       )}
       {send.error && <p className="text-sm text-danger">{send.error.message}</p>}
       <div>
-        <Button type="submit" variant="secondary" disabled={send.isPending}>
-          {send.isPending ? 'Sending…' : 'Send confirmation link'}
+        <Button type="submit" variant="secondary" loading={send.isPending}>
+          Send confirmation link
         </Button>
       </div>
     </form>

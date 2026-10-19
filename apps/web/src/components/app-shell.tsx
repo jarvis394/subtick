@@ -3,7 +3,7 @@ import { Menu as MenuIcon } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
-import { ButtonLayer, buttonClass } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { useMatchEvents } from '@/hooks/use-match-events'
@@ -84,12 +84,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           <div className="@container min-w-0 flex-1">
             <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden">
               <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen} swipeDirection="left">
-                <Drawer.Trigger
-                  aria-label="Open menu"
-                  // A ghost icon button, so its background presses in like every other button's.
-                  className={buttonClass('ghost', 'icon', 'size-10 rounded-lg [&_svg]:size-5')}
-                >
-                  <ButtonLayer />
+                <Drawer.Trigger render={<IconButton size="lg" label="Open menu" tooltip={false} />}>
                   <MenuIcon />
                 </Drawer.Trigger>
                 <Drawer.Portal container={drawerLayer}>
