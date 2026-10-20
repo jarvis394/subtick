@@ -7,7 +7,6 @@ import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ErrorPage } from '@/components/error-page'
 import { MapIcon } from '@/components/map-icon'
-import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { RoundMoment } from '@/components/round-moment'
@@ -359,22 +358,24 @@ const Player = ({
           </Title>
           <ShareActions url={`${window.location.origin}/clips/${clip.id}`} title={clip.title} />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-0.5 gap-y-2">
-          {/* The buttons' own padding spaces the dots on their side; this matches it. */}
-          <div className="mr-2.5 flex min-w-0 items-center gap-2.5">
-            <PlayerAvatarLink
-              steamId={clip.steamId}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-0.5 gap-y-1">
+          {/* A button like its neighbours, so the dots space evenly; pulled left by its padding so
+            the avatar lines up with the title. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            render={
+              <Link to="/players/$steamId" params={{ steamId: clip.steamId }} onClick={onClose} />
+            }
+            className="-ml-1.5 min-w-0 pl-1.5 text-[15px] font-medium text-foreground"
+          >
+            <Avatar
               src={clip.player.avatarUrl}
               name={clip.player.name}
-              className="size-8"
+              className="size-6 text-[10px]"
             />
-            <PlayerLink
-              steamId={clip.steamId}
-              className="truncate text-[15px] font-medium hover:text-foreground/80"
-            >
-              {clip.player.name}
-            </PlayerLink>
-          </div>
+            <span className="truncate">{clip.player.name}</span>
+          </Button>
           <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·
           </span>
@@ -389,7 +390,10 @@ const Player = ({
               // button; it should look like its neighbour.
               className="min-w-0 text-[15px] aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground"
             >
-              <MapIcon map={clip.map} className="size-4 rounded-sm text-[8px]" />
+              {/* Same 24px box as the avatar, with a smaller logo inside. */}
+              <span className="grid size-6 shrink-0 place-items-center">
+                <MapIcon map={clip.map} className="size-5 rounded-sm text-[9px]" />
+              </span>
               <span className="truncate">
                 {mapName(clip.map)}
                 {clip.playedAt && (
