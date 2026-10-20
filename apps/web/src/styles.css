@@ -253,8 +253,6 @@
   text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  border-radius: var(--radius-sm);
-  transition: text-decoration-color 150ms;
   &:hover,
   &:focus-visible {
     text-decoration-color: currentColor;

@@ -111,6 +111,52 @@ const involves = (entry: FeedEntry, steamId: string): Own => {
   return entry.attacker?.steamId === steamId ? 'action' : null
 }
 
+/** The feed itself: inside the popup, so it's only worked out while the dialog is open. */
+const Feed = ({
+  match,
+  moment,
+}: {
+  match: MatchDetail
+  moment: Parameters<typeof momentFeed>[1] & { steamId: string }
+}) => {
+  const feed = momentFeed(match, moment)
+  const preview = mapPreviewUrl(match.match.map)
+  return (
+    <div className="relative isolate overflow-hidden bg-[#0d0d0d]">
+      {preview && (
+        <img
+          src={preview}
+          alt=""
+          // Scaled past the edges: a blur fades an image's own edges to transparent.
+          className="absolute inset-0 -z-10 size-full scale-110 object-cover opacity-35 blur-[2px]"
+        />
+      )}
+      <ol className="grid max-h-[60vh] gap-1.5 overflow-y-auto p-4">
+        {feed.map((entry) => (
+          <li
+            key={`${entry.tick}:${entry.type === 'kill' ? entry.victim.steamId : entry.type}`}
+            className="flex min-w-0 items-center gap-3"
+          >
+            <span className="w-8 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
+              {clipTime(moment, entry.tick)}
+            </span>
+            {entry.type === 'kill' ? (
+              <KillLine entry={entry} own={involves(entry, moment.steamId)} />
+            ) : (
+              <BombLine entry={entry} own={involves(entry, moment.steamId)} />
+            )}
+          </li>
+        ))}
+        {feed.length === 0 && (
+          <li className="py-6 text-center text-sm text-white/60">
+            Nothing happened in this moment.
+          </li>
+        )}
+      </ol>
+    </div>
+  )
+}
+
 /** A moment's killfeed as CS2 showed it: every kill and bomb event of the round inside the clip. */
 export const KillfeedDialog = ({
   match,
@@ -147,9 +193,6 @@ export const KillfeedDialog = ({
   /** Called once the dialog has finished closing (its exit animation done). */
   onClosed?: () => void
 }) => {
-  const feed = momentFeed(match, moment)
-  const preview = mapPreviewUrl(match.match.map)
-
   return (
     <Dialog.Root
       open={open}
@@ -180,38 +223,7 @@ export const KillfeedDialog = ({
               <X />
             </Dialog.Close>
           </div>
-          <div className="relative isolate overflow-hidden bg-[#0d0d0d]">
-            {preview && (
-              <img
-                src={preview}
-                alt=""
-                // Scaled past the edges: a blur fades an image's own edges to transparent.
-                className="absolute inset-0 -z-10 size-full scale-110 object-cover opacity-35 blur-[2px]"
-              />
-            )}
-            <ol className="grid max-h-[60vh] gap-1.5 overflow-y-auto p-4">
-              {feed.map((entry) => (
-                <li
-                  key={`${entry.tick}:${entry.type === 'kill' ? entry.victim.steamId : entry.type}`}
-                  className="flex min-w-0 items-center gap-3"
-                >
-                  <span className="w-8 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
-                    {clipTime(moment, entry.tick)}
-                  </span>
-                  {entry.type === 'kill' ? (
-                    <KillLine entry={entry} own={involves(entry, moment.steamId)} />
-                  ) : (
-                    <BombLine entry={entry} own={involves(entry, moment.steamId)} />
-                  )}
-                </li>
-              ))}
-              {feed.length === 0 && (
-                <li className="py-6 text-center text-sm text-white/60">
-                  Nothing happened in this moment.
-                </li>
-              )}
-            </ol>
-          </div>
+          <Feed match={match} moment={moment} />
           {/* Retrying a failed clip takes its note away: the box collapses instead of snapping. */}
           <Presence show={Boolean(notice)} className="relative overflow-hidden">
             {notice}

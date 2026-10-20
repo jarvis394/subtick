@@ -1,7 +1,7 @@
 import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type Side, ROUNDS_PER_HALF, REGULATION_ROUNDS, SIDES } from '@subtick/domain'
 import { ChevronDown, Star, Users } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, memo, useState } from 'react'
 import { PartyMarker } from '@/components/party-marker'
 import { RankBadge } from '@/components/rank-badge'
 import { Avatar } from '@/components/ui/avatar'
@@ -322,13 +322,14 @@ const HeaderCell = ({
   </th>
 )
 
-export const Scoreboard = ({
+/** Memoized: the match page re-renders around it (the highlights' scope tabs) on the same data. */
+export const Scoreboard = memo(function Scoreboard({
   data,
   viewerSteamId,
 }: {
   data: MatchDetail
   viewerSteamId: string | null
-}) => {
+}) {
   const [sortKey, setSortKey] = useState('rating')
   const sortColumn = SORTABLE.find((c) => c.id === sortKey) ?? RATING
   const sort = (players: Player[]) =>
@@ -354,7 +355,6 @@ export const Scoreboard = ({
     })
 
   return (
-    // min-w-0: grid items default to their content's width, and the wide table would push the page.
     // min-w-0: grid items default to their content's width, and the wide table would push the page.
     <section className="min-w-0">
       <h2 className="mb-4 font-serif text-xl tracking-tight">Scoreboard</h2>
@@ -527,7 +527,7 @@ export const Scoreboard = ({
       </div>
     </section>
   )
-}
+})
 
 const teamScore = (data: MatchDetail, side: Side) =>
   (side === 'CT' ? data.match.scoreStartedCt : data.match.scoreStartedT) ?? 0

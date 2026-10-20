@@ -1,7 +1,7 @@
 import { mapName } from "@subtick/domain";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import { memo, useRef, useState } from "react";
+import { type ComponentProps, memo, useRef, useState } from "react";
 import { RoundMoment } from "@/components/round-moment";
 import { Avatar } from "@/components/ui/avatar";
 import { FadeImage } from "@/components/ui/fade-image";
@@ -44,6 +44,45 @@ const shallowEqual = <T extends object>(a: T, b: T) => {
 };
 
 /**
+ * Opens the clip in the page's viewer. A plain anchor rather than a router `Link`: a Link rebuilds
+ * its location (and the mask's) on mount and on every URL change, which across a page of cards
+ * is most of the cost of rendering it. The href is the clip's own page, as the mask makes it.
+ */
+const ClipLink = ({
+  id,
+  onClick,
+  ...props
+}: { id: string } & Omit<ComponentProps<"a">, "href">) => {
+  const navigate = useNavigate();
+  return (
+    <a
+      href={`/clips/${id}`}
+      onClick={(e) => {
+        onClick?.(e);
+        // New tab, new window, download: the browser's, to the clip's page.
+        if (
+          e.defaultPrevented ||
+          e.button !== 0 ||
+          e.metaKey ||
+          e.ctrlKey ||
+          e.shiftKey ||
+          e.altKey
+        )
+          return;
+        e.preventDefault();
+        void navigate({
+          to: ".",
+          search: (s) => ({ ...s, clip: id }),
+          mask: clipMask(id),
+          resetScroll: false,
+        });
+      }}
+      {...props}
+    />
+  );
+};
+
+/**
  * A recorded highlight: thumbnail that plays on hover and opens the viewer (the page's `clip`
  * search param), then who made it and where.
  * Memoized on the *contents* of its props: callers build `highlight`/`player` objects inline, so
@@ -68,11 +107,8 @@ export const HighlightCard = memo(
 
     return (
       <article>
-        <Link
-          to="."
-          search={(s) => ({ ...s, clip: highlight.id })}
-          mask={clipMask(highlight.id)}
-          resetScroll={false}
+        <ClipLink
+          id={highlight.id}
           aria-label={`Watch ${highlight.title}`}
           // Otherwise a drag on the thumbnail drags the link out instead.
           draggable={false}
@@ -141,7 +177,7 @@ export const HighlightCard = memo(
               <Play className="ml-0.5 size-4 fill-white text-white" />
             </span>
           </span>
-        </Link>
+        </ClipLink>
         <div className="mt-3 flex gap-3">
           <Avatar
             src={player.avatarUrl}
@@ -150,15 +186,12 @@ export const HighlightCard = memo(
           />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-[15px] font-medium">
-              <Link
-                to="."
-                search={(s) => ({ ...s, clip: highlight.id })}
-                mask={clipMask(highlight.id)}
-                resetScroll={false}
+              <ClipLink
+                id={highlight.id}
                 className="hover:text-foreground/80"
               >
                 {highlight.title}
-              </Link>
+              </ClipLink>
             </h3>
             <p className="mt-0.5 truncate text-[13px] text-muted">
               <span className="text-foreground/80">{player.name}</span>

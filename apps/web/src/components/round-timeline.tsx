@@ -1,9 +1,10 @@
 import { ROUNDS_PER_HALF, type Side } from '@subtick/domain'
+import { memo } from 'react'
 import type { MatchDetail } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 /** One cell per round: who won it (from the viewer's side), and how many kills they got. */
-export const RoundTimeline = ({
+export const RoundTimeline = memo(function RoundTimeline({
   data,
   viewerSteamId,
   viewerTeam,
@@ -12,7 +13,7 @@ export const RoundTimeline = ({
   viewerSteamId?: string
   /** The side the viewer's team started on. */
   viewerTeam?: Side
-}) => {
+}) {
   const killsByRound = new Map<number, number>()
   for (const k of data.kills) {
     if (k.attackerSteamId === viewerSteamId)
@@ -61,4 +62,4 @@ export const RoundTimeline = ({
       </div>
     </section>
   )
-}
+})

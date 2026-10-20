@@ -22,8 +22,6 @@ export const RoundMoment = ({
 }) => {
   const [open, setOpen] = useState(false)
   const [asked, setAsked] = useState(false)
-  const { data } = useQuery({ ...matchQuery(matchId), enabled: asked })
-  const moment = data?.highlights.find((h) => h.id === momentId)
 
   return (
     <>
@@ -34,16 +32,44 @@ export const RoundMoment = ({
         },
         onPointerEnter: () => setAsked(true),
       })}
-      {data && moment && (
-        <KillfeedDialog
+      {/* Mounted on demand: a page lists many of these, and each observer costs on every render. */}
+      {asked && (
+        <MomentKillfeed
+          matchId={matchId}
+          momentId={momentId}
+          player={player}
           open={open}
           onOpenChange={setOpen}
-          match={data}
-          moment={moment}
-          player={player}
-          subtitle={momentDetails(moment)}
         />
       )}
     </>
+  )
+}
+
+const MomentKillfeed = ({
+  matchId,
+  momentId,
+  player,
+  open,
+  onOpenChange,
+}: {
+  matchId: string
+  momentId: string
+  player: HighlightPlayer
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) => {
+  const { data } = useQuery(matchQuery(matchId))
+  const moment = data?.highlights.find((h) => h.id === momentId)
+  if (!data || !moment) return null
+  return (
+    <KillfeedDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      match={data}
+      moment={moment}
+      player={player}
+      subtitle={momentDetails(moment)}
+    />
   )
 }

@@ -31,12 +31,21 @@ const diskStatus = async (url: string) => {
 const CACHE_MS = 30_000
 const IMAGE = /\.(webp|jpe?g)$/
 
+/** Each object's size by key, per bucket, from the same listing the report sums. */
+export interface ObjectSizes {
+  demos: Map<string, number>
+  clips: Map<string, number>
+}
+
 /**
  * What subtick's data takes, by kind, and the disk it sits on. Listing every object is a few
  * requests per thousand, so a result is reused for a little while.
  */
 export const createStorageReport = ({ db, demos, clips, env, log }: Context) => {
-  let cached: { at: number; report: Promise<StorageReport> } | null = null
+  let cached: {
+    at: number
+    result: Promise<{ report: StorageReport; sizes: ObjectSizes }>
+  } | null = null
 
   const build = async () => {
     const usage: Record<StorageCategory, Usage> = {
@@ -46,6 +55,7 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
       database: { bytes: 0, count: 1 },
       other: { bytes: 0, count: 0 },
     }
+    const sizes: ObjectSizes = { demos: new Map(), clips: new Map() }
     const add = (category: StorageCategory, size: number) => {
       usage[category].bytes += size
       usage[category].count += 1
@@ -59,13 +69,17 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
           })
         : null,
       (async () => {
-        for await (const { key, size } of demos.objects())
+        for await (const { key, size } of demos.objects()) {
+          sizes.demos.set(key, size)
           add(key.endsWith('.dem.zst') ? 'demos' : 'other', size)
+        }
       })(),
       (async () => {
         // Posters were .jpg before they moved to .webp.
-        for await (const { key, size } of clips.objects())
+        for await (const { key, size } of clips.objects()) {
+          sizes.clips.set(key, size)
           add(key.endsWith('.mp4') ? 'clips' : IMAGE.test(key) ? 'thumbnails' : 'other', size)
+        }
       })(),
       (async () => {
         const rows = await db.execute<{ bytes: string }>(
@@ -75,19 +89,28 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
       })(),
     ])
 
-    return { usage, disk, measuredAt: new Date().toISOString() }
+    return { report: { usage, disk, measuredAt: new Date().toISOString() }, sizes }
   }
 
-  return () => {
+  const measure = () => {
     if (!cached || Date.now() - cached.at > CACHE_MS) {
-      const report = build()
-      cached = { at: Date.now(), report }
+      const result = build()
+      cached = { at: Date.now(), result }
       // A failed report isn't kept, so the next request tries again.
-      report.catch(() => {
-        if (cached?.report === report) cached = null
+      result.catch(() => {
+        if (cached?.result === result) cached = null
       })
     }
-    return cached.report
+    return cached.result
+  }
+
+  return {
+    report: async () => (await measure()).report,
+    sizes: async () => (await measure()).sizes,
+    /** After a delete, so the next report shows the room it freed. */
+    invalidate: () => {
+      cached = null
+    },
   }
 }
 

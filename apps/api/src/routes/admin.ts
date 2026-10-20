@@ -5,6 +5,12 @@ import { z } from 'zod'
 import type { Context } from '../context'
 import { newRecorderToken, recorderView } from '../services/recorders'
 import { createStorageReport } from '../services/storage'
+import {
+  deleteRecordedHighlight,
+  deleteStoredMatch,
+  listRecordedHighlights,
+  listStoredMatches,
+} from '../services/storage-items'
 import { authGuard } from './guard'
 
 const { user, recorder } = schema
@@ -12,6 +18,8 @@ const { user, recorder } = schema
 /** better-auth user ids are opaque strings; recorders use uuids. */
 const UserId = z.object({ id: z.string() })
 const Id = z.object({ id: z.uuid() })
+/** Valve's match ids: a 64-bit number in decimal. */
+const MatchId = z.object({ id: z.string().regex(/^\d{1,20}$/) })
 const Name = z.string().trim().min(1).max(64)
 
 /** Instance administration: users' roles, recorder machines and storage. Every route needs the admin role. */
@@ -22,7 +30,7 @@ export const adminRoutes = (ctx: Context) => {
     const rows = await db.select().from(recorder).orderBy(asc(recorder.createdAt))
     return rows.map(recorderView)
   }
-  const storageReport = createStorageReport(ctx)
+  const storage = createStorageReport(ctx)
 
   return (
     new Elysia({ prefix: '/admin' })
@@ -62,7 +70,35 @@ export const adminRoutes = (ctx: Context) => {
       )
 
       // Storage
-      .get('/storage', () => storageReport(), { admin: true })
+      .get('/storage', () => storage.report(), { admin: true })
+      .get('/storage/highlights', async () => listRecordedHighlights(ctx, await storage.sizes()), {
+        admin: true,
+      })
+      .delete(
+        '/storage/highlights/:id',
+        async ({ params, status }) => {
+          const result = await deleteRecordedHighlight(ctx, params.id)
+          if (result === 'not_found') return status(404, { error: 'not_found' as const })
+          if (result === 'recording') return status(409, { error: 'recording' as const })
+          storage.invalidate()
+          return { ok: true as const }
+        },
+        { admin: true, params: Id },
+      )
+      .get('/storage/matches', async () => listStoredMatches(ctx, await storage.sizes()), {
+        admin: true,
+      })
+      .delete(
+        '/storage/matches/:id',
+        async ({ params, status }) => {
+          const result = await deleteStoredMatch(ctx, params.id)
+          if (result === 'not_found') return status(404, { error: 'not_found' as const })
+          if (result === 'processing') return status(409, { error: 'processing' as const })
+          storage.invalidate()
+          return { ok: true as const }
+        },
+        { admin: true, params: MatchId },
+      )
 
       // Recorders
       .get('/recorders', listRecorders, { admin: true })

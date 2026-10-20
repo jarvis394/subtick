@@ -36,6 +36,7 @@ function AdminLayout() {
                 key={tab.to}
                 value={tab.to}
                 className={tabClass}
+                nativeButton={false}
                 // Only the indicator moves; the page under it swaps without a transition.
                 render={<Link to={tab.to} viewTransition={false} />}
               >
