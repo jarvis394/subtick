@@ -64,7 +64,7 @@ export const RanksCard = ({ ranks }: { ranks: Player['ranks'] }) => {
 
   return (
     <RailCard title="Ranks">
-      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-2.5 text-sm">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 gap-y-2.5 text-sm">
         <span className="text-[12px] text-muted">Mode</span>
         <span className="text-[12px] text-muted">Latest</span>
         <span className="text-right text-[12px] text-muted">

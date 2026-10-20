@@ -103,7 +103,7 @@ export const OverviewTab = ({ player }: { player: Player }) => {
   const clips = useInfiniteQuery(clipsQuery({ kinds: [], steamId: player.steamId }))
 
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-1 gap-10">
       <section>
         <div className="mb-4 flex items-baseline justify-between gap-4">
           <h2 className="text-[15px] font-medium">

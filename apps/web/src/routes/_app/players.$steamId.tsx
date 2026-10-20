@@ -60,7 +60,7 @@ function ProfilePage() {
   return (
     <div>
       {/* The rail runs from the top of the page, beside the banner. */}
-      <div className="grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_20rem] @5xl:items-start">
+      <div className="grid grid-cols-1 gap-8 @5xl:grid-cols-[minmax(0,1fr)_20rem] @5xl:items-start">
         <div className="min-w-0">
           <ProfileBanner player={p} />
           <div className="mt-4 px-1 md:px-6">
@@ -99,7 +99,7 @@ function ProfilePage() {
           </Tabs>
         </div>
 
-        <aside className="grid min-w-0 gap-4 *:min-w-0">
+        <aside className="grid min-w-0 grid-cols-1 gap-4 *:min-w-0">
           <RanksCard ranks={p.ranks} />
           <CrosshairCard crosshair={p.crosshair} />
           <PartyCard party={p.party} />
