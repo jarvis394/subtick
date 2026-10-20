@@ -102,6 +102,8 @@ export interface PlayerSnapshot {
   teamNum: number
   isAlive: boolean
   equipValue: number
+  /** Crosshair share code; null for bots and players the demo has none for. */
+  crosshairCode: string | null
 }
 
 export interface ViewAngleSample {
@@ -272,7 +274,7 @@ export const openDemo = (data: Buffer): Demo => {
       if (ticks.length === 0) return []
       const tickRows = parseTicks(
         data,
-        ['team_num', 'is_alive', 'current_equip_value'],
+        ['team_num', 'is_alive', 'current_equip_value', 'crosshair_code'],
         ticks,
       ) as Row[]
       return tickRows.flatMap((r) => {
@@ -286,6 +288,7 @@ export const openDemo = (data: Buffer): Demo => {
             teamNum,
             isAlive: bool(r.is_alive),
             equipValue: num(r.current_equip_value) ?? 0,
+            crosshairCode: str(r.crosshair_code),
           },
         ]
       })

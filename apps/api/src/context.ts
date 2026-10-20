@@ -1,4 +1,4 @@
-import { createDb, createSecretBox } from '@subtick/db'
+import { createDb, createSecretBox, eq, schema } from '@subtick/db'
 import { createLogger } from '@subtick/logger'
 import { createMailer } from '@subtick/mail'
 import { createMatchEventPublisher, createQueue } from '@subtick/queue'
@@ -18,6 +18,12 @@ export const createContext = async (env: Env) => {
     secretAccessKey: env.S3_SECRET_ACCESS_KEY,
   }
 
+  const clips = createS3Storage({
+    ...s3,
+    bucket: env.S3_BUCKET_CLIPS,
+    publicEndpoint: env.S3_PUBLIC_ENDPOINT,
+  })
+
   return {
     env,
     db,
@@ -25,11 +31,7 @@ export const createContext = async (env: Env) => {
     log: createLogger('api'),
     secrets: await createSecretBox(env.SECRETS_KEY),
     demos: createS3Storage({ ...s3, bucket: env.S3_BUCKET_DEMOS }),
-    clips: createS3Storage({
-      ...s3,
-      bucket: env.S3_BUCKET_CLIPS,
-      publicEndpoint: env.S3_PUBLIC_ENDPOINT,
-    }),
+    clips,
     queues: {
       syncUser: createQueue('steam.sync-user', env.REDIS_URL),
       resolveMatch: createQueue('steam.resolve-match', env.REDIS_URL),
@@ -43,6 +45,16 @@ export const createContext = async (env: Env) => {
       db,
       steamApi,
       mailer: createMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM }),
+      // Uploaded pictures: the rows cascade from the user, the objects don't.
+      async beforeDeleteUser(userId) {
+        const [row] = await db
+          .select({ avatar: schema.user.avatarKey, banner: schema.user.bannerKey })
+          .from(schema.user)
+          .where(eq(schema.user.id, userId))
+        await Promise.allSettled(
+          [row?.avatar, row?.banner].flatMap((key) => (key ? [clips.delete(key)] : [])),
+        )
+      },
     }),
   }
 }

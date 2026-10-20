@@ -7,7 +7,7 @@ import {
   modeFromRankType,
 } from '@subtick/domain'
 import { type Clutch, detectClutches } from './clutches'
-import { openDemo } from './demo'
+import { type PlayerSnapshot, openDemo } from './demo'
 import {
   type HighlightConfig,
   detectHighlights,
@@ -30,6 +30,16 @@ export interface MatchAnalysis {
   /** Matchmaking mode; `null` for demos without rank updates (e.g. private servers). */
   mode: MatchMode | null
   ranks: Map<string, PlayerRank>
+  /** Each player's crosshair code at the last snapshot that had one. */
+  crosshairs: Map<string, string>
+}
+
+export const latestCrosshairs = (snapshots: PlayerSnapshot[]) => {
+  const codes = new Map<string, string>()
+  for (const s of snapshots.toSorted((a, b) => a.tick - b.tick)) {
+    if (s.crosshairCode) codes.set(s.steamId, s.crosshairCode)
+  }
+  return codes
 }
 
 /** Full analysis of one demo. Synchronous and CPU-bound (≈1–2 s for a full match). */
@@ -40,11 +50,12 @@ export const analyzeDemo = (
   const demo = openDemo(data)
   const snapshotTicks = [...new Set([...demo.events.freezeEnds, ...demo.events.buyTimeEnds])]
 
+  const snapshots = demo.snapshots(snapshotTicks)
   const timeline = buildTimeline({
     header: demo.header,
     players: demo.players,
     events: demo.events,
-    snapshots: demo.snapshots(snapshotTicks),
+    snapshots,
   })
   const clutches = detectClutches(timeline)
   const stats = computeStats(timeline, clutches)
@@ -71,7 +82,16 @@ export const analyzeDemo = (
   )
   const mode = ranks.values().next().value?.mode ?? null
 
-  return { timeline, clutches, stats, highlights, killTags, mode, ranks }
+  return {
+    timeline,
+    clutches,
+    stats,
+    highlights,
+    killTags,
+    mode,
+    ranks,
+    crosshairs: latestCrosshairs(snapshots),
+  }
 }
 
 export const readDemoFile = async (path: string) => Buffer.from(await Bun.file(path).arrayBuffer())

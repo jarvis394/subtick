@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
 import { EmailForm } from '@/components/email-form'
 import { MatchAuthForm } from '@/components/match-auth-form'
+import { ProfileSection } from '@/components/settings/profile-section'
 import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,8 @@ function SettingsPage() {
       {/* Sections sit side by side once the content area (not the viewport: the sidebar takes
         its share) has room for two readable columns. */}
       <div className="grid gap-10 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-6">
+        <ProfileSection me={me} />
+
         <Section title="Account">
           {emailStatus === 'confirmed' && (
             <p className="text-sm text-accent">Email confirmed. You can sign in with it now</p>
@@ -54,13 +57,7 @@ function SettingsPage() {
           <Group>
             <Row
               // Same picture as the sidebar; the initial stands in when there is none.
-              leading={
-                <Avatar
-                  src={me.steamLinks[0]?.avatarUrl ?? me.user.image}
-                  name={me.user.name}
-                  className="size-9"
-                />
-              }
+              leading={<Avatar src={me.user.avatarUrl} name={me.user.name} className="size-9" />}
               label={me.user.name}
               description={steamOnly ? 'Signed in with Steam' : me.user.email}
             >

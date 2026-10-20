@@ -79,6 +79,8 @@ export const matchPlayer = pgTable(
     rank: jsonb().$type<PlayerRank>(),
     /** Same id = queued together. Copied from `match.parties` on every parse. */
     partyId: text(),
+    /** The player's crosshair share code (`CS…`) at their last round of this match. */
+    crosshair: text(),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.steamId] }), index().on(t.steamId)],
 )

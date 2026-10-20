@@ -3,23 +3,15 @@ import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type HighlightKind, mapName } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import {
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Link2,
-  Share2,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ErrorPage } from '@/components/error-page'
 import { MapIcon } from '@/components/map-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { RoundMoment } from '@/components/round-moment'
+import { ShareActions } from '@/components/share-actions'
 import { FadeImage } from '@/components/ui/fade-image'
-import { MorphLabel } from '@/components/ui/morph-label'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { useLocalStorage } from '@/hooks/use-local-storage'
@@ -35,7 +27,7 @@ import { cn } from '@/lib/utils'
  */
 export type ReelSource =
   | { match: string }
-  | { kinds: HighlightKind[]; map?: string; mine?: boolean }
+  | { kinds: HighlightKind[]; map?: string; mine?: boolean; steamId?: string }
 
 /** A clip that has its recording, as the viewer and its reel show it. */
 type ReelClip = Clip & { clip: NonNullable<Clip['clip']> }
@@ -364,7 +356,7 @@ const Player = ({
           <Title className="min-w-0 flex-1 text-xl leading-8 font-semibold tracking-tight text-balance">
             {clip.title}
           </Title>
-          <ShareActions clip={clip} />
+          <ShareActions url={`${window.location.origin}/clips/${clip.id}`} title={clip.title} />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-0.5 gap-y-2">
           {/* The buttons' own padding spaces the dots on their side; this matches it. */}
@@ -434,74 +426,6 @@ const Player = ({
 
 /** Kinds and tags read as written ("Ace", "Low HP"), the same as on the cards and in the reel. */
 const TAG_CASE = 'normal-case tracking-normal'
-
-/** How long a copy confirms itself before going back. */
-const COPIED_MS = 1500
-
-/** Says "copied" for a moment after `copy()`; the timer restarts on every copy. */
-const useCopied = () => {
-  const [copied, setCopied] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  useEffect(() => () => clearTimeout(timer.current), [])
-  const copy = (text: string) => {
-    void navigator.clipboard.writeText(text)
-    setCopied(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), COPIED_MS)
-  }
-  return { copied, copy }
-}
-
-/**
- * Share (the system share sheet where there is one, otherwise a copy) and a copy-link icon button
- * that confirms with a check.
- */
-const ShareActions = ({ clip }: { clip: ReelClip }) => {
-  const url = `${window.location.origin}/clips/${clip.id}`
-  const shareCopy = useCopied()
-  const linkCopy = useCopied()
-  const canShare = typeof navigator.share === 'function'
-
-  const share = async () => {
-    if (!canShare) return shareCopy.copy(url)
-    try {
-      await navigator.share({ title: clip.title, url })
-    } catch (error) {
-      // Dismissing the sheet rejects with AbortError; anything else falls back to copying.
-      if (!(error instanceof DOMException && error.name === 'AbortError')) shareCopy.copy(url)
-    }
-  }
-
-  return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      <Button size="sm" variant="secondary" onClick={() => void share()}>
-        <Share2 />
-        <MorphLabel>{shareCopy.copied ? 'Copied' : 'Share'}</MorphLabel>
-      </Button>
-      <IconButton
-        variant="secondary"
-        size="sm"
-        label={linkCopy.copied ? 'Link copied' : 'Copy link'}
-        onClick={() => linkCopy.copy(url)}
-      >
-        <span className="grid place-items-center *:col-start-1 *:row-start-1">
-          <Link2
-            className={cn(
-              'transition-[opacity,scale] duration-150 ease-out',
-              linkCopy.copied && 'scale-75 opacity-0',
-            )}
-          />
-          <Check
-            className={cn(
-              'text-success transition-[opacity,scale] duration-150 ease-out',
-              !linkCopy.copied && 'scale-75 opacity-0',
-            )}
-          />
-        </span>
-      </IconButton>
-    </div>
-  )
-}
 
 /**
  * The video, crossfading between clips: a new clip's video stacks over the old one and fades in

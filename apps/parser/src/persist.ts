@@ -16,7 +16,7 @@ export const persistAnalysis = async (
   analysis: MatchAnalysis,
   parserVersion: number,
 ) => {
-  const { timeline, stats, highlights, killTags, mode, ranks } = analysis
+  const { timeline, stats, highlights, killTags, mode, ranks, crosshairs } = analysis
   const steamIds = [...timeline.players.keys()]
 
   return db.transaction(async (tx) => {
@@ -59,6 +59,7 @@ export const persistAnalysis = async (
         startingSide: p.startingSide,
         stats: stats.get(p.steamId)!,
         rank: ranks.get(p.steamId) ?? null,
+        crosshair: crosshairs.get(p.steamId) ?? null,
         // Friend-list parties can span both teams; a party only ever queues on one.
         partyId: parties?.[p.steamId] ? `${parties[p.steamId]}:${p.startingSide}` : null,
       })),

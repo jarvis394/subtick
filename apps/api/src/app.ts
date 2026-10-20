@@ -6,6 +6,7 @@ import { eventRoutes } from './routes/events'
 import { highlightRoutes } from './routes/highlights'
 import { matchRoutes } from './routes/matches'
 import { meRoutes } from './routes/me'
+import { playerRoutes } from './routes/players'
 import { queueRoutes } from './routes/queue'
 import { recorderAgentRoutes } from './routes/recorder-agent'
 import { steamLinkRoutes } from './routes/steam-links'
@@ -20,6 +21,7 @@ export const createApp = (ctx: Context) =>
         .use(meRoutes(ctx))
         .use(steamLinkRoutes(ctx))
         .use(matchRoutes(ctx))
+        .use(playerRoutes(ctx))
         .use(highlightRoutes(ctx))
         .use(queueRoutes(ctx))
         .use(eventRoutes(ctx))

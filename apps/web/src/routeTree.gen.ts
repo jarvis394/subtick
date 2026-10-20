@@ -24,7 +24,9 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppClipsIdRouteImport } from './routes/_app/clips.$id'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
 import { Route as AppMatchesIdRouteImport } from './routes/_app/matches.$id'
+import { Route as AppPlayersSteamIdRouteImport } from './routes/_app/players.$steamId'
 import { Route as AppMatchesIdCreateRouteImport } from './routes/_app/matches_.$id.create'
+import { Route as AppPlayersSteamIdHighlightsRouteImport } from './routes/_app/players.$steamId_.highlights'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -100,11 +102,22 @@ const AppMatchesIdRoute = AppMatchesIdRouteImport.update({
   path: '/matches/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPlayersSteamIdRoute = AppPlayersSteamIdRouteImport.update({
+  id: '/players/$steamId',
+  path: '/players/$steamId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMatchesIdCreateRoute = AppMatchesIdCreateRouteImport.update({
   id: '/matches_/$id/create',
   path: '/matches/$id/create',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPlayersSteamIdHighlightsRoute =
+  AppPlayersSteamIdHighlightsRouteImport.update({
+    id: '/players/$steamId_/highlights',
+    path: '/players/$steamId/highlights',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -119,9 +132,11 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
+  '/players/$steamId': typeof AppPlayersSteamIdRoute
   '/admin/': typeof AppAdminIndexRoute
   '/matches/': typeof AppMatchesIndexRoute
   '/matches/$id/create': typeof AppMatchesIdCreateRoute
+  '/players/$steamId/highlights': typeof AppPlayersSteamIdHighlightsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -135,9 +150,11 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
+  '/players/$steamId': typeof AppPlayersSteamIdRoute
   '/admin': typeof AppAdminIndexRoute
   '/matches': typeof AppMatchesIndexRoute
   '/matches/$id/create': typeof AppMatchesIdCreateRoute
+  '/players/$steamId/highlights': typeof AppPlayersSteamIdHighlightsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,9 +171,11 @@ export interface FileRoutesById {
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/clips/$id': typeof AppClipsIdRoute
   '/_app/matches/$id': typeof AppMatchesIdRoute
+  '/_app/players/$steamId': typeof AppPlayersSteamIdRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/matches/': typeof AppMatchesIndexRoute
   '/_app/matches_/$id/create': typeof AppMatchesIdCreateRoute
+  '/_app/players/$steamId_/highlights': typeof AppPlayersSteamIdHighlightsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,9 +192,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
+    | '/players/$steamId'
     | '/admin/'
     | '/matches/'
     | '/matches/$id/create'
+    | '/players/$steamId/highlights'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -189,9 +210,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
+    | '/players/$steamId'
     | '/admin'
     | '/matches'
     | '/matches/$id/create'
+    | '/players/$steamId/highlights'
   id:
     | '__root__'
     | '/_app'
@@ -207,9 +230,11 @@ export interface FileRouteTypes {
     | '/_app/admin/users'
     | '/_app/clips/$id'
     | '/_app/matches/$id'
+    | '/_app/players/$steamId'
     | '/_app/admin/'
     | '/_app/matches/'
     | '/_app/matches_/$id/create'
+    | '/_app/players/$steamId_/highlights'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -325,11 +350,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMatchesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/players/$steamId': {
+      id: '/_app/players/$steamId'
+      path: '/players/$steamId'
+      fullPath: '/players/$steamId'
+      preLoaderRoute: typeof AppPlayersSteamIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/matches_/$id/create': {
       id: '/_app/matches_/$id/create'
       path: '/matches/$id/create'
       fullPath: '/matches/$id/create'
       preLoaderRoute: typeof AppMatchesIdCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/players/$steamId_/highlights': {
+      id: '/_app/players/$steamId_/highlights'
+      path: '/players/$steamId/highlights'
+      fullPath: '/players/$steamId/highlights'
+      preLoaderRoute: typeof AppPlayersSteamIdHighlightsRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -361,8 +400,10 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppClipsIdRoute: typeof AppClipsIdRoute
   AppMatchesIdRoute: typeof AppMatchesIdRoute
+  AppPlayersSteamIdRoute: typeof AppPlayersSteamIdRoute
   AppMatchesIndexRoute: typeof AppMatchesIndexRoute
   AppMatchesIdCreateRoute: typeof AppMatchesIdCreateRoute
+  AppPlayersSteamIdHighlightsRoute: typeof AppPlayersSteamIdHighlightsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -373,8 +414,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppClipsIdRoute: AppClipsIdRoute,
   AppMatchesIdRoute: AppMatchesIdRoute,
+  AppPlayersSteamIdRoute: AppPlayersSteamIdRoute,
   AppMatchesIndexRoute: AppMatchesIndexRoute,
   AppMatchesIdCreateRoute: AppMatchesIdCreateRoute,
+  AppPlayersSteamIdHighlightsRoute: AppPlayersSteamIdHighlightsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

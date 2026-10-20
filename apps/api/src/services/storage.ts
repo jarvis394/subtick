@@ -1,5 +1,6 @@
 import { sql } from '@subtick/db'
 import type { Context } from '../context'
+import { PROFILE_PREFIX } from './profile-images'
 
 export type StorageCategory = 'demos' | 'clips' | 'thumbnails' | 'database' | 'other'
 
@@ -78,7 +79,14 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
         // Posters were .jpg before they moved to .webp.
         for await (const { key, size } of clips.objects()) {
           sizes.clips.set(key, size)
-          add(key.endsWith('.mp4') ? 'clips' : IMAGE.test(key) ? 'thumbnails' : 'other', size)
+          add(
+            key.endsWith('.mp4')
+              ? 'clips'
+              : IMAGE.test(key) && !key.startsWith(PROFILE_PREFIX)
+                ? 'thumbnails'
+                : 'other',
+            size,
+          )
         }
       })(),
       (async () => {

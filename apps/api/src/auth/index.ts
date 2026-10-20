@@ -14,11 +14,14 @@ export const createAuth = ({
   db,
   steamApi,
   mailer,
+  beforeDeleteUser,
 }: {
   env: Env
   db: Db
   steamApi: SteamWebApi
   mailer: Mailer
+  /** Cleans up what doesn't cascade from the user row (uploaded pictures). */
+  beforeDeleteUser: (userId: string) => Promise<void>
 }) =>
   betterAuth({
     baseURL: env.PUBLIC_URL,
@@ -41,7 +44,7 @@ export const createAuth = ({
       additionalFields: { role: { type: 'string', defaultValue: 'user', input: false } },
       // From Settings. Without a password (Steam-only accounts have none) the session must be under
       // a day old; everything the user owns cascades from the user row.
-      deleteUser: { enabled: true },
+      deleteUser: { enabled: true, beforeDelete: (user) => beforeDeleteUser(user.id) },
     },
     plugins: [
       steam({

@@ -69,6 +69,7 @@ export const highlightRoutes = (ctx: Context) => {
               notOneKill,
               kinds.length ? inArray(highlight.kind, kinds) : undefined,
               query.map ? eq(match.map, query.map) : undefined,
+              query.steamId ? eq(highlight.steamId, query.steamId) : undefined,
               query.mine === true || query.mine === 'true'
                 ? exists(
                     db
@@ -102,6 +103,8 @@ export const highlightRoutes = (ctx: Context) => {
           /** Comma-separated highlight kinds. */
           kinds: z.union([z.string(), z.array(z.string())]).optional(),
           map: z.string().optional(),
+          /** One player's plays, for their profile. */
+          steamId: z.string().optional(),
           /** Only the signed-in user's own plays. */
           mine: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
         }),

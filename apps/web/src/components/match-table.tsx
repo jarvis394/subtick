@@ -8,6 +8,20 @@ import { NewDot } from '@/components/new-dot'
 import { formatDate } from '@/lib/format'
 import { justFound } from '@/lib/new-matches'
 import type { MatchListItem } from '@/lib/queries'
+
+/** What a row shows: the signed-in user's matches, or any player's on their profile. */
+export type MatchRowData = Pick<
+  MatchListItem,
+  | 'id'
+  | 'status'
+  | 'map'
+  | 'playedAt'
+  | 'discoveredAt'
+  | 'scoreStartedCt'
+  | 'scoreStartedT'
+  | 'player'
+  | 'highlightCount'
+>
 import { cn } from '@/lib/utils'
 
 /** Score from the player's perspective: own team first. */
@@ -33,7 +47,7 @@ const WIDE = 'hidden md:block'
 const ratingTone = (rating: number) =>
   rating >= 1.5 ? 'text-success' : rating < 0.85 ? 'text-danger' : 'text-foreground'
 
-export const MatchTable = ({ matches }: { matches: MatchListItem[] }) => (
+export const MatchTable = ({ matches }: { matches: MatchRowData[] }) => (
   // Edge to edge on phones (cancels the page's px-4), a card from md up.
   <div className="-mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
     <div className={cn(GRID, 'h-10 border-b text-[12px] font-medium text-muted')}>
@@ -57,7 +71,7 @@ export const MatchTable = ({ matches }: { matches: MatchListItem[] }) => (
   </div>
 )
 
-const MatchRow = ({ match }: { match: MatchListItem }) => {
+const MatchRow = ({ match }: { match: MatchRowData }) => {
   // Only a row that just turned up grows in; one that was already there stays put.
   const [entering] = useState(() => justFound(match.id))
   const score = perspectiveScore(match, match.player?.startingSide)

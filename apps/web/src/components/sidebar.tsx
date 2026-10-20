@@ -9,6 +9,7 @@ import {
   Settings,
   Server,
   Swords,
+  UserRound,
 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
@@ -357,7 +358,8 @@ export const SidebarContent = ({
     await navigate({ to: '/login' })
   }
 
-  const avatar = me.steamLinks[0]?.avatarUrl ?? me.user.image
+  const avatar = me.user.avatarUrl
+  const ownSteamId = me.steamLinks[0]?.steamId
   const subtitle = me.user.email.endsWith('@steam.invalid') ? 'Steam account' : me.user.email
 
   return (
@@ -564,6 +566,21 @@ export const SidebarContent = ({
                     }}
                   >
                     <Server /> Manage instance
+                  </Menu.Item>
+                )}
+                {ownSteamId && (
+                  <Menu.Item
+                    className={menuItemClass}
+                    onClick={() => {
+                      onNavigate?.()
+                      void navigate({
+                        to: '/players/$steamId',
+                        params: { steamId: ownSteamId },
+                        viewTransition,
+                      })
+                    }}
+                  >
+                    <UserRound /> Your profile
                   </Menu.Item>
                 )}
                 <Menu.Item
