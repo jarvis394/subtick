@@ -7,7 +7,9 @@ import { IconButton } from '@/components/ui/button'
 import { AutoHeight } from '@/components/ui/presence'
 
 // Each tab loads when first opened.
-const DevMatchesTab = lazy(() => import('./matches-tab').then((m) => ({ default: m.DevMatchesTab })))
+const DevMatchesTab = lazy(() =>
+  import('./matches-tab').then((m) => ({ default: m.DevMatchesTab })),
+)
 const DevHighlightsTab = lazy(() =>
   import('./highlights-tab').then((m) => ({ default: m.DevHighlightsTab })),
 )

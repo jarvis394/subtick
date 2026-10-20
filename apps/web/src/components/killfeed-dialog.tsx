@@ -201,7 +201,10 @@ export const KillfeedDialog = ({
     >
       {trigger}
       <Dialog.Portal>
-        <Dialog.Backdrop forceRender className="fixed inset-0 z-60 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Backdrop
+          forceRender
+          className="fixed inset-0 z-60 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0"
+        />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-70 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border bg-surface shadow-xl outline-none transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
           <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4">
             <div className="flex min-w-0 items-center gap-3">

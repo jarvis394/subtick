@@ -86,19 +86,17 @@ const readJobs = async ({ queues, env }: Pick<Context, 'queues' | 'env'>): Promi
   const simulatedJobs = devToolsEnabled(env)
     ? (await import('./dev-highlights')).simulatedJobs
     : new Map<string, never>()
-  const simulated = [...simulatedJobs.entries()].map(
-    ([id, run]): QueuedJob => ({
-      stage: 'recording',
-      state: 'active',
-      matchId: run.matchId,
-      progress: run.progress || null,
-      clip: run.clip,
-      highlightIds: [id],
-      priority: 0,
-      queuedAt: run.queuedAt,
-      startedAt: run.queuedAt,
-    }),
-  )
+  const simulated = [...simulatedJobs.entries()].map(([id, run]): QueuedJob => ({
+    stage: 'recording',
+    state: 'active',
+    matchId: run.matchId,
+    progress: run.progress || null,
+    clip: run.clip,
+    highlightIds: [id],
+    priority: 0,
+    queuedAt: run.queuedAt,
+    startedAt: run.queuedAt,
+  }))
   return [...lists.flat(), ...simulated]
 }
 

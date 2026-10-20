@@ -28,9 +28,7 @@ export const listFakeHighlights = (db: Db, matchId: string) =>
       status: schema.highlight.status,
     })
     .from(schema.highlight)
-    .where(
-      and(eq(schema.highlight.matchId, matchId), like(schema.highlight.title, `${PREFIX}%`)),
-    )
+    .where(and(eq(schema.highlight.matchId, matchId), like(schema.highlight.title, `${PREFIX}%`)))
     .orderBy(desc(schema.highlight.createdAt))
 
 /**
@@ -59,8 +57,7 @@ export const addFakeHighlight = async (
     )[0]?.steamId
   if (!steamId) return { error: 'no_player' as const }
 
-  const borrowed =
-    state === 'ready' ? (await db.select().from(schema.clip).limit(1))[0] : undefined
+  const borrowed = state === 'ready' ? (await db.select().from(schema.clip).limit(1))[0] : undefined
   if (state === 'ready' && !borrowed) return { error: 'no_clip_to_borrow' as const }
 
   const mine = await db

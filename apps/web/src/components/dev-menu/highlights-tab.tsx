@@ -39,8 +39,7 @@ export const DevHighlightsTab = ({
       queryClient.invalidateQueries({ queryKey: ['queue'] }),
     ])
   const add = useMutation({
-    mutationFn: (state: State) =>
-      unwrap(api.dev.highlights.post({ matchId: matchId!, state })),
+    mutationFn: (state: State) => unwrap(api.dev.highlights.post({ matchId: matchId!, state })),
     onSuccess: refresh,
   })
   const remove = useMutation({

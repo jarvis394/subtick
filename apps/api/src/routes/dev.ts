@@ -19,13 +19,17 @@ export const devRoutes = (ctx: Context) => {
     .get(
       '/matches',
       async ({ user, status }) =>
-        enabled ? (await matches()).listFakeMatches(ctx.db, user.id) : status(404, { error: 'not_found' as const }),
+        enabled
+          ? (await matches()).listFakeMatches(ctx.db, user.id)
+          : status(404, { error: 'not_found' as const }),
       { auth: true },
     )
     .post(
       '/matches',
       async ({ user, status }) =>
-        enabled ? (await matches()).stageFakeMatch(user.id) : status(404, { error: 'not_found' as const }),
+        enabled
+          ? (await matches()).stageFakeMatch(user.id)
+          : status(404, { error: 'not_found' as const }),
       { auth: true },
     )
     .delete(
