@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { HighlightPlayer } from '@/components/highlight-card'
 import { mapPreviewUrl } from '@/components/map-icon'
-import { Avatar } from '@/components/ui/avatar'
+import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { IconButton } from '@/components/ui/button'
 import { Presence } from '@/components/ui/presence'
 import { clipTime } from '@/lib/format'
@@ -208,13 +208,24 @@ export const KillfeedDialog = ({
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-70 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border bg-surface shadow-xl outline-none transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
           <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4">
             <div className="flex min-w-0 items-center gap-3">
-              <Avatar src={player.avatarUrl} name={player.name} className="size-10" />
+              <PlayerAvatarLink
+                steamId={moment.steamId}
+                src={player.avatarUrl}
+                name={player.name}
+                className="size-10"
+              />
               <div className="min-w-0">
                 <Dialog.Title className="truncate text-base font-semibold">
                   {moment.title}
                 </Dialog.Title>
                 <Dialog.Description className="mt-0.5 truncate text-[13px] text-muted">
-                  <span className="text-foreground/80">{player.name}</span> · {subtitle}
+                  <PlayerLink
+                    steamId={moment.steamId}
+                    className="text-foreground/80 hover:text-foreground"
+                  >
+                    {player.name}
+                  </PlayerLink>{' '}
+                  · {subtitle}
                 </Dialog.Description>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ErrorPage } from '@/components/error-page'
 import { MapIcon } from '@/components/map-icon'
+import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { RoundMoment } from '@/components/round-moment'
@@ -361,8 +362,18 @@ const Player = ({
         <div className="mt-3 flex flex-wrap items-center gap-x-0.5 gap-y-2">
           {/* The buttons' own padding spaces the dots on their side; this matches it. */}
           <div className="mr-2.5 flex min-w-0 items-center gap-2.5">
-            <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="size-8" />
-            <span className="truncate text-[15px] font-medium">{clip.player.name}</span>
+            <PlayerAvatarLink
+              steamId={clip.steamId}
+              src={clip.player.avatarUrl}
+              name={clip.player.name}
+              className="size-8"
+            />
+            <PlayerLink
+              steamId={clip.steamId}
+              className="truncate text-[15px] font-medium hover:text-foreground/80"
+            >
+              {clip.player.name}
+            </PlayerLink>
           </div>
           <span aria-hidden className="text-border-strong select-none max-sm:hidden">
             ·

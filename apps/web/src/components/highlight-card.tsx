@@ -2,8 +2,8 @@ import { mapName } from '@subtick/domain'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
 import { type ComponentProps, memo, useRef, useState } from 'react'
+import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { RoundMoment } from '@/components/round-moment'
-import { Avatar } from '@/components/ui/avatar'
 import { FadeImage } from '@/components/ui/fade-image'
 import { Badge } from '@/components/ui/surface'
 import { clipSeconds, clock } from '@/lib/format'
@@ -13,7 +13,16 @@ import { cn } from '@/lib/utils'
 
 type ClipCardData = Pick<
   Clip,
-  'id' | 'matchId' | 'kind' | 'title' | 'round' | 'startTick' | 'endTick' | 'segments' | 'kills'
+  | 'id'
+  | 'matchId'
+  | 'steamId'
+  | 'kind'
+  | 'title'
+  | 'round'
+  | 'startTick'
+  | 'endTick'
+  | 'segments'
+  | 'kills'
 > & {
   clip: NonNullable<Clip['clip']>
   map?: string | null
@@ -164,7 +173,12 @@ export const HighlightCard = memo(
           </span>
         </ClipLink>
         <div className="mt-3 flex gap-3">
-          <Avatar src={player.avatarUrl} name={player.name} className="mt-0.5 size-8" />
+          <PlayerAvatarLink
+            steamId={highlight.steamId}
+            src={player.avatarUrl}
+            name={player.name}
+            className="mt-0.5 size-8"
+          />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-[15px] font-medium">
               <ClipLink id={highlight.id} className="hover:text-foreground/80">
@@ -172,7 +186,12 @@ export const HighlightCard = memo(
               </ClipLink>
             </h3>
             <p className="mt-0.5 truncate text-[13px] text-muted">
-              <span className="text-foreground/80">{player.name}</span>
+              <PlayerLink
+                steamId={highlight.steamId}
+                className="text-foreground/80 hover:text-foreground"
+              >
+                {player.name}
+              </PlayerLink>
               {' · '}
               {context === undefined && (
                 <>

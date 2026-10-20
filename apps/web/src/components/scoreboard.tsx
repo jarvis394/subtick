@@ -3,8 +3,8 @@ import { type Side, ROUNDS_PER_HALF, REGULATION_ROUNDS, SIDES } from '@subtick/d
 import { ChevronDown, Star, Users } from 'lucide-react'
 import { type ReactNode, memo, useState } from 'react'
 import { PartyMarker } from '@/components/party-marker'
+import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { RankBadge } from '@/components/rank-badge'
-import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/surface'
 import { partyMarkers } from '@/lib/party'
 import type { MatchDetail } from '@/lib/queries'
@@ -468,12 +468,22 @@ export const Scoreboard = memo(function Scoreboard({
                         <td className={shell(IDENTITY)}>
                           <div className={block(IDENTITY, false, 'gap-2 pl-2.5')}>
                             <PartyMarker marker={parties.get(p.steamId)} />
-                            <Avatar src={p.avatarUrl} name={p.name} className="size-7" />
+                            <PlayerAvatarLink
+                              steamId={p.steamId}
+                              src={p.avatarUrl}
+                              name={p.name}
+                              className="size-7"
+                            />
                           </div>
                         </td>
                         <td className={shell(NAME)}>
                           <div className={block(NAME, false, 'min-w-0 gap-2 pr-2.5 pl-3 md:pl-0')}>
-                            <span className="truncate font-medium">{p.name}</span>
+                            <PlayerLink
+                              steamId={p.steamId}
+                              className="truncate font-medium hover:text-foreground/80"
+                            >
+                              {p.name}
+                            </PlayerLink>
                             {p.steamId === viewerSteamId && (
                               <Badge tone="accent" className="shrink-0">
                                 Me
