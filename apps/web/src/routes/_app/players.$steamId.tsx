@@ -1,4 +1,3 @@
-import { Tabs } from '@base-ui/react/tabs'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
@@ -11,10 +10,10 @@ import { ProfileBanner, ProfileIdentity } from '@/components/profile/profile-hea
 import { CrosshairCard, PartyCard, RanksCard, SteamCard } from '@/components/profile/side-rail'
 import { TeammatesTab } from '@/components/profile/teammates-tab'
 import { Skeleton } from '@/components/ui/surface'
+import { Tab, Tabs, TabsList, TabsPanel } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/api'
 import { clipMask, clipViewerSearch } from '@/lib/highlights'
 import { playerQuery } from '@/lib/queries'
-import { cn } from '@/lib/utils'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -67,7 +66,7 @@ function ProfilePage() {
           <div className="mt-4 px-1 md:px-6">
             <ProfileIdentity player={p} />
           </div>
-          <Tabs.Root
+          <Tabs
             value={tab}
             onValueChange={(next) =>
               navigate({
@@ -78,37 +77,26 @@ function ProfilePage() {
             }
             className="mt-8 min-w-0"
           >
-            <Tabs.List
-              aria-label="Profile"
-              className="relative mb-6 flex w-fit max-w-full gap-1 overflow-x-auto rounded-control bg-surface-2/70 p-0.5"
-            >
+            <TabsList variant="segmented" aria-label="Profile" className="mb-6">
               {TABS.map((t) => (
-                <Tabs.Tab
-                  key={t.id}
-                  value={t.id}
-                  className={cn(
-                    'relative z-10 h-8 cursor-pointer pointer-coarse:h-10 rounded-lg px-3 text-sm whitespace-nowrap text-muted outline-none select-none transition-colors',
-                    'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:text-foreground',
-                  )}
-                >
+                <Tab key={t.id} value={t.id}>
                   {t.label}
-                </Tabs.Tab>
+                </Tab>
               ))}
-              <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg border bg-surface-3 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-            </Tabs.List>
-            <Tabs.Panel value="overview">
+            </TabsList>
+            <TabsPanel value="overview">
               <OverviewTab player={p} />
-            </Tabs.Panel>
-            <Tabs.Panel value="matches">
+            </TabsPanel>
+            <TabsPanel value="matches">
               <MatchesTab steamId={steamId} />
-            </Tabs.Panel>
-            <Tabs.Panel value="maps">
+            </TabsPanel>
+            <TabsPanel value="maps">
               <MapsTab maps={p.maps} />
-            </Tabs.Panel>
-            <Tabs.Panel value="teammates">
+            </TabsPanel>
+            <TabsPanel value="teammates">
               <TeammatesTab player={p} />
-            </Tabs.Panel>
-          </Tabs.Root>
+            </TabsPanel>
+          </Tabs>
         </div>
 
         <aside className="grid min-w-0 gap-4 *:min-w-0">

@@ -1,12 +1,13 @@
-import { Tabs } from '@base-ui/react/tabs'
 import { cn } from '@/lib/utils'
+import { Tab, Tabs, TabsList } from './tabs'
 
-/** A small one-of-a-few switch, styled like the kind filter: a pill slides to the active option. */
+/** A small one-of-a-few switch: a pill slides to the active option in a track. */
 export const Segmented = <T extends string>({
   label,
   value,
   options,
   onChange,
+  size = 'sm',
   className,
 }: {
   /** Accessible name for the group. */
@@ -14,26 +15,21 @@ export const Segmented = <T extends string>({
   value: T
   options: readonly { id: T; label: string }[]
   onChange: (value: T) => void
+  size?: 'sm' | 'md'
   className?: string
 }) => (
-  <Tabs.Root value={value} onValueChange={(next) => onChange(next as T)} className={className}>
-    <Tabs.List
-      aria-label={label}
-      className="relative flex gap-0.5 rounded-control bg-surface-2/70 p-0.5"
-    >
+  <Tabs
+    value={value}
+    onValueChange={(next) => onChange(next as T)}
+    // Shrinks to its container, so a long switch scrolls rather than widening the page.
+    className={cn('max-w-full min-w-0', className)}
+  >
+    <TabsList variant="segmented" size={size} aria-label={label}>
       {options.map((o) => (
-        <Tabs.Tab
-          key={o.id}
-          value={o.id}
-          className={cn(
-            'relative z-10 h-7 cursor-pointer pointer-coarse:h-9 rounded-lg px-2.5 text-[13px] text-muted outline-none select-none transition-colors',
-            'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:text-foreground',
-          )}
-        >
+        <Tab key={o.id} value={o.id}>
           {o.label}
-        </Tabs.Tab>
+        </Tab>
       ))}
-      <Tabs.Indicator className="absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) rounded-lg border bg-surface-3 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-    </Tabs.List>
-  </Tabs.Root>
+    </TabsList>
+  </Tabs>
 )

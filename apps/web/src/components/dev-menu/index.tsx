@@ -1,10 +1,10 @@
 import { Popover } from '@base-ui/react/popover'
-import { Tabs } from '@base-ui/react/tabs'
 import { FlaskConical } from 'lucide-react'
 import { useMatch } from '@tanstack/react-router'
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/ui/button'
 import { AutoHeight } from '@/components/ui/presence'
+import { Tab, Tabs, TabsList, TabsPanel } from '@/components/ui/tabs'
 
 // Each tab loads when first opened.
 const DevMatchesTab = lazy(() =>
@@ -32,10 +32,6 @@ const TABS = [
     ),
   },
 ] as const
-
-/** Same switcher as Manage instance. */
-const tabClass =
-  'relative z-10 flex h-7 cursor-pointer items-center rounded-md px-2.5 text-[13px] whitespace-nowrap text-muted transition-colors outline-none select-none hover:text-foreground data-active:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
 
 /**
  * Dev builds only (app-shell leaves it out of production bundles): a floating button that opens
@@ -77,32 +73,31 @@ export default function DevMenu() {
           className="z-50"
         >
           <Popover.Popup className="theme-dark w-80 origin-(--transform-origin) rounded-2xl border border-border-strong bg-black text-foreground shadow-2xl shadow-black/40 outline-none transition-[scale,opacity] duration-200 ease-out-quart data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-starting-style:scale-[0.96] data-starting-style:opacity-0">
-            <Tabs.Root defaultValue={TABS[0].value}>
+            <Tabs defaultValue={TABS[0].value}>
               <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
                 <Popover.Title className="text-[12px] font-medium text-muted">
                   Developer tools
                 </Popover.Title>
-                <Tabs.List className="relative flex gap-0.5" aria-label="Sections">
+                <TabsList size="sm" aria-label="Sections" className="gap-0.5">
                   {TABS.map((tab) => (
-                    <Tabs.Tab key={tab.value} value={tab.value} className={tabClass}>
+                    <Tab key={tab.value} value={tab.value}>
                       {tab.label}
-                    </Tabs.Tab>
+                    </Tab>
                   ))}
-                  <Tabs.Indicator className="absolute top-0 left-0 z-0 h-7 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-md bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-                </Tabs.List>
+                </TabsList>
               </div>
               {/* Within a range: the menu neither collapses while a tab's code loads nor outgrows the
                 screen, and its height eases as a tab's content or the tab itself changes. */}
               <div className="max-h-[min(28rem,60dvh)] overflow-y-auto">
                 <AutoHeight innerClassName="min-h-56">
                   {TABS.map((tab) => (
-                    <Tabs.Panel key={tab.value} value={tab.value} className="outline-none">
+                    <TabsPanel key={tab.value} value={tab.value} className="outline-none">
                       <Suspense fallback={null}>{tab.panel(close, matchId)}</Suspense>
-                    </Tabs.Panel>
+                    </TabsPanel>
                   ))}
                 </AutoHeight>
               </div>
-            </Tabs.Root>
+            </Tabs>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

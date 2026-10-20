@@ -1,4 +1,3 @@
-import { Tabs } from '@base-ui/react/tabs'
 import { type QueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, CircleStop, Plus, RotateCw } from 'lucide-react'
@@ -16,6 +15,7 @@ import { Scoreboard } from '@/components/scoreboard'
 import { Button } from '@/components/ui/button'
 import { AutoHeight, FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
+import { Tab, Tabs, TabsList } from '@/components/ui/tabs'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
 import { useMatchProgress } from '@/hooks/use-match-events'
 import { formatDate } from '@/lib/format'
@@ -89,9 +89,6 @@ export const Route = createFileRoute('/_app/matches/$id')({
   validateSearch: clipViewerSearch,
   component: MatchPage,
 })
-
-const tabClass =
-  'relative z-10 h-8 cursor-pointer rounded-lg px-3 text-sm text-muted transition-colors outline-none select-none hover:text-foreground data-active:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
 
 function MatchPage() {
   const { id } = Route.useParams()
@@ -308,17 +305,12 @@ function MatchBody({ data }: { data: MatchDetail }) {
               </Button>
             )}
             {myPlayer && (
-              <Tabs.Root value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
-                <Tabs.List className="relative flex gap-1">
-                  <Tabs.Tab value="mine" className={tabClass}>
-                    Yours
-                  </Tabs.Tab>
-                  <Tabs.Tab value="all" className={tabClass}>
-                    Everyone
-                  </Tabs.Tab>
-                  <Tabs.Indicator className="absolute top-0 left-0 z-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-lg bg-surface-2 transition-[translate,width] duration-200 ease-out-quart motion-reduce:transition-none" />
-                </Tabs.List>
-              </Tabs.Root>
+              <Tabs value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
+                <TabsList aria-label="Highlights">
+                  <Tab value="mine">Yours</Tab>
+                  <Tab value="all">Everyone</Tab>
+                </TabsList>
+              </Tabs>
             )}
           </div>
         </div>
