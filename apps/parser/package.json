@@ -9,8 +9,7 @@
     "test": "bun test",
     "fixtures": "bun scripts/fetch-fixtures.ts",
     "inspect": "bun scripts/inspect.ts",
-    "seed": "bun scripts/seed.ts",
-    "backfill-crosshairs": "bun scripts/backfill-crosshairs.ts"
+    "seed": "bun scripts/seed.ts"
   },
   "dependencies": {
     "@laihoe/demoparser2": "^0.42.0",
