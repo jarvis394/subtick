@@ -98,3 +98,5 @@ export const formatBytes = (bytes: number) => {
 
   return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${BYTE_UNITS[unit]}`
 }
+
+export const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`

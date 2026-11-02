@@ -10,7 +10,17 @@ export const Badge = ({
   className,
   ...props
 }: ComponentProps<'span'> & {
-  tone?: 'neutral' | 'accent' | 'brand' | 'success' | 'danger' | 'ct' | 't'
+  /** `overlay` and `overlay-inverse` sit on video or images. */
+  tone?:
+    | 'neutral'
+    | 'accent'
+    | 'brand'
+    | 'success'
+    | 'danger'
+    | 'ct'
+    | 't'
+    | 'overlay'
+    | 'overlay-inverse'
 }) => (
   <span
     className={cn(
@@ -23,6 +33,8 @@ export const Badge = ({
         danger: 'bg-danger/12 text-danger',
         ct: 'bg-side-ct/14 text-side-ct',
         t: 'bg-side-t/16 text-side-t-text',
+        overlay: 'bg-black/55 text-white backdrop-blur',
+        'overlay-inverse': 'bg-white text-black backdrop-blur',
       }[tone],
       className,
     )}

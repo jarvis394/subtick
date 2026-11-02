@@ -50,7 +50,9 @@ const ProfileSkeleton = () => (
   <div aria-hidden>
     <Skeleton className="-mx-4 -mt-6 aspect-[3/1] max-h-64 rounded-none md:mx-0 md:mt-0 md:rounded-2xl" />
     <div className="mt-4 flex items-end gap-5 px-1 md:px-6">
-      <Skeleton className="-mt-12 size-24 rounded-full ring-4 ring-surface md:-mt-14 md:size-28" />
+      <span className="-mt-12 flex rounded-full ring-4 ring-surface md:-mt-14">
+        <Skeleton className="size-24 rounded-full md:size-28" />
+      </span>
       <Skeleton className="mb-2 h-7 w-48 rounded" />
     </div>
   </div>

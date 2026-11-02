@@ -59,9 +59,11 @@ function RecordersPage() {
       {recorders.isPending ? (
         <Skeleton className="h-40" />
       ) : recorders.data?.length === 0 && !adding ? (
-        <Card className="p-6 text-body text-muted">
-          No recorders yet. Add one, then start the recorder container on a machine with an NVIDIA
-          GPU using the token it gives you.
+        <Card className="p-6">
+          <p className="text-body text-muted">
+            No recorders yet. Add one, then start the recorder container on a machine with an NVIDIA
+            GPU using the token it gives you.
+          </p>
         </Card>
       ) : (
         <FadeList>

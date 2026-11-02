@@ -14,7 +14,10 @@ Every button is one variant (how loud) × one tone (what it means) × one size.
 
 - Variant: `primary` for the one main action of a surface (Continue, Record, Create), filled with the
   page's foreground; `secondary` for every other real action (the default); `ghost` for dismissing and
-  low-key actions (Cancel, Skip, Done) and icon buttons in chrome; `link` inline in a sentence.
+  low-key actions (Cancel, Skip, Done) and icon buttons in chrome; `link` inline in a sentence;
+  `quiet` for a `secondary` action that should recede (share on a profile header); `plain` for a
+  `ghost` button whose label is content, not chrome (a player's name, the account menu).
+- `showCurrent={false}` keeps a link to the current page looking like its neighbours.
 - Tone: `neutral` by default; `danger` for destructive actions, `primary` only on the final confirm
   (Delete account) and `ghost` on entry points (Delete, Sign out, Unlink); `brand` for attention
   without alarm (retry a failed recording), usually `secondary`.

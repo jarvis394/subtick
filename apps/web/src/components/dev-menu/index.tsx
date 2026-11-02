@@ -56,9 +56,10 @@ export default function DevMenu() {
         <Popover.Trigger
           render={
             <IconButton
+              variant="secondary"
               label="Developer tools"
               tooltip={false}
-              className="size-10 rounded-full border border-border-strong shadow-lg shadow-black/30 [--bg:black]"
+              className="size-10 rounded-full shadow-lg shadow-black/30"
             />
           }
         >

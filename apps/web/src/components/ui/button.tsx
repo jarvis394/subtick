@@ -23,12 +23,27 @@ const styles = {
     brand:
       'text-brand-text [--bg:var(--color-brand-soft)] [--bg-hover:var(--color-brand-soft-hover)]',
   },
+  quiet: {
+    neutral: cn(
+      'text-muted [--bg:var(--color-surface-2)] [--bg-hover:var(--color-surface-3)]',
+      'hover:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
+    ),
+    danger:
+      'text-danger [--bg:var(--color-danger-soft)] [--bg-hover:var(--color-danger-soft-hover)]',
+    brand:
+      'text-brand-text [--bg:var(--color-brand-soft)] [--bg-hover:var(--color-brand-soft-hover)]',
+  },
   ghost: {
     neutral: cn(
       'text-muted [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
       // Muted at rest; full color while hovered or selected.
-      'hover:text-foreground aria-pressed:text-foreground aria-[current=page]:text-foreground data-popup-open:text-foreground',
+      'hover:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
     ),
+    danger: 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
+    brand: 'text-brand-text [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
+  },
+  plain: {
+    neutral: 'text-foreground [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
     danger: 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
     brand: 'text-brand-text [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
   },
@@ -61,7 +76,12 @@ export type ButtonVariant = keyof typeof styles
 export type ButtonTone = 'neutral' | 'danger' | 'brand'
 export type ButtonSize = keyof typeof sizes
 
-const boxClass = (variant: Exclude<ButtonVariant, 'link'>, tone: ButtonTone, size: string) =>
+const boxClass = (
+  variant: Exclude<ButtonVariant, 'link'>,
+  tone: ButtonTone,
+  size: string,
+  showCurrent: boolean,
+) =>
   cn(
     'group/button relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center font-medium whitespace-nowrap select-none',
     // Text color (ghost's muted -> foreground) fades with the background layer, not instantly.
@@ -70,7 +90,12 @@ const boxClass = (variant: Exclude<ButtonVariant, 'link'>, tone: ButtonTone, siz
     // Loading is disabled too, but keeps full color: the spinner is the feedback.
     'disabled:cursor-not-allowed data-disabled:cursor-not-allowed disabled:not-aria-busy:opacity-50 data-disabled:not-aria-busy:opacity-50 aria-busy:cursor-wait',
     // Selected (a pressed toggle, an open menu, the current page): lit like a hovered button.
-    'aria-pressed:[--bg:var(--bg-hover)] aria-[current=page]:[--bg:var(--bg-hover)] data-popup-open:[--bg:var(--bg-hover)]',
+    'aria-pressed:[--bg:var(--bg-hover)] data-popup-open:[--bg:var(--bg-hover)]',
+    showCurrent && 'aria-[current=page]:[--bg:var(--bg-hover)]',
+    showCurrent &&
+      variant === 'ghost' &&
+      tone === 'neutral' &&
+      'aria-[current=page]:text-foreground',
     '[&_svg]:size-4 [&_svg]:shrink-0',
     styles[variant][tone],
     size,
@@ -146,6 +171,8 @@ export interface ButtonProps extends Omit<
   loading?: boolean
   /** Renders as this element instead, e.g. `render={<Link to="/setup" />}`. */
   render?: ReactElement
+  /** `false` keeps a link to the current page looking like its neighbours instead of selected. */
+  showCurrent?: boolean
   className?: string
 }
 
@@ -158,7 +185,7 @@ const ButtonRoot = ({
   focusableWhenDisabled,
   children,
   ...props
-}: Omit<ButtonProps, 'tone' | 'size'>) => {
+}: Omit<ButtonProps, 'tone' | 'size' | 'showCurrent'>) => {
   const content =
     variant === 'link' ? (
       children
@@ -188,13 +215,14 @@ export const Button = ({
   variant = 'secondary',
   tone = 'neutral',
   size = 'md',
+  showCurrent = true,
   className,
   ...props
 }: ButtonProps) => (
   <ButtonRoot
     variant={variant}
     className={cn(
-      variant === 'link' ? linkClass(tone) : boxClass(variant, tone, sizes[size]),
+      variant === 'link' ? linkClass(tone) : boxClass(variant, tone, sizes[size], showCurrent),
       className,
     )}
     {...props}
@@ -204,7 +232,7 @@ export const Button = ({
 export interface IconButtonProps extends Omit<ButtonProps, 'variant' | 'children'> {
   /** What the button does: its accessible name and its tooltip. */
   label?: string
-  variant?: 'ghost' | 'secondary'
+  variant?: 'ghost' | 'secondary' | 'quiet'
   /** `false` when the trigger already has a richer tooltip of its own, or its label is obvious. */
   tooltip?: boolean
   children?: ReactNode
@@ -216,6 +244,7 @@ export const IconButton = ({
   tone = 'neutral',
   size = 'md',
   tooltip = true,
+  showCurrent = true,
   className,
   ...props
 }: IconButtonProps) => {
@@ -223,7 +252,7 @@ export const IconButton = ({
     <ButtonRoot
       aria-label={label}
       variant={variant}
-      className={cn(boxClass(variant, tone, iconSizes[size]), className)}
+      className={cn(boxClass(variant, tone, iconSizes[size], showCurrent), className)}
       {...props}
     />
   )

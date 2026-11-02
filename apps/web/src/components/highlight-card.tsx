@@ -150,10 +150,8 @@ export const HighlightCard = memo(
           {/* Along the bottom: the top corners are where CS2 draws its radar and killfeed. */}
           <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between">
             <Badge
-              className={cn(
-                'tracking-normal normal-case backdrop-blur',
-                RARE.has(highlight.kind) ? 'bg-white text-black' : 'bg-black/55 text-white',
-              )}
+              tone={RARE.has(highlight.kind) ? 'overlay-inverse' : 'overlay'}
+              className="tracking-normal normal-case"
             >
               {KIND_LABEL[highlight.kind]}
             </Badge>

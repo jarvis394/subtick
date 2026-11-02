@@ -35,21 +35,15 @@ export const ShareActions = ({
 
   return (
     <div className={cn('flex shrink-0 items-center gap-1.5', className)}>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => void share()}
-        className={cn(quiet && 'text-muted hover:text-foreground')}
-      >
+      <Button size="sm" variant={quiet ? 'quiet' : 'secondary'} onClick={() => void share()}>
         <Share2 />
         <MorphLabel>{shareCopy.copied ? 'Copied' : 'Share'}</MorphLabel>
       </Button>
       <IconButton
-        variant="secondary"
+        variant={quiet ? 'quiet' : 'secondary'}
         size="sm"
         label={linkCopy.copied ? 'Link copied' : 'Copy link'}
         onClick={() => linkCopy.copy(url)}
-        className={cn(quiet && 'text-muted hover:text-foreground')}
       >
         <span className="grid place-items-center *:col-start-1 *:row-start-1">
           <Link2
