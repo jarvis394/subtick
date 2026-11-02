@@ -20,6 +20,9 @@ x-server: &server
     REDIS_URL: redis://redis:6379
     S3_ENDPOINT: http://seaweedfs:8333
     S3_DISK_STATUS_URL: http://seaweedfs:8080/status
+    # The hosts Traefik routes below, as the origins the app links to.
+    PUBLIC_URL: https://${PUBLIC_HOST:?}
+    S3_PUBLIC_ENDPOINT: https://${S3_HOST:?}
   restart: unless-stopped
 
 services:
