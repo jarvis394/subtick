@@ -60,9 +60,11 @@ export const createSteamWebApi = (apiKey: string) => {
       batches.map(async (batch) => {
         const response = await get(endpoint, { steamids: batch.join(',') })
         if (!response.ok) throw new SteamApiError(endpoint, response.status)
+
         return PlayerSummaries.parse(await response.json()).response.players
       }),
     )
+
     return responses.flat().map((player) => ({
       steamId: player.steamid,
       personaName: player.personaname,
@@ -75,6 +77,7 @@ export const createSteamWebApi = (apiKey: string) => {
 
     async getProfile(steamId: string): Promise<SteamProfile | null> {
       const [profile] = await getProfiles([steamId])
+
       return profile ?? null
     },
 
@@ -84,6 +87,7 @@ export const createSteamWebApi = (apiKey: string) => {
       const response = await get(endpoint, { steamid: steamId, relationship: 'friend' })
       if (response.status === 401 || response.status === 403) return null
       if (!response.ok) throw new SteamApiError(endpoint, response.status)
+
       return FriendList.parse(await response.json()).friendslist.friends.map((f) => f.steamid)
     },
 
@@ -105,6 +109,7 @@ export const createSteamWebApi = (apiKey: string) => {
       if (response.status === 202) return { status: 'none' }
       if (!response.ok) throw new SteamApiError(endpoint, response.status)
       const { nextcode } = NextMatchSharingCode.parse(await response.json()).result
+
       return nextcode === 'n/a' ? { status: 'none' } : { status: 'next', shareCode: nextcode }
     },
   }

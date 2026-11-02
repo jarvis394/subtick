@@ -31,20 +31,24 @@ export const resultOf = (
   const own = m.startingSide === 'CT' ? m.scoreStartedCt : m.scoreStartedT
   const enemy = m.startingSide === 'CT' ? m.scoreStartedT : m.scoreStartedCt
   if (own === null || enemy === null) return null
+
   return own > enemy ? 'win' : own < enemy ? 'loss' : 'draw'
 }
 
 const round = (n: number, digits = 2) => Number(n.toFixed(digits))
+
 const average = (values: number[]) =>
   values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
 
 /** Totals across matches, weighted by rounds where a per-match average would skew. */
 export const summarize = (matches: PlayedMatch[]) => {
-  const sum = (pick: (s: PlayerStats) => number) =>
-    matches.reduce((total, m) => total + pick(m.stats), 0)
   const results = matches.map(resultOf)
   const wins = results.filter((r) => r === 'win').length
   const decided = results.filter((r) => r !== null).length
+
+  const sum = (pick: (s: PlayerStats) => number) =>
+    matches.reduce((total, m) => total + pick(m.stats), 0)
+
   const kills = sum((s) => s.kills)
   const deaths = sum((s) => s.deaths)
   const rounds = sum((s) => s.roundsPlayed)
@@ -61,6 +65,7 @@ export const summarize = (matches: PlayedMatch[]) => {
     kastPercent: rounds ? round((sum((s) => s.kastRounds) / rounds) * 100, 0) : 0,
     openingWinRate: (() => {
       const duels = sum((s) => s.openingKills + s.openingDeaths)
+
       return duels ? round((sum((s) => s.openingKills) / duels) * 100, 0) : null
     })(),
     clutchesWon: sum((s) => s.clutchesWon),
@@ -75,6 +80,7 @@ export const mapStats = (matches: PlayedMatch[]) =>
   [...Map.groupBy(matches, (m) => m.map ?? 'unknown')]
     .map(([map, games]) => {
       const s = summarize(games)
+
       return {
         map,
         matches: s.matches,
@@ -91,10 +97,13 @@ export const mapStats = (matches: PlayedMatch[]) =>
 /** Premier now and at its best, and the latest skill group per mode. */
 export const ranks = (matches: PlayedMatch[]) => {
   const premier = matches.filter((m) => m.rank?.mode === 'premier' && m.rank.after > 0)
+
   const latest = (mode: 'competitive' | 'wingman') => {
     const m = matches.find((x) => x.rank?.mode === mode && x.rank.after > 0)
+
     return m ? { group: m.rank!.after, map: m.map } : null
   }
+
   return {
     premier: premier.length
       ? {
@@ -120,6 +129,7 @@ export const teammates = (matches: PlayedMatch[], others: MatchPlayerRow[]) => {
   const list = [...byPlayer].map(([steamId, rows]) => {
     const shared = rows.map((r) => own.get(r.matchId)!)
     const results = shared.map(resultOf).filter((r) => r !== null)
+
     return {
       steamId,
       name: rows[0]!.name,

@@ -11,5 +11,6 @@ const MAX_LENGTH = 400
 export const failureReason = (stage: keyof typeof LEADS, error: unknown) => {
   const message = (error instanceof Error ? error.message : String(error)).trim()
   const detail = message.length > MAX_LENGTH ? `${message.slice(0, MAX_LENGTH)}…` : message
+
   return detail ? `${LEADS[stage]}: ${detail}` : LEADS[stage]
 }

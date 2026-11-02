@@ -33,6 +33,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
             'Something went wrong. Please try again',
         )
       }
+
       return data
     },
   })
@@ -41,7 +42,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
     return (
       <div className="flex gap-3">
         <MailCheck className="mt-0.5 size-4 shrink-0 text-accent" />
-        <div className="grid gap-1 text-sm">
+        <div className="grid gap-1 text-body">
           <p>
             Check <span className="font-medium">{send.data.email}</span> for a link from us.
           </p>
@@ -90,7 +91,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
           />
         </Field>
       )}
-      {send.error && <p className="text-sm text-danger select-text">{send.error.message}</p>}
+      {send.error && <p className="text-body text-danger select-text">{send.error.message}</p>}
       <div>
         <Button type="submit" variant="secondary" loading={send.isPending}>
           Send confirmation link

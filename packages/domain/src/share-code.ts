@@ -13,6 +13,7 @@ export const isShareCode = (code: string) => SHARE_CODE_RE.test(code)
 const readUintLE = (bytes: Uint8Array, from: number, length: number) => {
   let value = 0n
   for (let i = from + length - 1; i >= from; i--) value = (value << 8n) | BigInt(bytes[i]!)
+
   return value
 }
 
@@ -60,5 +61,6 @@ export const encodeShareCode = ({ matchId, outcomeId, token }: DecodedShareCode)
     chars += DICTIONARY[Number(big % BASE)]
     big /= BASE
   }
+
   return `CSGO-${chars.match(/.{5}/g)!.join('-')}`
 }

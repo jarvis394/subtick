@@ -26,6 +26,7 @@ const byRound = (moments: Highlight[]) => {
   const rounds = new Map<number, Highlight[]>()
   for (const m of moments.toSorted((a, b) => a.round - b.round || a.startTick - b.startTick))
     rounds.set(m.round, [...(rounds.get(m.round) ?? []), m])
+
   return [...rounds]
 }
 
@@ -41,7 +42,7 @@ const Section = ({
   children: ReactNode
 }) => (
   <motion.section ref={ref} {...fade}>
-    <h2 className="mb-3 text-sm font-medium text-muted">{title}</h2>
+    <h2 className="mb-3 text-body font-medium text-muted">{title}</h2>
     <div className="grid gap-3 md:grid-cols-2">
       <FadeList>{children}</FadeList>
     </div>
@@ -73,8 +74,10 @@ function CreateHighlightsPage() {
   const rounds = byRound(shown.filter((h) => h.status === 'candidate'))
 
   const players = new Map(data?.players.map((p) => [p.steamId, p]))
+
   const playerOf = (steamId: string) => {
     const p = players.get(steamId)
+
     return { name: p?.name ?? 'Unknown', avatarUrl: p?.avatarUrl ?? null }
   }
   const card = (h: Highlight) => (
@@ -96,11 +99,11 @@ function CreateHighlightsPage() {
       <Link
         to="/matches/$id"
         params={{ id }}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-body text-muted hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Match
       </Link>
-      <h1 className="mb-6 font-serif text-3xl tracking-tight">Create highlights</h1>
+      <h1 className="mb-6 font-serif text-display tracking-tight">Create highlights</h1>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
         <KindTabs

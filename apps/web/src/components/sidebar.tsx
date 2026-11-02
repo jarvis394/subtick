@@ -58,14 +58,14 @@ export const RAIL_WIDTH = 'w-14'
 
 const rowClass = (collapsed: boolean) =>
   cn(
-    'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-[11px] text-sm whitespace-nowrap text-muted outline-none select-none',
+    'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-2.75 text-body whitespace-nowrap text-muted outline-none select-none',
     // The rail's width, and the text/icon color as a row becomes active; backgrounds switch
     // instantly.
     '[transition:width_200ms_var(--ease-out-quart),color_150ms_ease-out]',
     // Hover only tints the row; the text stays muted until the row is the active one.
     'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring',
     'data-[status=active]:bg-surface-2 data-[status=active]:text-foreground',
-    '[&_svg]:size-[18px] [&_svg]:shrink-0',
+    '[&_svg]:size-4.5 [&_svg]:shrink-0',
     collapsed ? 'w-10' : 'w-full',
   )
 
@@ -95,6 +95,7 @@ const NavItem = ({
   viewTransition?: boolean
 }) => {
   const pending = usePendingPath() === to
+
   return (
     <Link
       to={to}
@@ -119,8 +120,10 @@ const NavItem = ({
  */
 const swapOut =
   'pointer-fine:group-hover/row:opacity-0 pointer-fine:group-has-[:focus-visible]/row:opacity-0 pointer-fine:group-has-data-popup-open/row:opacity-0'
+
 const swapIn =
   'pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100 pointer-fine:group-has-[:focus-visible]/row:opacity-100 pointer-fine:data-popup-open:opacity-100'
+
 /**
  * Hovered dozens of times a day: the swap itself is instant (opacity never transitions), but the
  * menu button's icon still eases its color like every other button.
@@ -178,7 +181,7 @@ const RecentRow = ({
       >
         {/* In the rail the name (and its new-match dot) fades out, so a dot fades in on the map. */}
         <span className="relative flex shrink-0">
-          <MapIcon map={match.map} className="size-6 rounded-md text-[12px]" />
+          <MapIcon map={match.map} className="size-6 rounded-md text-label" />
           <NewDot
             matchId={match.id}
             hidden={!collapsed}
@@ -193,26 +196,31 @@ const RecentRow = ({
               </span>
               <NewDot matchId={match.id} />
             </span>
-            <span className="shrink-0 text-[11px] text-muted/60 tabular-nums">
+            <span className="shrink-0 text-caption text-muted/60 tabular-nums">
               {shortAge(match.playedAt ?? match.discoveredAt)}
             </span>
           </span>
           <span className={cn('flex items-center', swapTransition, swapOut)}>
             {/* Only a stage that reports how far it is gets a ring; a spinner would say nothing. */}
             {isProcessing(match.status) && progress !== undefined && (
-              <span className="mr-2 flex text-foreground/50" title={percent(progress)}>
-                <ProgressRing progress={progress} size={14} />
-              </span>
+              <Tooltip
+                content={percent(progress)}
+                trigger={
+                  <span className="mr-2 flex text-foreground/50">
+                    <ProgressRing progress={progress} size={14} />
+                  </span>
+                }
+              />
             )}
             {match.cancelled ? (
-              <span className="text-[11px] text-muted">Cancelled</span>
+              <span className="text-caption text-muted">Cancelled</span>
             ) : match.status === 'failed' || match.status === 'expired' ? (
-              <span className="text-[11px] text-danger">
+              <span className="text-caption text-danger">
                 {match.status === 'failed' ? 'Failed' : 'Expired'}
               </span>
             ) : score ? (
               // Known once the demo is analyzed, so it shows beside the spinner while clips record.
-              <span className="font-mono text-[12px] tabular-nums">
+              <span className="font-mono text-label tabular-nums">
                 <span
                   className={
                     score.result === 'win'
@@ -314,13 +322,14 @@ const QueueButton = ({
 /** A queue item's progress, when the match is in the queue. */
 const useQueuedProgress = (item: QueueItem | undefined) => {
   const streamed = useProgressMap()
+
   return item ? liveProgress(item, streamed).progress : undefined
 }
 
 const SKELETON_WIDTHS = ['w-14', 'w-16', 'w-12', 'w-16', 'w-14']
 
 const menuItemClass =
-  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
+  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
 
 export const SidebarContent = ({
   collapsed,
@@ -351,16 +360,16 @@ export const SidebarContent = ({
   const refresh = useRefreshMatches()
   const notice = useRefreshNotice(refresh)
 
+  const avatar = me.user.avatarUrl
+  const ownSteamId = me.steamLinks[0]?.steamId
+  const subtitle = me.user.email.endsWith('@steam.invalid') ? 'Steam account' : me.user.email
+
   const signOut = async () => {
     await authClient.signOut()
     clearStoredMe()
     queryClient.clear()
     await navigate({ to: '/login' })
   }
-
-  const avatar = me.user.avatarUrl
-  const ownSteamId = me.steamLinks[0]?.steamId
-  const subtitle = me.user.email.endsWith('@steam.invalid') ? 'Steam account' : me.user.email
 
   return (
     <div className="flex h-full w-full min-w-64 flex-col">
@@ -421,12 +430,12 @@ export const SidebarContent = ({
         </nav>
 
         <div className="mt-5 px-2">
-          <div className={cn('flex h-7 items-center pr-1 pl-[11px]', fade(collapsed))}>
+          <div className={cn('flex h-7 items-center pr-1 pl-2.75', fade(collapsed))}>
             <FadeSwap className="flex-1" swapKey={notice ? 'notice' : 'title'}>
               {notice ? (
-                <p className="text-[12px] font-medium whitespace-nowrap text-link">{notice}</p>
+                <p className="text-label font-medium whitespace-nowrap text-link">{notice}</p>
               ) : (
-                <p className="text-[12px] font-medium whitespace-nowrap text-muted/70">Recents</p>
+                <p className="text-label font-medium whitespace-nowrap text-muted/70">Recents</p>
               )}
             </FadeSwap>
             {setUp && (
@@ -456,8 +465,8 @@ export const SidebarContent = ({
                     <span className="mb-3 grid size-9 place-items-center rounded-lg border bg-surface text-muted">
                       <Swords className="size-4" />
                     </span>
-                    <p className="text-[13px] font-medium">No matches yet</p>
-                    <p className="mt-1 text-[12px] text-balance text-muted">
+                    <p className="text-small font-medium">No matches yet</p>
+                    <p className="mt-1 text-label text-balance text-muted">
                       {setUp
                         ? 'Matches you play show up here.'
                         : 'Finish setup to start picking up your matches.'}
@@ -485,7 +494,7 @@ export const SidebarContent = ({
                   fade(collapsed),
                 )}
               >
-                <p className="text-[13px] font-medium">Couldn't load matches</p>
+                <p className="text-small font-medium">Couldn't load matches</p>
                 <Button
                   variant="ghost"
                   size="xs"
@@ -501,6 +510,7 @@ export const SidebarContent = ({
                 // Laid out like RecentRow: map icon, name and age, score on the right.
                 <div className="grid gap-0.5" aria-hidden>
                   {SKELETON_WIDTHS.map((width, i) => (
+                    // oxlint-disable-next-line react/no-array-index-key -- fixed placeholder rows that never reorder
                     <div key={i} className="flex h-10 items-center gap-2.5 px-2">
                       <Skeleton className="size-6 shrink-0 rounded-full" />
                       <span
@@ -529,7 +539,7 @@ export const SidebarContent = ({
         className={cn(
           'relative flex shrink-0 items-center border-t p-2',
           '[transition:padding_200ms_var(--ease-out-quart)] motion-reduce:transition-none',
-          collapsed && 'pt-[52px]',
+          collapsed && 'pt-13',
         )}
       >
         <Menu.Root>
@@ -549,14 +559,14 @@ export const SidebarContent = ({
           >
             <Avatar src={avatar} name={me.user.name} className="size-7" />
             <span className={cn('flex min-w-0 items-center gap-3 pr-1.5', fade(collapsed))}>
-              <span className="truncate text-sm font-medium">{me.user.name}</span>
+              <span className="truncate text-body font-medium">{me.user.name}</span>
               <ChevronDown className="size-4 shrink-0 text-muted" />
             </span>
           </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
               <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
-                <p className="truncate px-2 pt-1 pb-1.5 text-[13px] text-muted">{subtitle}</p>
+                <p className="truncate px-2 pt-1 pb-1.5 text-small text-muted">{subtitle}</p>
                 {me.user.isAdmin && (
                   <Menu.Item
                     className={menuItemClass}
@@ -608,7 +618,7 @@ export const SidebarContent = ({
             'transition-[color,translate] duration-200 ease-out-quart motion-reduce:transition-none',
             // Collapsing only happens in the desktop sidebar, whose content is always w-64: from
             // the right edge to the rail's 8px inset is 256 − 56, and up one button plus the gap.
-            collapsed && '-translate-x-[200px] -translate-y-11',
+            collapsed && '-translate-x-50 -translate-y-11',
           )}
         />
       </div>

@@ -6,14 +6,10 @@ export type TypedQueue<N extends QueueName> = Queue<JobPayload<N>, void, N>
 export type TypedJob<N extends QueueName> = Job<JobPayload<N>, void, N>
 
 /**
- * BullMQ over Bun's native Redis client; each queue/worker gets its own connection.
- * The client must be wrapped explicitly: BullMQ only auto-detects clients that have
- * connect/disconnect/duplicate, and otherwise silently treats the object as connection
- * *options* and falls back to ioredis on 127.0.0.1:6379.
- *
- * Bun gives up after 20 reconnects (well under a minute) and never tries again, which leaves a
- * worker alive but deaf to its queue. Redis can be gone for hours (the recorder reaches it through
- * an SSH tunnel), so keep retrying; attempts back off to a couple of seconds apart.
+ * BullMQ over Bun's Redis client, one connection per queue/worker. It must be wrapped: BullMQ otherwise
+ * treats the object as connection options and silently falls back to ioredis on 127.0.0.1:6379.
+ * Bun stops after 20 reconnects, leaving a worker deaf to its queue, and Redis can be gone for hours
+ * (the recorder reaches it over an SSH tunnel), so retry forever with backoff.
  */
 const connect = (redisUrl: string) =>
   createBunRedisClient(new RedisClient(redisUrl, { maxRetries: 1_000_000 }))
@@ -30,6 +26,7 @@ export const enqueue = <N extends QueueName>(
   options: { priority?: number; delay?: number } = {},
 ) => {
   const name = queue.name as N
+
   return queue.add(name as never, payload as never, {
     ...options,
     jobId: queues[name].jobId(payload),
@@ -53,6 +50,7 @@ export const requeue = async <N extends QueueName>(
     if (state !== 'completed' && state !== 'failed' && state !== 'unknown') return existing
     await existing.remove()
   }
+
   return enqueue(queue, payload, options)
 }
 
@@ -61,6 +59,7 @@ export const enqueueBulk = <N extends QueueName>(
   payloads: JobPayload<N>[],
 ) => {
   const name = queue.name as N
+
   return queue.addBulk(
     payloads.map((data) => ({ name, data, opts: { jobId: queues[name].jobId(data) } })) as never,
   )
@@ -80,6 +79,7 @@ export const closeOnSignal = (...closables: { close(): Promise<void> }[]) => {
     await Promise.allSettled(closables.map((c) => c.close()))
     process.exit(0)
   }
+
   process.once('SIGINT', shutdown)
   process.once('SIGTERM', shutdown)
 }

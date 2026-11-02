@@ -6,26 +6,26 @@ import { momentDetails } from '@/components/moment-row'
 import { matchQuery } from '@/lib/queries'
 
 /**
- * Whatever `trigger` draws (a "Round 5" button or link) opens the moment's killfeed. The match
+ * Whatever `renderTrigger` draws (a "Round 5" button or link) opens the moment's killfeed. The match
  * isn't read until the pointer is near or it's clicked.
  */
 export const RoundMoment = ({
   matchId,
   momentId,
   player,
-  trigger,
+  renderTrigger,
 }: {
   matchId: string
   momentId: string
   player: HighlightPlayer
-  trigger: (handlers: { onClick: () => void; onPointerEnter: () => void }) => ReactNode
+  renderTrigger: (handlers: { onClick: () => void; onPointerEnter: () => void }) => ReactNode
 }) => {
   const [open, setOpen] = useState(false)
   const [asked, setAsked] = useState(false)
 
   return (
     <>
-      {trigger({
+      {renderTrigger({
         onClick: () => {
           setAsked(true)
           setOpen(true)
@@ -62,6 +62,7 @@ const MomentKillfeed = ({
   const { data } = useQuery(matchQuery(matchId))
   const moment = data?.highlights.find((h) => h.id === momentId)
   if (!data || !moment) return null
+
   return (
     <KillfeedDialog
       open={open}

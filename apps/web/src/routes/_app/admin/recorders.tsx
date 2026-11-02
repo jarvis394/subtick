@@ -36,7 +36,7 @@ function RecordersPage() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted">
+        <p className="text-body text-muted">
           Machines that record clips. Each runs the recorder container with its own token.
         </p>
         <Button size="sm" variant="secondary" onClick={() => setAdding(true)} disabled={adding}>
@@ -57,7 +57,7 @@ function RecordersPage() {
       {recorders.isPending ? (
         <Skeleton className="h-40" />
       ) : recorders.data?.length === 0 && !adding ? (
-        <Card className="p-6 text-sm text-muted">
+        <Card className="p-6 text-body text-muted">
           No recorders yet. Add one, then start the recorder container on a machine with an NVIDIA
           GPU using the token it gives you.
         </Card>
@@ -95,6 +95,7 @@ function AddRecorderForm({
       onAdded(issued)
     },
   })
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     add.mutate(String(new FormData(event.currentTarget).get('name')))
@@ -115,13 +116,14 @@ function AddRecorderForm({
           </Button>
         </div>
       </form>
-      {add.error && <p className="text-sm text-danger select-text">{add.error.message}</p>}
+      {add.error && <p className="text-body text-danger select-text">{add.error.message}</p>}
     </Card>
   )
 }
 
 const CopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false)
+
   return (
     <Button
       size="sm"
@@ -139,13 +141,14 @@ const CopyButton = ({ text }: { text: string }) => {
 
 function TokenNotice({ token, onDismiss }: { token: string; onDismiss: () => void }) {
   const env = `SUBTICK_URL=${window.location.origin}\nRECORDER_TOKEN=${token}`
+
   return (
     <div className="grid gap-3 rounded-xl border border-accent/40 bg-accent/6 p-4">
-      <p className="text-sm">
-        Add these to the machine's <code className="font-mono text-[13px]">recorder.env</code> and
+      <p className="text-body">
+        Add these to the machine's <code className="font-mono text-small">recorder.env</code> and
         restart its container. The token is shown only now; if it's lost, make a new one.
       </p>
-      <pre className="overflow-x-auto rounded-lg bg-surface-2 p-3 font-mono text-[13px] select-all">
+      <pre className="overflow-x-auto rounded-lg bg-surface-2 p-3 font-mono text-small select-all">
         {env}
       </pre>
       <div className="flex gap-2">
@@ -160,8 +163,8 @@ function TokenNotice({ token, onDismiss }: { token: string; onDismiss: () => voi
 
 const Detail = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="min-w-0">
-    <dt className="text-[12px] text-muted">{label}</dt>
-    <dd className="truncate text-sm">{children}</dd>
+    <dt className="text-label text-muted">{label}</dt>
+    <dd className="truncate text-body">{children}</dd>
   </div>
 )
 
@@ -177,6 +180,14 @@ function RecorderCard({
   onDismissToken: () => void
 }) {
   const queryClient = useQueryClient()
+
+  const rotate = useMutation({
+    mutationFn: () => unwrap(api.admin.recorders({ id: recorder.id }).token.post()),
+    onSuccess: (issued) => onToken(issued.token),
+  })
+  const state = recorder.online && recorder.state ? recorder.state : null
+  const tone = state === 'recording' ? 'accent' : state ? 'success' : 'neutral'
+
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin'] })
 
   const update = useMutation({
@@ -185,17 +196,10 @@ function RecorderCard({
       unwrap(api.admin.recorders({ id: recorder.id }).patch(body)),
     onSuccess: refresh,
   })
-  const rotate = useMutation({
-    mutationFn: () => unwrap(api.admin.recorders({ id: recorder.id }).token.post()),
-    onSuccess: (issued) => onToken(issued.token),
-  })
   const remove = useMutation({
     mutationFn: () => unwrap(api.admin.recorders({ id: recorder.id }).delete()),
     onSuccess: refresh,
   })
-
-  const state = recorder.online && recorder.state ? recorder.state : null
-  const tone = state === 'recording' ? 'accent' : state ? 'success' : 'neutral'
 
   return (
     <Card className="grid gap-4 p-4">
@@ -209,7 +213,7 @@ function RecorderCard({
         />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{recorder.name}</p>
-          <p className="text-[13px] text-muted">
+          <p className="text-small text-muted">
             {recorder.online
               ? `online · ${recorder.hostname ?? 'unknown host'}`
               : recorder.lastSeenAt
@@ -234,20 +238,24 @@ function RecorderCard({
               match
             </Link>
           ) : (
-            '—'
+            'None'
           )}
         </Detail>
-        <Detail label="Clips since start">{recorder.online ? recorder.clipsRecorded : '—'}</Detail>
-        <Detail label="Up since">{recorder.online ? timeAgo(recorder.startedAt) : '—'}</Detail>
-        <Detail label="GPU">{recorder.gpu ?? '—'}</Detail>
-        <Detail label="Version">{recorder.version ?? '—'}</Detail>
+        <Detail label="Clips since start">
+          {recorder.online ? recorder.clipsRecorded : 'Offline'}
+        </Detail>
+        <Detail label="Up since">
+          {recorder.online ? timeAgo(recorder.startedAt) : 'Offline'}
+        </Detail>
+        <Detail label="GPU">{recorder.gpu ?? 'Unknown'}</Detail>
+        <Detail label="Version">{recorder.version ?? 'Unknown'}</Detail>
         <Detail label="Token">
-          <span className="font-mono text-[13px]">{recorder.tokenHint}…</span>
+          <span className="font-mono text-small">{recorder.tokenHint}…</span>
         </Detail>
       </dl>
 
       {recorder.lastError && (
-        <p className="rounded-lg bg-danger/8 px-3 py-2 text-sm text-danger select-text">
+        <p className="rounded-lg bg-danger/8 px-3 py-2 text-body text-danger select-text">
           {recorder.lastError}
         </p>
       )}
@@ -284,7 +292,7 @@ function RecorderCard({
           Remove
         </Button>
       </div>
-      {update.error && <p className="text-sm text-danger select-text">{update.error.message}</p>}
+      {update.error && <p className="text-body text-danger select-text">{update.error.message}</p>}
     </Card>
   )
 }

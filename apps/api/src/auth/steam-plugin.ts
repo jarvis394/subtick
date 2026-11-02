@@ -1,15 +1,8 @@
 /**
- * better-auth plugin: sign in with Steam, or link Steam to the signed-in account.
- *
- *   POST /api/auth/sign-in/steam    { callbackURL }  → { url }  (open it in the browser)
- *   POST /api/auth/link-social/steam { callbackURL } → { url }  (requires a session)
- *   GET  /api/auth/steam/callback                    ← Steam redirects here
- *
- * On failure the browser lands on `callbackURL?error=<code>`.
- *
- * Paths match the proposed upstream plugin (better-auth/better-auth#4877) to ease a later switch.
- * Unlike that proposal, flow state (mode, user, callback) is stored server-side and single-use,
- * and linking re-checks that the finishing browser is signed in as the user who started it.
+ * better-auth plugin: sign in with Steam (`POST /api/auth/sign-in/steam`), or link it to the signed-in
+ * account (`POST /api/auth/link-social/steam`); Steam returns to `GET /api/auth/steam/callback`.
+ * Paths match the upstream proposal (better-auth/better-auth#4877), but flow state is server-side and
+ * single-use, and linking re-checks the finishing browser is the user who started. Failures go to `callbackURL?error=<code>`.
  */
 import type { BetterAuthPlugin } from 'better-auth'
 import { createAuthEndpoint, getSessionFromCtx, sessionMiddleware } from 'better-auth/api'
@@ -32,6 +25,7 @@ const State = z.object({
   userId: z.string().optional(),
   callbackURL: z.string(),
 })
+
 type State = z.infer<typeof State>
 
 /** Only same-origin paths, so the callback can't be used as an open redirect. */
@@ -44,6 +38,7 @@ const withError = (path: string, error: string) => {
   const [pathname, query = ''] = path.split('?')
   const params = new URLSearchParams(query)
   params.set('error', error)
+
   return `${pathname}?${params}`
 }
 
@@ -87,14 +82,16 @@ export const steam = (options: SteamPluginOptions) =>
               : null
           if (!parsed?.success) throw ctx.redirect(withError('/', 'steam_state_invalid'))
           const state = parsed.data
-          const fail = (code: string): never => {
-            throw ctx.redirect(withError(state.callbackURL, code))
-          }
 
           const steamId = await verifySteamAssertion(
             ctx.query,
             callbackUrl(ctx.context.baseURL, stateId),
           )
+
+          const fail = (code: string): never => {
+            throw ctx.redirect(withError(state.callbackURL, code))
+          }
+
           if (!steamId) return fail('steam_assertion_invalid')
 
           const key = { providerId: STEAM_PROVIDER_ID, accountId: steamId }
@@ -163,5 +160,6 @@ const startFlow = async (ctx: AuthContext, state: State) => {
     value: JSON.stringify(state),
     expiresAt: new Date(Date.now() + STATE_TTL_MS),
   })
+
   return steamLoginUrl(callbackUrl(ctx.context.baseURL, id))
 }

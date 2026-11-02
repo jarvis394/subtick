@@ -38,10 +38,12 @@ function QueuePage() {
   // The match stays after closing, so the viewer's reel keeps its source while it animates out.
   const [viewing, setViewing] = useState<{ matchId: string; clipId?: string }>({ matchId: '' })
   const [inspecting, setInspecting] = useState<MomentTarget | null>(null)
+
   const openClip = (matchId: string, clip: QueueClip) =>
     clip.state === 'recorded'
       ? setViewing({ matchId, clipId: clip.id })
       : setInspecting({ matchId, momentId: clip.id })
+
   return (
     <OpenClip value={openClip}>
       <QueueBody
@@ -83,8 +85,8 @@ const QueueBody = ({
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
       <div>
-        <h1 className="font-serif text-3xl tracking-tight">Queue</h1>
-        <p className="mt-1.5 text-sm text-muted">
+        <h1 className="font-serif text-display tracking-tight">Queue</h1>
+        <p className="mt-1.5 text-body text-muted">
           Matches being downloaded, analyzed and recorded on this instance.
         </p>
       </div>
@@ -113,7 +115,7 @@ const QueueBody = ({
           )
         ) : isError ? (
           <div className="grid justify-items-center rounded-2xl border border-dashed px-6 py-12 text-center">
-            <p className="text-sm font-medium">Couldn't load the queue</p>
+            <p className="text-body font-medium">Couldn't load the queue</p>
             <Button size="sm" variant="secondary" className="mt-3" onClick={() => void refetch()}>
               Try again
             </Button>
@@ -140,7 +142,7 @@ const Group = ({
   // Finished and cancelled matches fade out and the rest slide up, instead of the list jumping.
   return (
     <section className={cn('min-w-0', className)}>
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted">
+      <h2 className="mb-2 flex items-center gap-2 text-body font-medium text-muted">
         {title}
         <span className="text-muted/60 tabular-nums">{items.length}</span>
       </h2>
@@ -204,16 +206,18 @@ const QueueRow = ({ item }: { item: QueueItem }) => {
         params={{ id: item.matchId }}
         className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
-        <MapIcon map={item.map} className="size-9 shrink-0 rounded-lg text-[14px]" />
+        <MapIcon map={item.map} className="size-9 shrink-0 rounded-lg text-body" />
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium">{matchName(item.map, item.status)}</span>
-            <span className="shrink-0 text-[12px] text-muted/70 tabular-nums">
+            <span className="truncate text-body font-medium">
+              {matchName(item.map, item.status)}
+            </span>
+            <span className="shrink-0 text-label text-muted/70 tabular-nums">
               {shortAge(item.playedAt)}
             </span>
             {item.mine && <Badge className="shrink-0">Yours</Badge>}
           </p>
-          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-label text-muted">
             {item.state === 'active' && (
               <ProgressRing progress={progress} size={12} className="text-foreground/50" />
             )}
@@ -262,6 +266,7 @@ const requesterRank = (m: QueueClip) => (m.requester?.isViewer ? 0 : m.requester
 /** The viewer's own requests first, then other people's by name, then subtick's own picks. */
 const byRequester = (moments: QueueClip[]) => {
   const groups = Map.groupBy(moments, (m) => m.requester?.id ?? '')
+
   return [...groups.values()].toSorted((a, b) => {
     return (
       requesterRank(a[0]!) - requesterRank(b[0]!) ||
@@ -276,6 +281,7 @@ const byRequester = (moments: QueueClip[]) => {
  */
 const ClipGroups = ({ item, ahead }: { item: QueueItem; ahead: number }) => {
   const { clip: current } = useLiveProgress(item)
+
   /** What a waiting clip waits for: a recorder, its turn, or its batch's clips. */
   const waitingFor = (clip: QueueClip) => {
     if (item.state === 'delayed') return 'Retrying shortly'
@@ -283,18 +289,21 @@ const ClipGroups = ({ item, ahead }: { item: QueueItem; ahead: number }) => {
     const before = item.moments
       .slice(0, item.moments.indexOf(clip))
       .filter((m) => m.state === 'waiting' || m.state === 'recording').length
+
     return before <= 1 ? 'Up next' : `After ${before} clips`
   }
+
   // A group whose last clip was cancelled fades out with it.
   return (
     <div className="flex flex-col gap-4 border-t p-3 sm:p-4">
       <FadeList>
         {byRequester(item.moments).map((group) => {
           const requester = group[0]!.requester
+
           return (
             <FadeItem key={requester?.id ?? 'auto'}>
               <section className="min-w-0">
-                <h3 className="mb-2 flex items-center gap-2 text-[12px] font-medium text-muted">
+                <h3 className="mb-2 flex items-center gap-2 text-label font-medium text-muted">
                   {requester ? (
                     <Avatar src={requester.image} name={requester.name} className="size-5" />
                   ) : (
@@ -390,10 +399,10 @@ const QueueClipCard = ({
         <Avatar src={clip.player.avatarUrl} name={clip.player.name} className="mt-0.5 size-8" />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-[13px] font-medium">{clip.title}</p>
+            <p className="truncate text-small font-medium">{clip.title}</p>
             <MomentBadge moment={clip} className="w-auto shrink-0" />
           </div>
-          <p className="mt-0.5 truncate text-[12px] text-muted">
+          <p className="mt-0.5 truncate text-label text-muted">
             {clip.player.name} · Round {clip.round} · {clipLength(clip)}
           </p>
           <ClipStatus state={state} phase={phase} waitingFor={waitingFor} />
@@ -427,7 +436,7 @@ const ClipStatus = ({
 }) => (
   <p
     className={cn(
-      'mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] font-medium',
+      'mt-1.5 flex min-w-0 items-center gap-1.5 text-label font-medium',
       state === 'recording'
         ? 'text-foreground'
         : state === 'recorded'

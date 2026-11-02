@@ -21,8 +21,8 @@ const Row = ({
 }) => (
   <div className="flex min-h-16 flex-wrap items-center gap-3 py-3">
     <div className="min-w-0 flex-1">
-      <p className="text-sm font-medium">{label}</p>
-      <div className="mt-0.5 text-[13px] text-muted">{description}</div>
+      <p className="text-body font-medium">{label}</p>
+      <div className="mt-0.5 text-small text-muted">{description}</div>
     </div>
     <div className="flex shrink-0 items-center gap-2">{children}</div>
   </div>
@@ -41,10 +41,12 @@ const NameRow = ({ current }: { current: string }) => {
     onSuccess: () => invalidateProfile(queryClient),
   })
 
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- debounce timer: saves once typing pauses, restarting on each keystroke
   useEffect(() => {
     const value = name.trim()
     if (!value || value === current) return
     const timer = setTimeout(() => mutate(value), SAVE_DELAY_MS)
+
     return () => clearTimeout(timer)
   }, [name, current, mutate])
 
@@ -77,7 +79,7 @@ export const ProfileSection = ({ me }: { me: Me }) => {
   return (
     <section id="profile" className="flex scroll-mt-6 flex-col gap-3">
       <div className="flex h-8 items-center justify-between gap-4">
-        <h2 className="text-[15px] font-medium">Profile</h2>
+        <h2 className="text-lead font-medium">Profile</h2>
         {steam && (
           <Button
             size="sm"
@@ -132,7 +134,7 @@ export const ProfileSection = ({ me }: { me: Me }) => {
           </Row>
           <EditableImage
             kind="banner"
-            className="grid aspect-[3/1] w-full place-items-center overflow-hidden rounded-md border border-dashed bg-surface-2 text-[13px] text-muted"
+            className="grid aspect-[3/1] w-full place-items-center overflow-hidden rounded-md border border-dashed bg-surface-2 text-small text-muted"
           >
             {me.user.bannerUrl ? (
               <img src={me.user.bannerUrl} alt="" className="size-full object-cover" />

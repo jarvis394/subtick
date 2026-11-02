@@ -42,7 +42,7 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-10 @3xl:max-w-5xl">
-      <h1 className="font-serif text-3xl tracking-tight">Settings</h1>
+      <h1 className="font-serif text-display tracking-tight">Settings</h1>
 
       {/* Sections sit side by side once the content area (not the viewport: the sidebar takes
         its share) has room for two readable columns. */}
@@ -51,10 +51,10 @@ function SettingsPage() {
 
         <Section title="Account">
           {emailStatus === 'confirmed' && (
-            <p className="text-sm text-accent">Email confirmed. You can sign in with it now</p>
+            <p className="text-body text-accent">Email confirmed. You can sign in with it now</p>
           )}
           {emailError && (
-            <p className="text-sm text-danger select-text">{describeAuthError(emailError)}</p>
+            <p className="text-body text-danger select-text">{describeAuthError(emailError)}</p>
           )}
           <Group>
             <Row
@@ -116,7 +116,7 @@ function SettingsPage() {
           }
         >
           {steamError && (
-            <p className="text-sm text-danger select-text">{describeAuthError(steamError)}</p>
+            <p className="text-body text-danger select-text">{describeAuthError(steamError)}</p>
           )}
           {me.steamLinks.length === 0 && (
             <Group>
@@ -161,7 +161,7 @@ const Section = ({
 }) => (
   <section className="flex flex-col gap-3">
     <div className="flex h-8 items-center justify-between gap-4">
-      <h2 className="text-[15px] font-medium">{title}</h2>
+      <h2 className="text-lead font-medium">{title}</h2>
       {action}
     </div>
     {children}
@@ -189,8 +189,8 @@ const Row = ({
   <div className="flex min-h-16 items-center gap-3 py-3">
     {leading}
     <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-medium">{label}</p>
-      {description && <div className="mt-0.5 text-[13px] text-muted">{description}</div>}
+      <p className="truncate text-body font-medium">{label}</p>
+      {description && <div className="mt-0.5 text-small text-muted">{description}</div>}
     </div>
     {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
   </div>
@@ -343,8 +343,8 @@ function DeleteAccountDialog() {
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
-          <Dialog.Title className="text-base font-medium">Delete your account?</Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-muted">
+          <Dialog.Title className="text-title font-medium">Delete your account?</Dialog.Title>
+          <Dialog.Description className="mt-2 text-body text-muted">
             Your account, its linked Steam accounts and your place in their matches are removed for
             good. Clips stay for the other players in those matches.
           </Dialog.Description>
@@ -376,7 +376,7 @@ function DeleteAccountDialog() {
                 onChange={(event) => setConfirmed(event.currentTarget.validity.valid)}
               />
             </Field>
-            {message && <p className="text-[13px] text-danger select-text">{message}</p>}
+            {message && <p className="text-small text-danger select-text">{message}</p>}
             <div className="flex justify-end gap-2">
               <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
               <Button

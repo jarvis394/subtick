@@ -11,6 +11,7 @@ const OUT = new URL('../public/ranks/', import.meta.url).pathname
 const headers = { 'user-agent': 'subtick-asset-fetcher/1.0 (personal, non-commercial)' }
 
 await mkdir(OUT, { recursive: true })
+
 await Promise.all(
   Array.from({ length: 19 }, async (_, group) => {
     const name = `matchmaking${group}.png`

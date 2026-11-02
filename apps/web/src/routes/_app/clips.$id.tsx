@@ -12,6 +12,7 @@ export const Route = createFileRoute('/_app/clips/$id')({
 function ClipPage() {
   const { id } = Route.useParams()
   const navigate = Route.useNavigate()
+
   return (
     <ClipViewer
       id={id}

@@ -1,0 +1,22 @@
+{
+  "name": "oxlint-plugin-subtick",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.89.0"
+  },
+  "devDependencies": {
+    "@subtick/tsconfig": "workspace:*",
+    "@types/bun": "^1.4.4",
+    "@types/node": "^26.6.5",
+    "oxlint": "^1.89.0",
+    "typescript": "^7.0.2"
+  }
+}

@@ -47,5 +47,6 @@ export const verifySteamAssertion = async (
     signal: AbortSignal.timeout(10_000),
   })
   const text = await response.text()
+
   return response.ok && /^is_valid\s*:\s*true$/m.test(text) ? steamId : null
 }

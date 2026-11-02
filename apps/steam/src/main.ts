@@ -39,6 +39,7 @@ const start = <N extends QueueName>(
         .setStatus(matchId, 'failed', error.message)
         .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
   })
+
   return worker
 }
 
@@ -64,15 +65,18 @@ const workers = [
 // One GC session answers one request at a time; more throughput needs more bots. Without a bot,
 // resolve jobs wait in the queue until one is configured.
 const { gc } = ctx
+
 const resolver =
   gc &&
   start('steam.resolve-match', (job) => resolveMatch(ctx, gc, job), {
     concurrency: 1,
     limiter: { max: 1, duration: 1000 },
   })
+
 if (!gc) log.warn('no Steam bot configured: share codes wait for STEAM_BOT_USERNAME/PASSWORD')
 
 closeOnSignal(...workers, ...(resolver ? [resolver] : []), ...Object.values(queues), {
   close: async () => gc?.close(),
 })
+
 log.info({ gc: Boolean(gc), downloadConcurrency: env.WORKER_CONCURRENCY }, 'steam worker started')

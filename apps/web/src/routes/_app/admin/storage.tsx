@@ -116,6 +116,7 @@ const segmentsOf = ({ usage, disk }: StorageReport, scope: Scope): Segment[] => 
       bytes: rest,
       swatch: 'bg-muted/45',
     })
+
   return own
 }
 
@@ -124,6 +125,7 @@ const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ?
 const percent = (part: number, whole: number) => {
   if (whole <= 0) return '0%'
   const value = (part / whole) * 100
+
   return value > 0 && value < 1 ? '<1%' : `${Math.round(value)}%`
 }
 
@@ -132,13 +134,13 @@ function StoragePage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-sm text-muted">
+      <p className="text-body text-muted">
         What subtick keeps on the disk and how much room is left.
       </p>
       {storage.isPending ? (
         <Skeleton className="h-72" />
       ) : storage.error ? (
-        <Card className="p-6 text-sm text-danger select-text">{storage.error.message}</Card>
+        <Card className="p-6 text-body text-danger select-text">{storage.error.message}</Card>
       ) : (
         <StorageCard report={storage.data} />
       )}
@@ -180,16 +182,16 @@ function StorageCard({ report }: { report: StorageReport }) {
     <Card className="grid gap-6 p-5">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div>
-          <p className="font-serif text-3xl tracking-tight tabular-nums">
+          <p className="font-serif text-display tracking-tight tabular-nums">
             {scope === 'disk' && disk ? formatBytes(disk.free) : formatBytes(used)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="text-body text-muted">
             {scope === 'disk' && disk ? `free of ${formatBytes(disk.total)}` : 'used by subtick'}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           {disk && <Segmented label="Show" value={scope} options={SCOPES} onChange={setScope} />}
-          <p className="text-[13px] text-muted">Measured {timeAgo(report.measuredAt)}</p>
+          <p className="text-small text-muted">Measured {timeAgo(report.measuredAt)}</p>
         </div>
       </div>
 
@@ -220,7 +222,7 @@ function StorageCard({ report }: { report: StorageReport }) {
       </div>
 
       {lowSpace && (
-        <p className="rounded-lg bg-danger/8 px-3 py-2 text-sm text-danger">
+        <p className="rounded-lg bg-danger/8 px-3 py-2 text-body text-danger">
           Less than 10% of the disk is free. New demos and clips fail to save once it fills up.
         </p>
       )}
@@ -257,7 +259,7 @@ function StorageCard({ report }: { report: StorageReport }) {
       </AutoHeight>
 
       {!disk && (
-        <p className="border-t pt-4 text-[13px] text-muted">
+        <p className="border-t pt-4 text-small text-muted">
           Set <code className="font-mono">S3_DISK_STATUS_URL</code> to the SeaweedFS volume server’s{' '}
           <code className="font-mono">/status</code> to see the disk’s size and free space.
         </p>
@@ -285,12 +287,12 @@ const LegendRow = ({
   <motion.li ref={ref} className="flex items-start gap-3" {...fade}>
     <span aria-hidden className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', swatch)} />
     <div className="min-w-0 flex-1">
-      <p className="text-sm">{label}</p>
-      <p className="text-[13px] text-muted">{description}</p>
+      <p className="text-body">{label}</p>
+      <p className="text-small text-muted">{description}</p>
     </div>
     <div className="shrink-0 text-right tabular-nums">
-      <p className="text-sm">{formatBytes(bytes)}</p>
-      <p className="text-[13px] text-muted">{share}</p>
+      <p className="text-body">{formatBytes(bytes)}</p>
+      <p className="text-small text-muted">{share}</p>
     </div>
   </motion.li>
 )
@@ -306,6 +308,7 @@ const CONFLICT_MESSAGE = {
 /** A delete that refreshes everything it could have changed: the report, these lists, the app's pages. */
 const useDelete = <T,>(remove: (id: string) => Promise<T>) => {
   const queryClient = useQueryClient()
+
   return useMutation({
     meta: { inlineError: true },
     mutationFn: remove,
@@ -347,10 +350,10 @@ function ItemsCard<T extends { id: string; bytes: number }>({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
         <div>
           <h2 className="font-medium">{title}</h2>
-          <p className="text-[13px] text-muted">{description}</p>
+          <p className="text-small text-muted">{description}</p>
         </div>
         {items.length > 0 && (
-          <p className="text-[13px] text-muted tabular-nums">
+          <p className="text-small text-muted tabular-nums">
             {plural(items.length, noun)} · {formatBytes(total)}
           </p>
         )}
@@ -358,9 +361,9 @@ function ItemsCard<T extends { id: string; bytes: number }>({
       {query.isPending ? (
         <Skeleton className="h-32" />
       ) : query.error ? (
-        <p className="text-sm text-danger select-text">{query.error.message}</p>
+        <p className="text-body text-danger select-text">{query.error.message}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted">{empty}</p>
+        <p className="text-body text-muted">{empty}</p>
       ) : (
         <ul className="-mx-2 grid">
           <FadeList>
@@ -402,12 +405,12 @@ const ItemRow = ({
   <li className="flex items-center gap-3 rounded-lg px-2 py-2">
     <MapIcon map={map} className="size-8" />
     <div className="min-w-0 flex-1">
-      <p className="truncate text-sm">{title}</p>
-      <p className="truncate text-[13px] text-muted">{meta}</p>
+      <p className="truncate text-body">{title}</p>
+      <p className="truncate text-small text-muted">{meta}</p>
     </div>
     <div className="shrink-0 text-right tabular-nums">
-      <p className="text-sm">{formatBytes(bytes)}</p>
-      {breakdown && <p className="text-[13px] text-muted">{breakdown}</p>}
+      <p className="text-body">{formatBytes(bytes)}</p>
+      {breakdown && <p className="text-small text-muted">{breakdown}</p>}
     </div>
     {action}
   </li>
@@ -415,6 +418,7 @@ const ItemRow = ({
 
 function RecordedHighlights() {
   const highlights = useQuery(storedHighlightsQuery)
+
   return (
     <ItemsCard
       title="Recorded highlights"
@@ -431,6 +435,7 @@ function RecordedHighlights() {
 function HighlightItem({ highlight }: { highlight: StoredHighlight }) {
   const remove = useDelete((id) => unwrap(api.admin.storage.highlights({ id }).delete()))
   const name = `${KIND_LABEL[highlight.kind]}${highlight.player ? ` · ${highlight.player}` : ''}`
+
   return (
     <ItemRow
       map={highlight.map}
@@ -461,6 +466,7 @@ function HighlightItem({ highlight }: { highlight: StoredHighlight }) {
 
 function StoredMatches() {
   const matches = useQuery(storedMatchesQuery)
+
   return (
     <ItemsCard
       title="Matches"

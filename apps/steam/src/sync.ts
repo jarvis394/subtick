@@ -7,6 +7,7 @@ const { steamLink, userMatch } = schema
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
+
 /**
  * How often a caught-up account is polled, by how long ago its latest match turned up: fast while
  * the player is mid-session, backing off the longer they stay away. Valve's Web API allows ~100k
@@ -17,6 +18,7 @@ const FALLOFF: { quietFor: number; every: number }[] = [
   { quietFor: 24 * HOUR, every: 10 * MINUTE },
   { quietFor: 3 * 24 * HOUR, every: 15 * MINUTE },
 ]
+
 const IDLE_INTERVAL_MS = HOUR
 /** A failed sync is retried at the fastest rate. */
 const RETRY_INTERVAL_MS = 5 * MINUTE
@@ -71,6 +73,7 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
         // oxlint-disable-next-line no-await-in-loop -- leaves the loop right after
         await update({ syncState: 'needs_auth', lastError: next.status, nextSyncAt: null })
         log.warn({ steamId, reason: next.status }, 'sync needs a new auth code')
+
         return
       }
       // oxlint-disable-next-line no-await-in-loop -- matches are registered in history order
@@ -109,5 +112,6 @@ const nextInterval = async ({ db }: Context, steamId: string) => {
     .limit(1)
   if (!latest) return IDLE_INTERVAL_MS
   const quietFor = Date.now() - latest.at.getTime()
+
   return FALLOFF.find((step) => quietFor < step.quietFor)?.every ?? IDLE_INTERVAL_MS
 }

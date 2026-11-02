@@ -14,6 +14,7 @@ const highlights = () => import('../services/dev-highlights')
 /** Local-only helpers behind the web app's dev menu; 404 anywhere else. */
 export const devRoutes = (ctx: Context) => {
   const enabled = devToolsEnabled(ctx.env)
+
   return new Elysia({ prefix: '/dev' })
     .use(authGuard(ctx.auth))
     .get(
@@ -38,6 +39,7 @@ export const devRoutes = (ctx: Context) => {
         if (!enabled || !(await (await matches()).deleteFakeMatch(ctx.db, user.id, params.id))) {
           return status(404, { error: 'not_found' as const })
         }
+
         return { ok: true as const }
       },
       { auth: true, params: z.object({ id: z.string().regex(/^\d+$/) }) },
@@ -59,6 +61,7 @@ export const devRoutes = (ctx: Context) => {
           body.state === 'simulate'
             ? await dev.simulateRecording(ctx.db, ctx.publish, user.id, body.matchId)
             : await dev.addFakeHighlight(ctx.db, user.id, body.matchId, body.state)
+
         return 'error' in added ? status(400, added) : added
       },
       {
@@ -72,6 +75,7 @@ export const devRoutes = (ctx: Context) => {
         if (!enabled || !(await (await highlights()).deleteFakeHighlight(ctx.db, params.id))) {
           return status(404, { error: 'not_found' as const })
         }
+
         return { ok: true as const }
       },
       { auth: true, params: z.object({ id: z.uuid() }) },

@@ -23,7 +23,7 @@ export const menuPopupClass =
   'min-w-52 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 outline-none transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0'
 
 export const menuItemClass =
-  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap outline-none select-none data-disabled:cursor-default data-disabled:opacity-50 data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted'
+  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body whitespace-nowrap outline-none select-none data-disabled:cursor-default data-disabled:opacity-50 data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted'
 
 /** Valve's replay-server link that makes CS2 download the demo and open it. */
 const watchUrl = (shareCode: string) =>
@@ -58,6 +58,7 @@ const CopyItem = ({
 }) => {
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- clears the pending "copied" timer on unmount
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
@@ -110,6 +111,8 @@ export const MatchMenu = ({
   align?: 'start' | 'center' | 'end'
 }) => {
   const [open, setOpen] = useState(false)
+  // Read when the menu opens: render can't call Date.now().
+  const [openedAt, setOpenedAt] = useState(0)
   const navigate = useNavigate()
   const cancel = useCancelMatch()
   const retry = useRetryMatch()
@@ -117,11 +120,18 @@ export const MatchMenu = ({
   const canRetry = match.status === 'failed' || match.status === 'expired'
   const demoAvailable =
     match.demoUrl !== null &&
-    (match.demoExpiresAt === null || new Date(match.demoExpiresAt).getTime() > Date.now())
+    (match.demoExpiresAt === null || new Date(match.demoExpiresAt).getTime() > openedAt)
+
   const close = () => setOpen(false)
 
   return (
-    <Menu.Root open={open} onOpenChange={setOpen}>
+    <Menu.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setOpenedAt(Date.now())
+        setOpen(next)
+      }}
+    >
       <Menu.Trigger
         render={
           <IconButton

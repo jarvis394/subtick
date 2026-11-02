@@ -105,6 +105,30 @@
   /* Medium controls: md buttons, inputs, selects, tab bars. */
   --radius-control: 10px;
 
+  /* Type scale. tailwind-scale rejects raw font sizes, so every text size comes from here. */
+  --text-micro: 10px;
+  --text-micro--line-height: 12px;
+  --text-caption: 11px;
+  --text-caption--line-height: 16px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-small: 13px;
+  --text-small--line-height: 20px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-lead: 15px;
+  --text-lead--line-height: 22px;
+  --text-title: 18px;
+  --text-title--line-height: 26px;
+  --text-heading: 20px;
+  --text-heading--line-height: 28px;
+  --text-section: 24px;
+  --text-section--line-height: 32px;
+  --text-display: 30px;
+  --text-display--line-height: 36px;
+  --text-hero: 36px;
+  --text-hero--line-height: 40px;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;

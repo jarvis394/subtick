@@ -12,7 +12,7 @@ export const MatchesTab = ({ steamId }: { steamId: string }) => {
   if (matches.isPending) return <Skeleton className="h-64" />
   if (!items.length)
     return (
-      <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted">
+      <p className="rounded-xl border border-dashed px-4 py-10 text-center text-body text-muted">
         <Swords className="mx-auto mb-2 size-5" />
         No analyzed matches yet.
       </p>

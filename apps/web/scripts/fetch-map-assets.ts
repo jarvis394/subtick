@@ -40,6 +40,7 @@ const infoboxImages = (html: string) => {
   const images = [
     ...infobox.matchAll(/<figure class="pi-item pi-image">\s*<a href="([^"]+)"/g),
   ].map((m) => m[1]!.replace(/\/revision\/.*$/, ''))
+
   // A single image has no tabs.
   return labels.length
     ? Object.fromEntries(labels.map((label, i) => [label, images[i]]))
@@ -50,6 +51,7 @@ const download = async (url: string, path: string) => {
   const response = await fetch(url, { headers })
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
   const bytes = await Bun.write(path, response)
+
   return bytes
 }
 

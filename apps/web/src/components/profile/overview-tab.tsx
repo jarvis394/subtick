@@ -23,8 +23,8 @@ const Stat = ({
   className?: string
 }) => (
   <div>
-    <dt className="text-[13px] text-muted">{label}</dt>
-    <dd className={cn('mt-1 text-2xl font-medium tabular-nums', className)}>{value}</dd>
+    <dt className="text-small text-muted">{label}</dt>
+    <dd className={cn('mt-1 text-section font-medium tabular-nums', className)}>{value}</dd>
   </div>
 )
 
@@ -82,8 +82,8 @@ const FormChart = ({ form }: { form: Player['form'] }) => {
                 }
               />
             </div>
-            <MapIcon map={m.map} className="mt-2 size-4 rounded-sm text-[9px]" />
-            <span className={cn('mt-1 text-[10px] text-muted tabular-nums', ratingTone(m.rating))}>
+            <MapIcon map={m.map} className="mt-2 size-4 rounded-sm text-micro" />
+            <span className={cn('mt-1 text-micro text-muted tabular-nums', ratingTone(m.rating))}>
               {m.rating.toFixed(2)}
             </span>
           </div>
@@ -106,11 +106,11 @@ export const OverviewTab = ({ player }: { player: Player }) => {
     <div className="grid grid-cols-1 gap-10">
       <section>
         <div className="mb-4 flex items-baseline justify-between gap-4">
-          <h2 className="text-[15px] font-medium">
+          <h2 className="text-lead font-medium">
             Last {s.matches} {s.matches === 1 ? 'match' : 'matches'}
           </h2>
           {s.winRate !== null && (
-            <p className="text-[13px] text-muted tabular-nums">
+            <p className="text-small text-muted tabular-nums">
               {s.wins} won
               <span aria-hidden className="mx-1.5 text-muted/50">
                 ·
@@ -140,8 +140,8 @@ export const OverviewTab = ({ player }: { player: Player }) => {
             ['4-kill rounds', String(s.fourKs)],
           ].map(([label, value]) => (
             <div key={label} className="bg-surface px-4 py-3">
-              <dt className="text-[12px] text-muted">{label}</dt>
-              <dd className="mt-0.5 text-[15px] font-medium tabular-nums">{value}</dd>
+              <dt className="text-label text-muted">{label}</dt>
+              <dd className="mt-0.5 text-lead font-medium tabular-nums">{value}</dd>
             </div>
           ))}
         </dl>
@@ -149,7 +149,7 @@ export const OverviewTab = ({ player }: { player: Player }) => {
 
       <section>
         <div className="mb-4 flex h-8 items-center justify-between gap-4">
-          <h2 className="text-[15px] font-medium">Recent highlights</h2>
+          <h2 className="text-lead font-medium">Recent highlights</h2>
           {player.clipCount > PREVIEW_CLIPS && (
             <Button
               size="sm"
@@ -169,7 +169,7 @@ export const OverviewTab = ({ player }: { player: Player }) => {
             ))}
           </div>
         ) : player.clipCount === 0 ? (
-          <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted">
+          <p className="rounded-xl border border-dashed px-4 py-8 text-center text-body text-muted">
             No recorded clips yet. Aces, clutches and multi-kills show up here once recorded.
           </p>
         ) : (

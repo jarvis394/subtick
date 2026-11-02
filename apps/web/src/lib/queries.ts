@@ -19,14 +19,19 @@ const fetchMe = async () => {
     throw error
   })
   writeStoredMe(me)
+
   return me
 }
+
 const fetchMatches = async (cursor?: string, limit = 20) => {
   const page = await unwrap(api.matches.get({ query: { cursor, limit } }))
   observeMatches(page.items)
+
   return page
 }
+
 const fetchMatch = (id: string) => unwrap(api.matches({ id }).get())
+
 const fetchClips = (offset: number, filters: ClipFilters) =>
   unwrap(
     api.highlights.get({
@@ -39,10 +44,12 @@ const fetchClips = (offset: number, filters: ClipFilters) =>
       },
     }),
   )
+
 const fetchClip = (id: string) => unwrap(api.highlights({ id }).get())
 const fetchFacets = () => unwrap(api.highlights.facets.get())
 const fetchQueue = () => unwrap(api.queue.get())
 const fetchPlayer = (steamId: string) => unwrap(api.players({ steamId }).get())
+
 const fetchPlayerMatches = (steamId: string, cursor?: string) =>
   unwrap(api.players({ steamId }).matches.get({ query: { cursor } }))
 

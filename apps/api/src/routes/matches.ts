@@ -11,6 +11,7 @@ import { notOneKill, withClipUrls } from '../services/highlights'
 import { authGuard } from './guard'
 
 const PAGE_SIZE = 20
+
 const {
   match,
   userMatch,
@@ -26,6 +27,9 @@ const {
 export const matchRoutes = (ctx: Context) => {
   const { db, auth } = ctx
 
+  /** Newest played first; a match not resolved yet sorts by when it was found. */
+  const playedOrDiscovered = sql`coalesce(${match.playedAt}, ${userMatch.discoveredAt})`
+
   /** Spending or stopping pipeline work is for people who have the match, and admins. */
   const canManage = async (user: { id: string; role?: string | null }, matchId: string) => {
     if (user.role === 'admin') return true
@@ -33,10 +37,9 @@ export const matchRoutes = (ctx: Context) => {
       .select({ matchId: userMatch.matchId })
       .from(userMatch)
       .where(and(eq(userMatch.matchId, matchId), eq(userMatch.userId, user.id)))
+
     return Boolean(own)
   }
-  /** Newest played first; a match not resolved yet sorts by when it was found. */
-  const playedOrDiscovered = sql`coalesce(${match.playedAt}, ${userMatch.discoveredAt})`
 
   return new Elysia({ prefix: '/matches' })
     .use(authGuard(auth))
@@ -149,6 +152,7 @@ export const matchRoutes = (ctx: Context) => {
         const admin = user.role === 'admin'
         const owns = Boolean(viewer)
         const { shareCode: _, demoKey: __, error: ___, parties: ____, ...publicMatch } = row
+
         return {
           match: { ...publicMatch, cancelled: isCancelled(row) },
           /** The viewer's player in this match, if they played it. */
@@ -162,6 +166,7 @@ export const matchRoutes = (ctx: Context) => {
           highlights: withClipUrls(ctx, highlights).map((h, i) => {
             const { requestedBy } = highlights[i]!.highlight
             const requester = requestedBy ? requesterById.get(requestedBy) : undefined
+
             return {
               ...h,
               /** Who asked for it to be recorded; null when subtick queued it itself. */
@@ -191,6 +196,7 @@ export const matchRoutes = (ctx: Context) => {
         if (!steamId || !links.some((l) => l.steamId === steamId)) {
           return status(409, { error: 'steam_not_linked' as const })
         }
+
         return importShareCode(ctx, { userId: user.id, steamId, shareCode: body.shareCode })
       },
       {
@@ -210,6 +216,7 @@ export const matchRoutes = (ctx: Context) => {
         if (!(await canManage(user, params.id))) return status(403, { error: 'forbidden' as const })
         const result = await retryMatch(ctx, params.id)
         if (!result) return status(404, { error: 'not_found' as const })
+
         return { status: result }
       },
       { auth: true, params: z.object({ id: z.string().regex(/^\d+$/) }) },
@@ -221,6 +228,7 @@ export const matchRoutes = (ctx: Context) => {
         const result = await cancelMatch(ctx, params.id, actorOf(user))
         if (!result) return status(404, { error: 'not_found' as const })
         if (result === 'forbidden') return status(403, { error: 'forbidden' as const })
+
         return { status: result }
       },
       { auth: true, params: z.object({ id: z.string().regex(/^\d+$/) }) },
@@ -232,6 +240,7 @@ export const matchRoutes = (ctx: Context) => {
           .select({ steamId: steamLink.steamId })
           .from(steamLink)
           .where(eq(steamLink.userId, user.id))
+
         return syncNow(
           ctx,
           user.id,

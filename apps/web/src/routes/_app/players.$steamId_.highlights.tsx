@@ -22,7 +22,7 @@ function PlayerHighlightsPage() {
       <Link
         to="/players/$steamId"
         params={{ steamId }}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-body text-muted hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Profile
       </Link>
@@ -32,7 +32,7 @@ function PlayerHighlightsPage() {
         ) : (
           <Skeleton className="size-9 rounded-full" />
         )}
-        <h1 className="min-w-0 truncate font-serif text-3xl tracking-tight">
+        <h1 className="min-w-0 truncate font-serif text-display tracking-tight">
           {player.data ? `${player.data.name}’s highlights` : 'Highlights'}
         </h1>
       </div>

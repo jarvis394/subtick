@@ -26,11 +26,13 @@ const Name = z.string().trim().min(1).max(64)
 export const adminRoutes = (ctx: Context) => {
   const { db, auth } = ctx
 
+  const storage = createStorageReport(ctx)
+
   const listRecorders = async () => {
     const rows = await db.select().from(recorder).orderBy(asc(recorder.createdAt))
+
     return rows.map(recorderView)
   }
-  const storage = createStorageReport(ctx)
 
   return (
     new Elysia({ prefix: '/admin' })
@@ -64,6 +66,7 @@ export const adminRoutes = (ctx: Context) => {
             .where(eq(user.id, params.id))
             .returning({ id: user.id })
           if (!row) return status(404, { error: 'not_found' as const })
+
           return { ok: true as const }
         },
         { admin: true, params: UserId, body: z.object({ role: z.enum(USER_ROLES) }) },
@@ -81,6 +84,7 @@ export const adminRoutes = (ctx: Context) => {
           if (result === 'not_found') return status(404, { error: 'not_found' as const })
           if (result === 'recording') return status(409, { error: 'recording' as const })
           storage.invalidate()
+
           return { ok: true as const }
         },
         { admin: true, params: Id },
@@ -95,6 +99,7 @@ export const adminRoutes = (ctx: Context) => {
           if (result === 'not_found') return status(404, { error: 'not_found' as const })
           if (result === 'processing') return status(409, { error: 'processing' as const })
           storage.invalidate()
+
           return { ok: true as const }
         },
         { admin: true, params: MatchId },
@@ -110,6 +115,7 @@ export const adminRoutes = (ctx: Context) => {
             .insert(recorder)
             .values({ name: body.name, tokenHash, tokenHint, createdBy: me.id })
             .returning({ id: recorder.id })
+
           return { id: row!.id, token }
         },
         { admin: true, body: z.object({ name: Name }) },
@@ -123,6 +129,7 @@ export const adminRoutes = (ctx: Context) => {
             .where(eq(recorder.id, params.id))
             .returning({ id: recorder.id })
           if (!row) return status(404, { error: 'not_found' as const })
+
           return { ok: true as const }
         },
         {
@@ -141,6 +148,7 @@ export const adminRoutes = (ctx: Context) => {
             .where(eq(recorder.id, params.id))
             .returning({ id: recorder.id })
           if (!row) return status(404, { error: 'not_found' as const })
+
           return { id: row.id, token }
         },
         { admin: true, params: Id },
@@ -153,6 +161,7 @@ export const adminRoutes = (ctx: Context) => {
             .where(eq(recorder.id, params.id))
             .returning({ id: recorder.id })
           if (!row) return status(404, { error: 'not_found' as const })
+
           return { ok: true as const }
         },
         { admin: true, params: Id },

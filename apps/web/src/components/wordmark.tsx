@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 export const Wordmark = ({ className }: { className?: string }) => (
   <span
     className={cn(
-      'inline-block -translate-y-[0.075em] font-serif text-xl tracking-tight text-foreground',
+      'inline-block -translate-y-[0.075em] font-serif text-heading tracking-tight text-foreground',
       className,
     )}
   >

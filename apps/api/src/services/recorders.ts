@@ -6,6 +6,7 @@ const TOKEN_HINT_LENGTH = RECORDER_TOKEN_PREFIX.length + 6
 /** A new recorder token and what's stored of it (the hash, and a hint to recognise it by). */
 export const newRecorderToken = () => {
   const token = `${RECORDER_TOKEN_PREFIX}${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url')}`
+
   return {
     token,
     tokenHash: hashRecorderToken(token),

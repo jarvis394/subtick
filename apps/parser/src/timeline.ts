@@ -148,6 +148,7 @@ export const buildRoundBounds = (events: DemoEvents): RoundBounds[] => {
     const next = bounds[i + 1]
     round.lastTick = next ? next.startTick - 1 : round.endTick + POST_LAST_ROUND
   }
+
   return bounds
 }
 
@@ -162,6 +163,7 @@ const roundIndexAt = (rounds: { startTick: number; lastTick: number }[], tick: n
     else if (tick > round.lastTick) lo = mid + 1
     else return mid
   }
+
   return -1
 }
 
@@ -198,6 +200,7 @@ export const buildTimeline = (input: {
         })
       }
     }
+
     return {
       number: i + 1,
       ...b,
@@ -220,10 +223,11 @@ export const buildTimeline = (input: {
     finalScore[winnerIdentity]++
   }
 
+  const kills: Kill[] = []
+
   const sideAt = (roundIndex: number, steamId: string | null, teamNum: number | null) =>
     sideFromTeamNum(teamNum) ?? (steamId ? (rounds[roundIndex]?.sides.get(steamId) ?? null) : null)
 
-  const kills: Kill[] = []
   for (const k of events.kills) {
     const r = roundIndexAt(rounds, k.tick)
     if (r === -1 || !k.victim.steamId) continue
@@ -302,6 +306,7 @@ export const buildTimeline = (input: {
 
   const assignRound = (e: { tick: number; steamId: string | null }) => {
     const r = roundIndexAt(rounds, e.tick)
+
     return r === -1 ? [] : [{ round: r + 1, ...e }]
   }
 

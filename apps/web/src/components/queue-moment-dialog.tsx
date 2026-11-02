@@ -23,10 +23,15 @@ export const QueueMomentDialog = ({
   if (target && target !== shown) setShown(target)
   const { data } = useQuery({ ...matchQuery(shown?.matchId ?? ''), enabled: Boolean(shown) })
   const moment = data?.highlights.find((h) => h.id === shown?.momentId)
-  // A dialog that mounts already open skips its enter transition: mount it closed, then open it.
   const ready = Boolean(data && moment)
   const [entered, setEntered] = useState(false)
-  useEffect(() => setEntered(ready), [ready])
+  if (!ready && entered) setEntered(false)
+  // A dialog that mounts open skips Base UI's enter transition, so it commits closed once first.
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- opens the dialog a commit after its content is ready
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- the closed commit has to land before this one
+    if (ready) setEntered(true)
+  }, [ready])
   if (!data || !moment) return null
   const owner = data.players.find((p) => p.steamId === moment.steamId)
 

@@ -21,6 +21,7 @@ const TABS = [
   { id: 'maps', label: 'Maps' },
   { id: 'teammates', label: 'Teammates' },
 ] as const
+
 type Tab = (typeof TABS)[number]['id']
 
 export const Route = createFileRoute('/_app/players/$steamId')({
@@ -52,7 +53,7 @@ function ProfilePage() {
     return player.error instanceof ApiError && player.error.status === 404 ? (
       <ErrorPage />
     ) : (
-      <p className="text-sm text-danger">Couldn’t load this profile. Try reloading the page.</p>
+      <p className="text-body text-danger">Couldn’t load this profile. Try reloading the page.</p>
     )
   if (!player.data) return <ProfileSkeleton />
   const p = player.data

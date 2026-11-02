@@ -34,6 +34,7 @@ export const detectHighlights = (
   const candidates = moments.map((moment): Highlight => {
     const tags = momentTags(moment, totalRounds)
     const kind = momentKind(moment, killTags)
+
     return {
       steamId: moment.steamId,
       playerName: timeline.players.get(moment.steamId)?.name ?? moment.steamId,

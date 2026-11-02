@@ -11,6 +11,7 @@ export const authGuard = (auth: Auth) =>
       async resolve({ status, request }) {
         const session = await auth.api.getSession({ headers: request.headers })
         if (!session) return status(401, { error: 'unauthorized' as const })
+
         return { user: session.user }
       },
     },
@@ -19,6 +20,7 @@ export const authGuard = (auth: Auth) =>
         const session = await auth.api.getSession({ headers: request.headers })
         if (!session) return status(401, { error: 'unauthorized' as const })
         if (session.user.role !== 'admin') return status(403, { error: 'forbidden' as const })
+
         return { user: session.user }
       },
     },

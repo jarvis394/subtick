@@ -25,6 +25,7 @@ export interface ClipProgress {
 /** Pipeline progress, fanned out to browsers by the api over SSE. */
 export const createMatchEventPublisher = (redisUrl: string) => {
   const redis = new RedisClient(redisUrl)
+
   return (event: MatchEvent) => redis.publish(MATCH_EVENTS_CHANNEL, JSON.stringify(event))
 }
 
@@ -43,6 +44,7 @@ export const createMatchEventHub = (redisUrl: string) => {
       const event = JSON.parse(message) as MatchEvent
       for (const fn of listeners) fn(event)
     })
+
     return () => listeners.delete(listener)
   }
 }

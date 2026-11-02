@@ -25,6 +25,7 @@ const bars = (c: Crosshair): Bar[] => {
     if (!c.tStyle) lines.push({ x: -half, y: -from - c.length, w: t, h: c.length })
   }
   if (c.dot || c.style === 6) lines.push({ x: -half, y: -half, w: t, h: t })
+
   return lines
 }
 
@@ -69,9 +70,9 @@ export const CrosshairPreview = ({
       ) : (
         <>
           {crosshair.outlineMode > 0 &&
-            shapes.map((b, i) => (
+            shapes.map((b) => (
               <rect
-                key={`o${i}`}
+                key={`o${b.x},${b.y},${b.w},${b.h}`}
                 x={b.x - outline}
                 y={b.y - outline}
                 width={b.w + outline * 2}
@@ -79,8 +80,15 @@ export const CrosshairPreview = ({
                 fill={rgba(crosshair.outlineColor)}
               />
             ))}
-          {shapes.map((b, i) => (
-            <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} fill={rgba(crosshair.color)} />
+          {shapes.map((b) => (
+            <rect
+              key={`${b.x},${b.y},${b.w},${b.h}`}
+              x={b.x}
+              y={b.y}
+              width={b.w}
+              height={b.h}
+              fill={rgba(crosshair.color)}
+            />
           ))}
         </>
       )}

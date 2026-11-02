@@ -45,6 +45,7 @@ export const highlightRoutes = (ctx: Context) => {
       ctx,
       rows.map((row) => row.highlight.steamId),
     )
+
     return rows.map((row, i) => ({
       ...withUrls[i]!,
       map: row.map,
@@ -119,6 +120,7 @@ export const highlightRoutes = (ctx: Context) => {
           .from(highlight)
           .innerJoin(match, eq(match.id, highlight.matchId))
           .where(and(eq(highlight.status, 'recorded'), notOneKill))
+
         return { maps: maps.flatMap((m) => (m.map ? [m.map] : [])).toSorted() }
       },
       { auth: true },
@@ -131,6 +133,7 @@ export const highlightRoutes = (ctx: Context) => {
         )
         if (!rows.length) return status(404, { error: 'not_found' as const })
         const [item] = await present(rows)
+
         return item!
       },
       { auth: true, params: z.object({ id: z.uuid() }) },
@@ -158,6 +161,7 @@ export const highlightRoutes = (ctx: Context) => {
             { matchId: row.matchId, highlightIds: [row.id] },
             { priority: 10 },
           )
+
           return { status: 'queued' as const }
         }
 
@@ -166,6 +170,7 @@ export const highlightRoutes = (ctx: Context) => {
           .from(highlight)
           .where(eq(highlight.id, params.id))
         if (!existing) return status(404, { error: 'not_found' as const })
+
         return { status: existing.status }
       },
       { auth: true, params: z.object({ id: z.uuid() }) },
@@ -178,6 +183,7 @@ export const highlightRoutes = (ctx: Context) => {
         const result = await cancelHighlight(ctx, params.id, actorOf(user))
         if (!result) return status(404, { error: 'not_found' as const })
         if (result === 'forbidden') return status(403, { error: 'forbidden' as const })
+
         return { status: result }
       },
       { auth: true, params: z.object({ id: z.uuid() }) },

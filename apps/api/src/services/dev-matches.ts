@@ -25,6 +25,7 @@ const randomStats = (roundsPlayed: number): PlayerStats => {
   const kastRounds = int(Math.floor(roundsPlayed * 0.5), roundsPlayed)
   const kpr = kills / roundsPlayed
   const survival = (roundsPlayed - deaths) / roundsPlayed
+
   return {
     kills,
     deaths,
@@ -64,6 +65,7 @@ const randomMatch = () => {
   const enemyScore = won ? loserScore : 13
   const before = int(8000, 22000)
   const change = won ? int(50, 450) : -int(50, 450)
+
   return {
     id: `9${String(Date.now())}${String(int(0, 99999)).padStart(5, '0')}`,
     map: pick(MAPS),
@@ -86,6 +88,7 @@ const card = (m: { id: string; map: string; ownScore: number; enemyScore: number
 export const stageFakeMatch = (userId: string) => {
   const fake = randomMatch()
   pending.set(userId, [...(pending.get(userId) ?? []), fake])
+
   return card(fake)
 }
 
@@ -112,10 +115,12 @@ export const listFakeMatches = async (db: Db, userId: string) => {
     )
     .where(and(eq(schema.userMatch.userId, userId), eq(schema.match.serverName, DEV_SERVER)))
     .orderBy(desc(schema.userMatch.discoveredAt))
+
   return {
     pending: (pending.get(userId) ?? []).map(card).toReversed(),
     added: rows.map((r) => {
       const [own, enemy] = r.side === 'CT' ? [r.ct, r.t] : [r.t, r.ct]
+
       return card({ id: r.id, map: r.map ?? '', ownScore: own ?? 0, enemyScore: enemy ?? 0 })
     }),
   }
@@ -129,6 +134,7 @@ export const deleteFakeMatch = async (db: Db, userId: string, id: string) => {
       userId,
       queue.filter((m) => m.id !== id),
     )
+
     return true
   }
   const owned = await db
@@ -140,6 +146,7 @@ export const deleteFakeMatch = async (db: Db, userId: string, id: string) => {
     .delete(schema.match)
     .where(and(eq(schema.match.id, id), eq(schema.match.serverName, DEV_SERVER)))
     .returning({ id: schema.match.id })
+
   return deleted.length > 0
 }
 
@@ -173,5 +180,6 @@ export const materializeFakeMatches = async (db: Db, userId: string, steamId: st
       await tx.insert(schema.userMatch).values({ userId, matchId: id, steamId })
     })
   }
+
   return fakes.length
 }

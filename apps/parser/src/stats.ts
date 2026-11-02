@@ -17,6 +17,7 @@ const rating = (s: PlayerStats) => {
   const killRating = s.kills / s.roundsPlayed / 0.679
   const survivalRating = (s.roundsPlayed - s.deaths) / s.roundsPlayed / 0.317
   const multiKillRating = (k1 + 4 * k2 + 9 * k3 + 16 * k4 + 25 * k5) / s.roundsPlayed / 1.277
+
   return (killRating + 0.7 * survivalRating + multiKillRating) / 2.7
 }
 
@@ -74,8 +75,10 @@ export const computeStats = (
   clutches: Clutch[],
 ): Map<string, PlayerStats> => {
   const stats = new Map([...timeline.players.keys()].map((id) => [id, emptyStats()]))
-  const get = (id: string | null) => (id ? stats.get(id) : undefined)
+
   const killsByRound = Map.groupBy(timeline.kills, (k) => k.round)
+
+  const get = (id: string | null) => (id ? stats.get(id) : undefined)
 
   for (const round of timeline.rounds) {
     const roundKills = killsByRound.get(round.number) ?? []

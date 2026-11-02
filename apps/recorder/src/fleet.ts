@@ -37,6 +37,7 @@ const gpuName = async () => {
     const out = (await new Response(proc.stdout).text()).trim().split('\n')[0]
     if ((await proc.exited) !== 0 || !out) return null
     const [name, driver] = out.split(', ')
+
     return driver ? `${name} (driver ${driver})` : (name ?? null)
   } catch {
     return null
@@ -67,6 +68,7 @@ export const createFleetLink = (options: {
     if (response.status === 401)
       throw new Error('subtick rejected RECORDER_TOKEN (revoked or mistyped?)')
     if (!response.ok) throw new Error(`subtick api ${path}: HTTP ${response.status}`)
+
     return (await response.json()) as T
   }
 

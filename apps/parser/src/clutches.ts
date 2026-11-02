@@ -29,6 +29,7 @@ export const aliveAt = (
     alive.CT.delete(kill.victim)
     alive.T.delete(kill.victim)
   }
+
   return alive
 }
 

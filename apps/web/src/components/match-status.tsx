@@ -34,6 +34,7 @@ export const MatchStatusBadge = ({
       </Badge>
     )
   }
+
   return (
     <Badge tone="accent" className={className}>
       <Spinner className="size-2.5 border-[1.5px]" />

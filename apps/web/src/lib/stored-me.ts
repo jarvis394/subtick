@@ -11,6 +11,7 @@ const KEY = 'subtick:me'
 export const readStoredMe = (): Me | undefined => {
   try {
     const raw = localStorage.getItem(KEY)
+
     return raw ? (JSON.parse(raw) as Me) : undefined
   } catch {
     return undefined

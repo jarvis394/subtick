@@ -50,6 +50,7 @@ export const createAuth = ({
       steam({
         async getProfile(steamId) {
           const profile = await steamApi.getProfile(steamId)
+
           return profile && { name: profile.personaName, image: profile.avatarUrl }
         },
         onAccount: (userId, steamId) => upsertSteamLink({ db, steamApi }, userId, steamId),

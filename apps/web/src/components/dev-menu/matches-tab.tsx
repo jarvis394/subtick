@@ -9,6 +9,7 @@ import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { api, unwrap } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { Tooltip } from '@/components/ui/tooltip'
 
 // Not under ['matches']: the match page reads every list cached there as a list of matches.
 const fakesQuery = {
@@ -25,6 +26,7 @@ export const DevMatchesTab = ({ onNavigate }: { onNavigate: () => void }) => {
   const { data, refetch } = useQuery(fakesQuery)
   // A refresh turns staged matches into added ones.
   const refreshedAt = useRefreshMatches().data?.at
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- dev-only: the app's refresh mutation doesn't know about the fakes list
   useEffect(() => {
     if (refreshedAt !== undefined) void refetch()
   }, [refreshedAt, refetch])
@@ -50,7 +52,7 @@ export const DevMatchesTab = ({ onNavigate }: { onNavigate: () => void }) => {
           />
           <Section title="Added" fakes={data.added} onNavigate={onNavigate} />
           <Presence show={!data.pending.length && !data.added.length}>
-            <p className="py-4 text-center text-[12px] text-muted">No fake matches yet</p>
+            <p className="py-4 text-center text-label text-muted">No fake matches yet</p>
           </Presence>
         </div>
       )}
@@ -72,9 +74,14 @@ const Section = ({
 }) => (
   <Presence show={fakes.length > 0}>
     <section className="grid pb-1">
-      <p className="mb-1 px-1 text-[11px] font-medium text-muted" title={hint}>
-        {title} · {fakes.length}
-      </p>
+      <Tooltip
+        content={hint}
+        trigger={
+          <p className="mb-1 px-1 text-caption font-medium text-muted">
+            {title} · {fakes.length}
+          </p>
+        }
+      />
       <FadeList>
         {fakes.map((fake) => (
           <FadeItem key={fake.id}>
@@ -110,6 +117,7 @@ const FakeRow = ({ fake, onNavigate }: { fake: FakeCard; onNavigate?: () => void
             added: data.added.filter((f) => f.id !== fake.id),
           },
       )
+
       return { previous }
     },
     onError: (_error, _variables, context) =>
@@ -157,9 +165,9 @@ const FakeRow = ({ fake, onNavigate }: { fake: FakeCard; onNavigate?: () => void
 
 const FakeSummary = ({ fake }: { fake: FakeCard }) => (
   <>
-    <MapIcon map={fake.map} className="size-6 rounded-md text-[11px]" />
-    <span className="min-w-0 flex-1 truncate text-[13px]">{mapName(fake.map)}</span>
-    <span className="font-mono text-[12px] tabular-nums">
+    <MapIcon map={fake.map} className="size-6 rounded-md text-caption" />
+    <span className="min-w-0 flex-1 truncate text-small">{mapName(fake.map)}</span>
+    <span className="font-mono text-label tabular-nums">
       <span className={fake.ownScore > fake.enemyScore ? 'text-success' : 'text-danger'}>
         {fake.ownScore}
       </span>

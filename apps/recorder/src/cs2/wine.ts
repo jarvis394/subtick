@@ -30,6 +30,7 @@ class GameExitedError extends Error {}
 export const windowsPath = (prefix: string, path: string) => {
   const driveC = join(prefix, 'drive_c')
   const windows = path.startsWith(`${driveC}/`) ? `C:${path.slice(driveC.length)}` : `Z:${path}`
+
   return windows.replaceAll('/', '\\')
 }
 
@@ -49,6 +50,7 @@ export const findProcesses = async (needle: string, exclude?: string) => {
       // The process exited while we were looking.
     }
   }
+
   return pids
 }
 
@@ -63,6 +65,8 @@ export const createWineGame = (options: WineGameOptions) => {
   const hlaeDir = join(prefix, 'drive_c/hlae')
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
 
+  const consoleLog = { onLine: (line: string) => line && log.trace(line) }
+
   const spawnWine = (args: string[], env: Record<string, string> = {}) =>
     Bun.spawn(['wine', ...args], {
       cwd: args[0]?.startsWith('C:\\hlae') ? hlaeDir : undefined,
@@ -75,8 +79,6 @@ export const createWineGame = (options: WineGameOptions) => {
     await Bun.spawn(['wineserver', '-k'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
     await Bun.spawn(['wineserver', '-w'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
   }
-
-  const consoleLog = { onLine: (line: string) => line && log.trace(line) }
 
   /** Starts CS2 through HLAE with `hook` and waits for its console. */
   const start = async (hook: string): Promise<NetCon> => {
@@ -150,6 +152,7 @@ export const createWineGame = (options: WineGameOptions) => {
       if (!(error instanceof GameExitedError) || !(await Bun.file(official).exists())) throw error
       log.warn("CS2 exited while starting with the mirv_pov hook; retrying with HLAE's own")
       await stopAll()
+
       return start(OFFICIAL_HOOK)
     }
   }

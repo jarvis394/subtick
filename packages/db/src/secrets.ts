@@ -14,6 +14,7 @@ export const createSecretBox = async (keyBase64: string) => {
       const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
       const data = new TextEncoder().encode(plaintext)
       const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data))
+
       return Buffer.concat([iv, sealed]).toString('base64')
     },
     async decrypt(box: string) {
@@ -24,6 +25,7 @@ export const createSecretBox = async (keyBase64: string) => {
         key,
         bytes.subarray(IV_BYTES),
       )
+
       return new TextDecoder().decode(plain)
     },
   }

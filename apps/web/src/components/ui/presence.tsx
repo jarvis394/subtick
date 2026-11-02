@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, type Ref, useLayoutEffect, useRef, useState } from 'react'
 import { EASE_OUT_QUART } from '@/lib/motion'
+import { observeResize } from '@/lib/resizeObserve'
 import { cn } from '@/lib/utils'
 
 /**
@@ -61,12 +62,12 @@ export const AutoHeight = ({
   const [height, setHeight] = useState<number | 'auto'>('auto')
   const reduce = useReducedMotion()
 
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- observes the content's size so the box's height follows it
   useLayoutEffect(() => {
     const el = inner.current
     if (!el) return
-    const observer = new ResizeObserver(([entry]) => setHeight(entry!.borderBoxSize[0]!.blockSize))
-    observer.observe(el)
-    return () => observer.disconnect()
+
+    return observeResize(el, ([entry]) => setHeight(entry!.borderBoxSize[0]!.blockSize))
   }, [])
 
   return (

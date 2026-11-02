@@ -24,7 +24,7 @@ function AdminLayout() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-serif text-3xl tracking-tight">Manage instance</h1>
+        <h1 className="font-serif text-display tracking-tight">Manage instance</h1>
         {/* Each tab is a link to its page. */}
         <Tabs value={active} className="max-w-full min-w-0">
           <TabsList aria-label="Sections">

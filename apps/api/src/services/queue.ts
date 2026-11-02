@@ -39,6 +39,7 @@ const readProgress = (job: { progress: unknown }) => {
       ? (raw as { value?: unknown; clip?: ClipProgress })
       : null
   const value = reported ? reported.value : raw
+
   return {
     progress: typeof value === 'number' && value > 0 ? Math.min(value, 1) : null,
     clip: reported?.clip ?? null,
@@ -66,6 +67,7 @@ const readJobs = async ({ queues, env }: Pick<Context, 'queues' | 'env'>): Promi
           const data = job.data as { matchId?: string; shareCode?: string; highlightIds?: string[] }
           const matchId = jobMatchId(data)
           if (!matchId) return []
+
           return [
             {
               stage,
@@ -97,6 +99,7 @@ const readJobs = async ({ queues, env }: Pick<Context, 'queues' | 'env'>): Promi
     queuedAt: run.queuedAt,
     startedAt: run.queuedAt,
   }))
+
   return [...lists.flat(), ...simulated]
 }
 
@@ -223,6 +226,7 @@ export const listQueue = async (
           : matchClips.find(
               (c) => c.highlight.status === 'queued' && row.activeClipIds.has(c.highlight.id),
             )?.highlight.id
+
       const stateOf = (h: (typeof matchClips)[number]['highlight']): ClipState =>
         h.status === 'recorded'
           ? 'recorded'
@@ -231,6 +235,7 @@ export const listQueue = async (
             : h.id === current
               ? 'recording'
               : 'waiting'
+
       const moments = matchClips.map(({ highlight: h, playerName, requester }) => ({
         id: h.id,
         title: h.title,
@@ -266,6 +271,7 @@ export const listQueue = async (
           h.status === 'queued' &&
           (actor.isAdmin || h.requestedBy === actor.id || (h.requestedBy === null && owns)),
       }))
+
       return {
         matchId: row.matchId,
         map: m.map,
@@ -289,5 +295,6 @@ export const listQueue = async (
         canCancel: actor.isAdmin || owns || moments.some((c) => c.canCancel),
       }
     })
+
   return { items }
 }

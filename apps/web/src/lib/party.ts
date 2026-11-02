@@ -24,5 +24,6 @@ export const partyMarkers = (players: { steamId: string; partyId: string | null 
     if (!byParty.has(p.partyId)) byParty.set(p.partyId, MARKERS[byParty.size % MARKERS.length]!)
     markers.set(p.steamId, byParty.get(p.partyId)!)
   }
+
   return markers
 }

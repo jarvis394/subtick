@@ -37,6 +37,7 @@ export const MomentCard = ({
   // An action picked in the dialog runs once it has closed, so the card's move between the Queue
   // and its round plays on the page, not under the closing dialog.
   const afterClose = useRef<(() => void) | null>(null)
+
   const closeThen = (action: () => void) => () => {
     afterClose.current = action
   }
@@ -55,7 +56,7 @@ export const MomentCard = ({
         }}
         footer={
           <>
-            <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted">
+            <span className="flex min-w-0 items-center gap-1.5 text-small text-muted">
               {moment.status === 'queued' && <Spinner className="size-3 shrink-0" />}
               <span className="truncate">
                 {moment.status === 'queued'
@@ -108,10 +109,10 @@ export const MomentCard = ({
             <Avatar src={player.avatarUrl} name={player.name} className="size-9" />
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-sm font-medium">{moment.title}</p>
+                <p className="truncate text-body font-medium">{moment.title}</p>
                 <MomentBadge moment={moment} className="w-auto shrink-0" />
               </div>
-              <p className="mt-0.5 truncate text-[12px] text-muted">
+              <p className="mt-0.5 truncate text-label text-muted">
                 {player.name} · {momentDetails(moment)}
                 {moment.status !== 'candidate' && ` · ${requestedLabel(moment)}`}
               </p>
@@ -121,7 +122,7 @@ export const MomentCard = ({
       />
       {moment.status === 'queued' ? (
         <span className="flex shrink-0 items-center gap-1">
-          <span className="flex items-center gap-1.5 px-1 text-[13px] text-muted">
+          <span className="flex items-center gap-1.5 px-1 text-small text-muted">
             <Spinner className="size-3" /> Recording
           </span>
           {moment.canCancel && (

@@ -30,6 +30,7 @@ const TAG_LABEL: Partial<Record<KillTag, string>> = {
 export const tagSummary = (kills: { tags: KillTag[] }[], limit = 3) => {
   const counts = new Map<KillTag, number>()
   for (const tag of kills.flatMap((k) => k.tags)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+
   return [...counts]
     .filter(([tag]) => TAG_LABEL[tag])
     .toSorted((a, b) => b[1] - a[1])
@@ -45,6 +46,7 @@ export const KIND_FILTERS = [
   { id: 'multi', label: 'Multi-kills', kinds: ['quad', 'triple', 'double'] },
   { id: 'special', label: 'Special', kinds: ['special', 'collateral', 'single'] },
 ] as const satisfies { id: string; label: string; kinds: readonly HighlightKind[] }[]
+
 export type KindFilter = (typeof KIND_FILTERS)[number]['id']
 
 /** The clip open in the viewer, as a URL search param on any page that lists clips. */

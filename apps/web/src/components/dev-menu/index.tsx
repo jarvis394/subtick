@@ -1,7 +1,7 @@
 import { Popover } from '@base-ui/react/popover'
 import { FlaskConical } from 'lucide-react'
 import { useMatch } from '@tanstack/react-router'
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { IconButton } from '@/components/ui/button'
 import { AutoHeight } from '@/components/ui/presence'
 import { Tab, Tabs, TabsList, TabsPanel } from '@/components/ui/tabs'
@@ -10,6 +10,7 @@ import { Tab, Tabs, TabsList, TabsPanel } from '@/components/ui/tabs'
 const DevMatchesTab = lazy(() =>
   import('./matches-tab').then((m) => ({ default: m.DevMatchesTab })),
 )
+
 const DevHighlightsTab = lazy(() =>
   import('./highlights-tab').then((m) => ({ default: m.DevHighlightsTab })),
 )
@@ -40,14 +41,14 @@ const TABS = [
  */
 export default function DevMenu() {
   const [open, setOpen] = useState(false)
-  const close = () => setOpen(false)
-  const lastMatch = useRef<string | null>(null)
-  const onMatchPage = useMatch({ from: '/_app/matches/$id', shouldThrow: false })
-  const matchId = onMatchPage?.params.id ?? lastMatch.current
 
-  useEffect(() => {
-    if (onMatchPage) lastMatch.current = onMatchPage.params.id
-  }, [onMatchPage])
+  const [lastMatch, setLastMatch] = useState<string | null>(null)
+  const onMatchPage = useMatch({ from: '/_app/matches/$id', shouldThrow: false })
+  const currentMatch = onMatchPage?.params.id
+  if (currentMatch && currentMatch !== lastMatch) setLastMatch(currentMatch)
+  const matchId = currentMatch ?? lastMatch
+
+  const close = () => setOpen(false)
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -75,7 +76,7 @@ export default function DevMenu() {
           <Popover.Popup className="theme-dark w-80 origin-(--transform-origin) rounded-2xl border border-border-strong bg-black text-foreground shadow-2xl shadow-black/40 outline-none transition-[scale,opacity] duration-200 ease-out-quart data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-starting-style:scale-[0.96] data-starting-style:opacity-0">
             <Tabs defaultValue={TABS[0].value}>
               <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
-                <Popover.Title className="text-[12px] font-medium text-muted">
+                <Popover.Title className="text-label font-medium text-muted">
                   Developer tools
                 </Popover.Title>
                 <TabsList size="sm" aria-label="Sections" className="gap-0.5">

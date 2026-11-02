@@ -15,9 +15,10 @@ export const Route = createFileRoute('/_app/admin/users')({
 
 function UsersPage() {
   const users = useQuery(usersQuery)
+
   return (
     <section className="grid gap-4">
-      <p className="text-sm text-muted">
+      <p className="text-body text-muted">
         Admins manage recorders, their Steam accounts and other users' roles.
       </p>
       {users.isPending ? (
@@ -52,9 +53,9 @@ function UserRow({ user }: { user: AdminUser }) {
         <p className="flex items-center gap-2 truncate font-medium">
           {user.name}
           {admin && <Badge tone="accent">Admin</Badge>}
-          {isMe && <span className="text-[12px] font-normal text-muted">you</span>}
+          {isMe && <span className="text-label font-normal text-muted">you</span>}
         </p>
-        <p className="truncate text-[13px] text-muted select-text">
+        <p className="truncate text-small text-muted select-text">
           {user.email.endsWith('@steam.invalid') ? 'Steam sign-in' : user.email} · joined{' '}
           {timeAgo(user.createdAt)}
         </p>
@@ -70,7 +71,7 @@ function UserRow({ user }: { user: AdminUser }) {
         </Button>
       )}
       {setRole.error && (
-        <p className="w-full text-sm text-danger select-text">{setRole.error.message}</p>
+        <p className="w-full text-body text-danger select-text">{setRole.error.message}</p>
       )}
     </div>
   )

@@ -19,6 +19,7 @@ const { values, positionals: matchIds } = parseArgs({
   options: { only: { type: 'string' } },
   allowPositionals: true,
 })
+
 if (!matchIds.length) {
   console.error('usage: bun run enqueue <matchId>... [--only <highlightId>]')
   process.exit(1)
@@ -47,5 +48,6 @@ for (const matchId of matchIds) {
   await enqueue(queue, payload)
   console.log(`${matchId}: ${highlightIds.length} highlights → clip.record`)
 }
+
 await queue.close()
 process.exit(0)

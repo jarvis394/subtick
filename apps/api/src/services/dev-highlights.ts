@@ -77,6 +77,7 @@ export const addFakeHighlight = async (
   const base = mine[0]?.tick ?? (firstRound ? firstRound.freezeEndTick + 640 : 1000)
   const kills: HighlightKill[] = [0, 1].map((i) => {
     const kill = mine[i]
+
     return {
       tick: kill?.tick ?? base + 128 * i,
       victimSteamId: kill?.victimSteamId ?? `dev${i}`,
@@ -109,6 +110,7 @@ export const addFakeHighlight = async (
   if (borrowed) {
     await db.insert(schema.clip).values({ ...borrowed, highlightId: highlight!.id })
   }
+
   return { id: highlight!.id }
 }
 
@@ -118,6 +120,7 @@ export const deleteFakeHighlight = async (db: Db, id: string) => {
     .delete(schema.highlight)
     .where(and(eq(schema.highlight.id, id), like(schema.highlight.title, `${PREFIX}%`)))
     .returning({ id: schema.highlight.id })
+
   return deleted.length > 0
 }
 
@@ -190,5 +193,6 @@ export const simulateRecording = async (
     simulatedJobs.delete(id)
     void publish({ matchId, status: 'ready' })
   }
+
   return added
 }

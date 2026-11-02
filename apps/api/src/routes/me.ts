@@ -78,6 +78,7 @@ export const meRoutes = (ctx: Context) => {
       async ({ user, body }) => {
         // The display name only: Steam persona names stay as Steam reports them.
         await db.update(schema.user).set({ name: body.name }).where(eq(schema.user.id, user.id))
+
         return { name: body.name }
       },
       { auth: true, body: ProfileBody },
@@ -90,6 +91,7 @@ export const meRoutes = (ctx: Context) => {
           return status(415, { error: 'unsupported_type' as const })
         if (body.file.size > IMAGE_LIMITS[kind].maxBytes)
           return status(413, { error: 'too_large' as const })
+
         return { url: await replaceImage(ctx, user.id, kind, body.file) }
       },
       { auth: true, params: ImageParams, body: ImageBody },

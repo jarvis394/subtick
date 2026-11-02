@@ -27,6 +27,12 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
     },
   })
 
+  const error =
+    save.error instanceof ApiError
+      ? (ERRORS[save.error.message] ??
+        (save.error.status === 422 ? 'Check the format of both codes.' : save.error.message))
+      : save.error?.message
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -36,15 +42,9 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
     })
   }
 
-  const error =
-    save.error instanceof ApiError
-      ? (ERRORS[save.error.message] ??
-        (save.error.status === 422 ? 'Check the format of both codes.' : save.error.message))
-      : save.error?.message
-
   return (
     <form onSubmit={submit} className="grid gap-4">
-      <p className="text-sm leading-relaxed text-muted">
+      <p className="text-body leading-relaxed text-muted">
         Steam only shares your match history with an authentication code. Find it, together with
         your most recent match's share code, on{' '}
         <a
@@ -77,7 +77,7 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
           className="font-mono"
         />
       </Field>
-      {error && <p className="text-sm text-danger select-text">{error}</p>}
+      {error && <p className="text-body text-danger select-text">{error}</p>}
       <div>
         <Button type="submit" variant="secondary" loading={save.isPending}>
           Save and start syncing

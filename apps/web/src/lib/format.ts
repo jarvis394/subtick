@@ -1,6 +1,7 @@
 import { TICKRATE, clipOffsetTicks, clipSegments, segmentsTicks } from '@subtick/domain'
 
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
   ['month', 30 * 24 * 3600],
@@ -17,6 +18,7 @@ export const timeAgo = (date: Date | string | null | undefined) => {
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return relative.format(Math.round(seconds / size), unit)
   }
+
   return relative.format(-1, 'minute')
 }
 
@@ -34,6 +36,7 @@ export const shortAge = (date: Date | string | null | undefined) => {
   const seconds = (Date.now() - new Date(date).getTime()) / 1000
   for (const [unit, size] of AGE_UNITS)
     if (seconds >= size) return `${Math.floor(seconds / size)}${unit}`
+
   return '1m'
 }
 
@@ -45,6 +48,7 @@ const TIME = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit',
 export const formatDate = (date: Date | string | null | undefined) => {
   if (!date) return ''
   const d = new Date(date)
+
   return d.getFullYear() === new Date().getFullYear()
     ? `${SHORT_DATE.format(d)}, ${TIME.format(d)}`
     : LONG_DATE.format(d)
@@ -61,6 +65,7 @@ export const dayLabel = (date: Date | string | null | undefined) => {
   const days = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86_400_000)
   if (days === 0) return 'Today'
   if (days === 1) return 'Yesterday'
+
   return d.getFullYear() === new Date().getFullYear() ? WEEKDAY.format(d) : LONG_DATE.format(d)
 }
 
@@ -90,5 +95,6 @@ export const formatBytes = (bytes: number) => {
     value /= 1000
     unit += 1
   }
+
   return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${BYTE_UNITS[unit]}`
 }

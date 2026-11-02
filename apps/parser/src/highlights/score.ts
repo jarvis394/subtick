@@ -23,6 +23,7 @@ export const momentTags = (moment: Moment, totalRounds: number): MomentTag[] => 
   if (round.number === totalRounds) tags.push('last_round')
   if (moment.defuse) tags.push('defuse')
   if (moment.ninjaDefuse) tags.push('ninja_defuse')
+
   return tags
 }
 
@@ -30,6 +31,7 @@ const speedFactor = (moment: Moment, config: HighlightConfig) => {
   const { kills } = moment
   if (kills.length < 2) return 1
   const avgGap = ticksToSeconds(kills.at(-1)!.tick - kills[0]!.tick) / (kills.length - 1)
+
   return config.score.speed.find((s) => avgGap <= s.maxGapSeconds)?.factor ?? 1
 }
 
@@ -89,6 +91,7 @@ export const momentKind = (moment: Moment, killTags: Map<number, KillTag[]>): Hi
   if (tags.has('collateral')) return 'collateral'
   if (n === 2) return 'double'
   if (n === 0 || SPECIAL_TAGS.some((t) => tags.has(t))) return 'special'
+
   return 'single'
 }
 
@@ -118,6 +121,7 @@ const weaponPhrase = (moment: Moment) => {
   if (ranked.length === 1) return the(ranked[0]![0])
   if (ranked.length === 2) return `${the(ranked[0]![0])} and ${the(ranked[1]![0])}`
   const [top, kills] = ranked[0] ?? ['', []]
+
   return kills.length * 2 > moment.kills.length ? the(top) : 'multiple weapons'
 }
 
@@ -135,6 +139,7 @@ export const momentTitle = (
       return `Ace with ${weapons}`
     case 'clutch': {
       const suffix = n > 1 ? ` · ${n}K` : moment.defuse ? ' · defuse' : ''
+
       return `1v${moment.clutch!.opponents} clutch${suffix}`
     }
     case 'quad':

@@ -34,6 +34,7 @@ const createResendMailer = (apiKey: string, from: string): Mailer => ({
 
 const createLogMailer = (): Mailer => {
   const log = createLogger('mail')
+
   return {
     async send(mail) {
       log.info(

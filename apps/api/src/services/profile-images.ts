@@ -54,6 +54,7 @@ export const replaceImage = async (
       log.warn({ key: current.key }, 'old profile image not deleted', error)
     })
   }
+
   return imageUrl({ clips }, key)
 }
 
@@ -80,5 +81,6 @@ export const subtickIdentities = async ({ db }: Pick<Context, 'db'>, steamIds: s
     .from(schema.steamLink)
     .innerJoin(schema.user, eq(schema.user.id, schema.steamLink.userId))
     .where(inArray(schema.steamLink.steamId, [...new Set(steamIds)]))
+
   return new Map(rows.map(({ steamId, ...identity }) => [steamId, identity]))
 }
