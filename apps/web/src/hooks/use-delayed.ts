@@ -6,10 +6,15 @@ import { useEffect, useState } from 'react'
  */
 export const useDelayed = (active: boolean, ms: number) => {
   const [elapsed, setElapsed] = useState(false)
+  if (!active && elapsed) setElapsed(false)
+
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- timer that flips once `active` has held for `ms`
   useEffect(() => {
-    if (!active) return setElapsed(false)
+    if (!active) return
     const timer = setTimeout(() => setElapsed(true), ms)
+
     return () => clearTimeout(timer)
   }, [active, ms])
+
   return active && elapsed
 }

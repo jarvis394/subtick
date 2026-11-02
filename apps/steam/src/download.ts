@@ -53,6 +53,7 @@ export const downloadDemo = async (
       throw new DelayedError()
     }
     await setStatus(matchId, 'expired', 'Valve no longer has this demo')
+
     return
   }
   if (!response.ok || !response.body)
@@ -63,6 +64,7 @@ export const downloadDemo = async (
   const path = join(dir, `${matchId}.dem`)
   const total = Number(response.headers.get('content-length')) || 0
   let reportedAt = performance.now()
+
   const onChunk = async (received: number) => {
     if (performance.now() - reportedAt < PROGRESS_EVERY_MS) return
     reportedAt = performance.now()
@@ -74,6 +76,7 @@ export const downloadDemo = async (
       ctx.publish({ matchId, status: 'downloading', progress }),
     ])
   }
+
   try {
     const bytes = await decompressTo(path, response, row.demoUrl.endsWith('.bz2'), onChunk)
     const compressed = await Bun.zstdCompress(await Bun.file(path).bytes(), { level: 6 })
@@ -101,6 +104,7 @@ export const downloadDemo = async (
   } catch (error) {
     if (!(error instanceof DownloadCancelled)) throw error
     log.info({ matchId }, 'download cancelled')
+
     return
   } finally {
     await Promise.all([rm(path, { force: true }), rm(`${path}.bz2`, { force: true })])
@@ -128,6 +132,7 @@ const decompressTo = async (
   const bunzip = Bun.spawn(['bunzip2', '--force', target], { stderr: 'pipe' })
   if ((await bunzip.exited) !== 0)
     throw new Error(`bunzip2 failed: ${await new Response(bunzip.stderr).text()}`)
+
   return Bun.file(path).size
 }
 
@@ -155,5 +160,6 @@ const saveBody = async (
 /** Valve's replay servers stamp the demo with the time the match ended. */
 const lastModified = (response: Response) => {
   const header = response.headers.get('last-modified')
+
   return header ? new Date(header) : null
 }

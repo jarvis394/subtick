@@ -11,6 +11,7 @@ export const cancelled = async ({ db }: Pick<Context, 'db'>, matchId: string) =>
     .select({ status: schema.match.status, error: schema.match.error })
     .from(schema.match)
     .where(eq(schema.match.id, matchId))
+
   return !row || isCancelled(row)
 }
 
@@ -36,6 +37,7 @@ export const resolveMatch = async (
     ? resolved.parties
     : await friendParties(steamApi, resolved.players).catch((error) => {
         log.warn({ matchId, error }, 'could not read friend lists for parties')
+
         return {}
       })
   await db
@@ -52,6 +54,7 @@ export const resolveMatch = async (
   if (!resolved.demoUrl) {
     await setStatus(matchId, 'expired', 'Valve no longer has this demo')
     log.info({ matchId }, 'demo expired before it was resolved')
+
     return
   }
   if (await cancelled(ctx, matchId)) return

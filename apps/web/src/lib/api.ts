@@ -25,5 +25,6 @@ export const unwrap = async <
 ): Promise<NonNullable<R['data']>> => {
   const { data, error } = await request
   if (error) throw new ApiError(Number(error.status), error.value)
+
   return data as NonNullable<R['data']>
 }

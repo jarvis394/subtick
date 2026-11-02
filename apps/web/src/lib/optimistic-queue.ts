@@ -71,6 +71,7 @@ export const queueRecording = (queryClient: QueryClient, matchId: string, moment
       mine: match.viewerSteamId !== null,
       canCancel: true,
     }
+
     return { items: [...queue.items, item] }
   })
 }

@@ -24,6 +24,7 @@ const EMBLEMS = urls(
     import: 'default',
   }),
 )
+
 const PREVIEWS = urls(
   import.meta.glob<string>('../assets/maps/preview/*.webp', {
     eager: true,
@@ -54,11 +55,12 @@ export const MapIcon = ({ map, className }: { map: string | null; className?: st
       />
     )
   }
+
   return (
     <span
       aria-hidden
       className={cn(
-        'grid size-9 shrink-0 place-items-center rounded-lg bg-surface-3 font-serif text-[15px] text-muted',
+        'grid size-9 shrink-0 place-items-center rounded-lg bg-surface-3 font-serif text-lead text-muted',
         className,
       )}
     >

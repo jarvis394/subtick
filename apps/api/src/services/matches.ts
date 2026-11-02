@@ -29,6 +29,7 @@ export const importShareCode = async (
   await db.insert(schema.userMatch).values({ userId, matchId, steamId }).onConflictDoNothing()
 
   if (created) await enqueue(queues.resolveMatch, { shareCode, userId, steamId })
+
   return { matchId, isNew: Boolean(created) }
 }
 
@@ -76,6 +77,7 @@ export const retryMatch = async (
   }
   if (status !== 'queued') await db.update(match).set({ status }).where(eq(match.id, matchId))
   await publish({ matchId, status })
+
   return status
 }
 
@@ -100,6 +102,7 @@ const removePendingJobs = async (
   const lists = await Promise.all(matchQueues(ctx).map((q) => q.getJobs([...PENDING_STATES])))
   const jobs = lists.flat().filter((job) => {
     const data = job.data as { matchId?: string; shareCode?: string; highlightIds?: string[] }
+
     return jobMatchId(data) === matchId && !keep(data)
   })
   // A job a worker picked up meanwhile is locked; its worker sees the cancel instead.
@@ -123,6 +126,7 @@ export const ownsMatch = async ({ db }: Pick<Context, 'db'>, actor: Actor, match
     .select({ matchId: schema.userMatch.matchId })
     .from(schema.userMatch)
     .where(and(eq(schema.userMatch.matchId, matchId), eq(schema.userMatch.userId, actor.id)))
+
   return Boolean(own)
 }
 
@@ -134,6 +138,7 @@ const cancellable = (actor: Actor, owns: boolean) => {
   const { highlight } = schema
   if (actor.isAdmin) return undefined
   const own = eq(highlight.requestedBy, actor.id)
+
   return owns ? or(own, isNull(highlight.requestedBy)) : own
 }
 
@@ -168,6 +173,7 @@ const dequeueClips = async (ctx: Ctx, matchId: string, which: SQL | undefined) =
       .returning({ id: match.id })
     if (ready) await publish({ matchId, status: 'ready' })
   }
+
   return dropped.length
 }
 
@@ -194,6 +200,7 @@ export const cancelMatch = async (ctx: Ctx, matchId: string, actor: Actor) => {
       .returning({ id: match.id })
     await removePendingJobs(ctx, matchId)
     if (updated) await publish({ matchId, status: 'failed' })
+
     return updated ? ('failed' as const) : row.status
   }
 
@@ -209,6 +216,7 @@ export const cancelMatch = async (ctx: Ctx, matchId: string, actor: Actor) => {
     if (ready) await publish({ matchId, status: 'ready' })
   }
   const [after] = await db.select({ status: match.status }).from(match).where(eq(match.id, matchId))
+
   return after?.status ?? row.status
 }
 
@@ -228,5 +236,6 @@ export const cancelHighlight = async (ctx: Ctx, highlightId: string, actor: Acto
     row.matchId,
     and(eq(highlight.id, highlightId), cancellable(actor, owns)),
   )
+
   return dropped ? ('candidate' as const) : ('forbidden' as const)
 }

@@ -14,12 +14,14 @@ console.timeEnd('analyze')
 
 const time = (tick: number) => {
   const s = Math.floor(ticksToSeconds(tick))
+
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
 console.log(
   `\n${timeline.header.map} · ${timeline.finalScore.CT}:${timeline.finalScore.T} · ${timeline.rounds.length} rounds\n`,
 )
+
 console.table(
   [...stats]
     .map(([id, s]) => ({
@@ -41,6 +43,7 @@ console.table(
 console.log(
   `clutches: ${clutches.map((c) => `r${c.round} 1v${c.opponents}${c.won ? '✓' : '✗'}`).join(', ')}\n`,
 )
+
 for (const h of highlights.toSorted((a, b) => b.score - a.score)) {
   const dur = ticksToSeconds(h.endTick - h.startTick).toFixed(1)
   const kills = h.kills

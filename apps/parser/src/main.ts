@@ -17,6 +17,7 @@ const env = loadEnv({ ...DatabaseEnv, ...RedisEnv, ...S3Env, ...WorkerEnv })
 const log = createLogger('parser')
 
 const db = createDb(env.DATABASE_URL)
+
 const demos = createS3Storage({
   endpoint: env.S3_ENDPOINT,
   region: env.S3_REGION,
@@ -24,6 +25,7 @@ const demos = createS3Storage({
   secretAccessKey: env.S3_SECRET_ACCESS_KEY,
   bucket: env.S3_BUCKET_DEMOS,
 })
+
 const recordQueue = createQueue('clip.record', env.REDIS_URL)
 const publish = createMatchEventPublisher(env.REDIS_URL)
 

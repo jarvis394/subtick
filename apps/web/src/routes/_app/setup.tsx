@@ -34,7 +34,7 @@ const Step = ({
     <div className="flex items-center gap-3">
       <span
         className={cn(
-          'grid size-7 place-items-center rounded-full text-[13px] font-medium',
+          'grid size-7 place-items-center rounded-full text-small font-medium',
           done ? 'bg-success/15 text-success' : 'bg-surface-2 text-muted',
         )}
       >
@@ -56,7 +56,7 @@ function SetupPage() {
   return (
     <div className="mx-auto grid max-w-xl gap-4">
       <div className="mb-2">
-        <h1 className="font-serif text-3xl tracking-tight">Set up subtick</h1>
+        <h1 className="font-serif text-display tracking-tight">Set up subtick</h1>
         <p className="mt-1.5 text-muted">
           Two steps, then new matches are picked up and clipped automatically.
         </p>
@@ -64,7 +64,7 @@ function SetupPage() {
 
       <Step n={1} title="Connect your Steam account" done={Boolean(link)}>
         {link ? (
-          <div className="flex items-center gap-2.5 text-sm">
+          <div className="flex items-center gap-2.5 text-body">
             <Avatar src={link.avatarUrl} name={link.personaName} className="size-6" />
             {link.personaName}
           </div>
@@ -85,7 +85,9 @@ function SetupPage() {
               <SteamIcon />
               Connect Steam
             </Button>
-            {error && <p className="text-sm text-danger select-text">{describeAuthError(error)}</p>}
+            {error && (
+              <p className="text-body text-danger select-text">{describeAuthError(error)}</p>
+            )}
           </div>
         )}
       </Step>
@@ -98,7 +100,7 @@ function SetupPage() {
 
       {!link?.hasMatchAuth && (
         <div className="flex items-center justify-between gap-4 pt-1 pl-1">
-          <p className="text-[13px] text-muted">You can finish this later from the sidebar.</p>
+          <p className="text-small text-muted">You can finish this later from the sidebar.</p>
           <Button
             variant="ghost"
             size="sm"

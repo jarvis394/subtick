@@ -38,6 +38,7 @@ const RARE = new Set<ClipCardData['kind']>(['ace', 'clutch'])
 
 const shallowEqual = <T extends object>(a: T, b: T) => {
   const keys = Object.keys(a) as (keyof T)[]
+
   return keys.length === Object.keys(b).length && keys.every((k) => Object.is(a[k], b[k]))
 }
 
@@ -52,6 +53,7 @@ const ClipLink = ({
   ...props
 }: { id: string } & Omit<ComponentProps<'a'>, 'href'>) => {
   const navigate = useNavigate()
+
   return (
     <a
       href={`/clips/${id}`}
@@ -154,7 +156,7 @@ export const HighlightCard = memo(
             >
               {KIND_LABEL[highlight.kind]}
             </Badge>
-            <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-white backdrop-blur">
+            <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-caption text-white backdrop-blur">
               {clock(Math.max(0, Math.min(total, Math.ceil(total - elapsed))))}
             </span>
           </div>
@@ -180,12 +182,12 @@ export const HighlightCard = memo(
             className="mt-0.5 size-8"
           />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[15px] font-medium">
+            <h3 className="truncate text-lead font-medium">
               <ClipLink id={highlight.id} className="hover:text-foreground/80">
                 {highlight.title}
               </ClipLink>
             </h3>
-            <p className="mt-0.5 truncate text-[13px] text-muted">
+            <p className="mt-0.5 truncate text-small text-muted">
               <PlayerLink
                 steamId={highlight.steamId}
                 className="text-foreground/80 hover:text-foreground"
@@ -209,7 +211,7 @@ export const HighlightCard = memo(
                 matchId={highlight.matchId}
                 momentId={highlight.id}
                 player={player}
-                trigger={(handlers) => (
+                renderTrigger={(handlers) => (
                   <button
                     type="button"
                     className="cursor-pointer hover:text-foreground"

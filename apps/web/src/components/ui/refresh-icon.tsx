@@ -22,6 +22,7 @@ export const RefreshIcon = ({ spinning, className }: { spinning: boolean; classN
   const rotate = useMotionValue(0)
   const reduce = useReducedMotion()
 
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- drives the motion value's spin animation with `spinning`
   useEffect(() => {
     if (reduce) return
     if (spinning) {
@@ -29,12 +30,15 @@ export const RefreshIcon = ({ spinning, className }: { spinning: boolean; classN
       let loop: AnimationPlaybackControls | undefined
       // One eased turn to get going, then steady turns from there.
       const start = animate(rotate, [0, 360], { duration: TURN_S * 1.3, ease: [0.5, 0, 0.75, 1] })
+
       const keepTurning = async () => {
         await start
         if (!cancelled)
           loop = animate(rotate, [0, 360], { duration: TURN_S, ease: 'linear', repeat: Infinity })
       }
+
       void keepTurning()
+
       return () => {
         cancelled = true
         start.stop()
@@ -48,6 +52,7 @@ export const RefreshIcon = ({ spinning, className }: { spinning: boolean; classN
       duration: TURN_S * (0.6 + ((360 - angle) / 360) * 0.6),
       ease: EASE_OUT_QUART,
     })
+
     return () => finish.stop()
   }, [spinning, reduce, rotate])
 

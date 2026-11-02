@@ -21,6 +21,7 @@ const queryClient = new QueryClient({
         // would otherwise go unnoticed, leaving it quietly stale.
         if (query.state.data !== undefined && !isSessionError(error))
           notifyError('Couldn’t refresh', error, query.queryHash)
+
         return
       }
       queryClient.clear()
@@ -60,6 +61,7 @@ const router = createRouter({
   defaultViewTransition: {
     types: ({ pathChanged, fromLocation, toLocation }) => {
       if (isClip(fromLocation?.pathname) && isClip(toLocation.pathname)) return false
+
       return firstPageShown && pathChanged ? ['page'] : false
     },
   },

@@ -22,6 +22,7 @@ export type MatchRowData = Pick<
   | 'player'
   | 'highlightCount'
 >
+
 import { cn } from '@/lib/utils'
 
 /** Score from the player's perspective: own team first. */
@@ -32,6 +33,7 @@ export const perspectiveScore = (
   if (match.scoreStartedCt === null || match.scoreStartedT === null || !side) return null
   const own = side === 'CT' ? match.scoreStartedCt : match.scoreStartedT
   const enemy = side === 'CT' ? match.scoreStartedT : match.scoreStartedCt
+
   return {
     own,
     enemy,
@@ -42,6 +44,7 @@ export const perspectiveScore = (
 // One grid for header and rows. Narrow screens keep map, score and rating only.
 const GRID =
   'grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-3 px-4 md:grid-cols-[minmax(8rem,1.3fr)_7rem_4rem_minmax(7.5rem,auto)_3.5rem_2.5rem_2.5rem_2.5rem_3rem_3rem_3rem_minmax(6rem,auto)] md:px-5'
+
 const WIDE = 'hidden md:block'
 
 const ratingTone = (rating: number) =>
@@ -50,7 +53,7 @@ const ratingTone = (rating: number) =>
 export const MatchTable = ({ matches }: { matches: MatchRowData[] }) => (
   // Edge to edge on phones (cancels the page's px-4), a card from md up.
   <div className="-mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-    <div className={cn(GRID, 'h-10 border-b text-[12px] font-medium text-muted')}>
+    <div className={cn(GRID, 'h-10 border-b text-label font-medium text-muted')}>
       <span>Map</span>
       <span className={WIDE}>Date</span>
       <span className="text-right md:text-left">Score</span>
@@ -84,7 +87,7 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
       params={{ id: match.id }}
       className={cn(
         GRID,
-        'h-16 border-b text-sm tabular-nums outline-none last:border-0',
+        'h-16 border-b text-body tabular-nums outline-none last:border-0',
         entering &&
           'overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
         'hover:bg-surface-2/60 focus-visible:bg-surface-2/60',
@@ -97,7 +100,7 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
             <span className="truncate font-medium">{matchName(match.map, match.status)}</span>
             <NewDot matchId={match.id} />
           </span>
-          <span className="flex items-center gap-1 text-[12px] whitespace-nowrap text-muted md:hidden">
+          <span className="flex items-center gap-1 text-label whitespace-nowrap text-muted md:hidden">
             <span className="truncate">
               {formatDate(match.playedAt ?? match.discoveredAt)}
               {s && ` · ${s.kills}/${s.deaths}/${s.assists}`}

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/surface'
 import { partyMarkers } from '@/lib/party'
 import type { MatchDetail } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { Tooltip } from '@/components/ui/tooltip'
 
 type Player = MatchDetail['players'][number]
 
@@ -91,6 +92,7 @@ const RATING: Column = {
   value: (p) => p.stats.rating,
   format: fixed(2),
 }
+
 const SORTABLE = [RATING, ...COLUMNS]
 
 const ratingTone = (rating: number) =>
@@ -117,16 +119,15 @@ interface Shape {
   pin?: string
 }
 
-const shell = ({ gap, pin }: Shape) => cn('p-0', gap && 'pl-[3px]', pin)
+const shell = ({ gap, pin }: Shape) => cn('p-0', gap && 'pl-0.75', pin)
+
 const block = ({ round = 'rounded-md' }: Shape, head: boolean, className?: string) =>
   cn('flex items-center', head ? 'h-9 bg-surface-2' : 'h-11 bg-background', round, className)
 
 /**
- * Pinned while the table scrolls sideways: on phones only the party symbol and avatar (the name
- * would cover half the screen), from md up the name too. The pinned part is always its own island:
- * an opaque page-colored backing hides scrolled cells behind rounded corners, and a page-colored
- * shadow keeps the 3px island gap on its right. Unscrolled, that shadow sits exactly on the next
- * cell's transparent gap, so nothing shifts when scrolling starts.
+ * Pinned while the table scrolls sideways: avatar and party symbol on phones, the name too from md up.
+ * An opaque backing hides scrolled cells behind its rounded corners, and a page-colored shadow keeps the 3px
+ * gap on its right, sitting exactly on the next cell's gap so nothing shifts when scrolling starts.
  */
 // Written out in full (also below with md:): Tailwind only sees literal class names.
 const PIN_GAP = 'shadow-[3px_0_0_var(--color-surface)]'
@@ -138,15 +139,16 @@ const PIN_GAP = 'shadow-[3px_0_0_var(--color-surface)]'
  * Class names are written out in full because Tailwind only sees literal strings.
  */
 const CORNER_CAPS = cn(
-  "before:pointer-events-none before:absolute before:bottom-0 before:-right-[9px] before:size-1.5 before:content-['']",
+  "before:pointer-events-none before:absolute before:bottom-0 before:-right-2.25 before:size-1.5 before:content-['']",
   'before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-surface)_6px)]',
-  "after:pointer-events-none after:absolute after:top-0 after:-right-[9px] after:size-1.5 after:content-['']",
+  "after:pointer-events-none after:absolute after:top-0 after:-right-2.25 after:size-1.5 after:content-['']",
   'after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-surface)_6px)]',
 )
+
 const MD_CORNER_CAPS = cn(
-  "md:before:pointer-events-none md:before:absolute md:before:bottom-0 md:before:-right-[9px] md:before:size-1.5 md:before:content-['']",
+  "md:before:pointer-events-none md:before:absolute md:before:bottom-0 md:before:-right-2.25 md:before:size-1.5 md:before:content-['']",
   'md:before:bg-[radial-gradient(circle_at_100%_0,transparent_5.5px,var(--color-surface)_6px)]',
-  "md:after:pointer-events-none md:after:absolute md:after:top-0 md:after:-right-[9px] md:after:size-1.5 md:after:content-['']",
+  "md:after:pointer-events-none md:after:absolute md:after:top-0 md:after:-right-2.25 md:after:size-1.5 md:after:content-['']",
   'md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_5.5px,var(--color-surface)_6px)]',
 )
 
@@ -162,7 +164,9 @@ const END_CAPS = cn(
   "after:pointer-events-none after:absolute after:right-0 after:bottom-0 after:size-1.5 after:content-['']",
   'after:bg-[radial-gradient(circle_at_0_0,transparent_5.5px,var(--color-surface)_6px)]',
 )
+
 const EndCap = () => <td aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
+
 const EndCapHead = () => (
   <th aria-hidden className={cn('sticky right-(--e) z-10 w-0 p-0', END_CAPS)} />
 )
@@ -177,17 +181,20 @@ const IDENTITY: Shape = {
     'md:shadow-none md:before:hidden md:after:hidden',
   ),
 }
+
 const NAME: Shape = {
   // Phones: its own island after the pinned avatar. md+: joined to the avatar, pinned with it.
   round: 'rounded-md md:rounded-l-none',
   pin: cn(
-    'pl-[3px] md:sticky md:left-[calc(var(--e)+4.25rem)] md:z-10 md:bg-surface md:pl-0',
+    'pl-0.75 md:sticky md:left-[calc(var(--e)+4.25rem)] md:z-10 md:bg-surface md:pl-0',
     'md:shadow-[3px_0_0_var(--color-surface)]',
     MD_CORNER_CAPS,
   ),
 }
+
 const RANK: Shape = { gap: true }
 const RATING_SHAPE: Shape = { gap: true }
+
 const statShape = (index: number): Shape => ({
   gap: index === 0,
   round:
@@ -214,7 +221,7 @@ const RatingCell = ({ rating, best, mvp }: { rating: number; best: number; mvp: 
       <span className="relative flex items-center gap-1.5">
         <span
           className={cn(
-            'rounded-md px-1.5 py-0.5 font-mono text-[13px] font-semibold',
+            'rounded-md px-1.5 py-0.5 font-mono text-small font-semibold',
             ratingTone(rating),
           )}
         >
@@ -230,7 +237,9 @@ const RatingCell = ({ rating, best, mvp }: { rating: number; best: number; mvp: 
 const halfScores = (rounds: MatchDetail['rounds'], team: Side) => {
   const won = (from: number, to: number) =>
     rounds.filter((r) => r.number >= from && r.number <= to && r.winnerTeam === team).length
+
   const overtime = rounds.length > REGULATION_ROUNDS ? won(REGULATION_ROUNDS + 1, Infinity) : null
+
   return {
     first: won(1, ROUNDS_PER_HALF),
     second: won(ROUNDS_PER_HALF + 1, REGULATION_ROUNDS),
@@ -243,20 +252,15 @@ const averagePremier = (team: Player[]) => {
   const ratings = team.flatMap((p) =>
     p.rank?.mode === 'premier' && p.rank.after > 0 ? [p.rank.after] : [],
   )
+
   return ratings.length ? Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length) : null
 }
 
 /**
- * Horizontal scroller with a Base UI scrollbar, shown while hovering or scrolling. The bar lives in
- * padding below the table (only while it overflows), so it never covers a row.
- *
- * The table pokes out of the page's content width on md+ (headings stay put) by `--bleed`: up to
- * 2rem a side, always keeping 16px clear of the content area's edges. The scroller itself reaches
- * on to the shell's edges, `--e` further, so an overscroll bounce carries the table past where it's
- * cut instead of cropping it there. Covers pinned in that extra space hide what scrolls through it,
- * and the table's pinned cells sit `--e` in from the scroller's edges. `--p` is the page's content
- * width and `cqw` the shell's `@container`. Negative margins, not an explicit width: a wider grid
- * item would stretch its auto track and push the table off-center.
+ * Horizontal scroller whose Base UI scrollbar sits in padding below the table, so it never covers a row.
+ * On md+ the table bleeds past the content width by `--bleed` (≤ 2rem, 16px clear of the edges); the scroller
+ * reaches `--e` further so overscroll doesn't crop it, and pinned cells sit `--e` in. Negative margins, not
+ * a width: a wider grid item would stretch its auto track and push the table off-center.
  */
 const ScrollTable = ({ children }: { children: ReactNode }) => (
   <ScrollArea.Root
@@ -305,21 +309,26 @@ const HeaderCell = ({
   onSort: (id: string) => void
   className?: string
 }) => (
-  <th className={shell(shape)} title={column.title}>
-    <div className={block(shape, true, className)}>
-      <button
-        type="button"
-        onClick={() => onSort(column.id)}
-        className={cn(
-          'inline-flex cursor-pointer items-center gap-0.5 font-medium outline-none hover:text-foreground focus-visible:text-foreground',
-          sortKey === column.id && 'text-foreground',
-        )}
-      >
-        {column.label}
-        {sortKey === column.id && <ChevronDown className="size-3" />}
-      </button>
-    </div>
-  </th>
+  <Tooltip
+    content={column.title}
+    trigger={
+      <th className={shell(shape)}>
+        <div className={block(shape, true, className)}>
+          <button
+            type="button"
+            onClick={() => onSort(column.id)}
+            className={cn(
+              'inline-flex cursor-pointer items-center gap-0.5 font-medium outline-none hover:text-foreground focus-visible:text-foreground',
+              sortKey === column.id && 'text-foreground',
+            )}
+          >
+            {column.label}
+            {sortKey === column.id && <ChevronDown className="size-3" />}
+          </button>
+        </div>
+      </th>
+    }
+  />
 )
 
 /** Memoized: the match page re-renders around it (the highlights' scope tabs) on the same data. */
@@ -332,6 +341,13 @@ export const Scoreboard = memo(function Scoreboard({
 }) {
   const [sortKey, setSortKey] = useState('rating')
   const sortColumn = SORTABLE.find((c) => c.id === sortKey) ?? RATING
+
+  const parties = partyMarkers(data.players)
+  const best = data.players.toSorted((a, b) => b.stats.rating - a.stats.rating)[0]
+  const mvp = best?.steamId
+  const bestRating = best?.stats.rating ?? 0
+  const viewerTeam = data.players.find((p) => p.steamId === viewerSteamId)?.startingSide
+
   const sort = (players: Player[]) =>
     players.toSorted((a, b) =>
       sortColumn.inverse
@@ -339,11 +355,6 @@ export const Scoreboard = memo(function Scoreboard({
         : sortColumn.value(b) - sortColumn.value(a),
     )
 
-  const parties = partyMarkers(data.players)
-  const best = data.players.toSorted((a, b) => b.stats.rating - a.stats.rating)[0]
-  const mvp = best?.steamId
-  const bestRating = best?.stats.rating ?? 0
-  const viewerTeam = data.players.find((p) => p.steamId === viewerSteamId)?.startingSide
   const teams = SIDES.map((side) => ({
     side,
     players: sort(data.players.filter((p) => p.startingSide === side)),
@@ -351,13 +362,14 @@ export const Scoreboard = memo(function Scoreboard({
     // The viewer's team first, otherwise the winner.
     .toSorted((a, b) => {
       if (viewerTeam) return a.side === viewerTeam ? -1 : 1
+
       return teamScore(data, b.side) - teamScore(data, a.side)
     })
 
   return (
     // min-w-0: grid items default to their content's width, and the wide table would push the page.
     <section className="min-w-0">
-      <h2 className="mb-4 font-serif text-xl tracking-tight">Scoreboard</h2>
+      <h2 className="mb-4 font-serif text-heading tracking-tight">Scoreboard</h2>
       <div className="grid min-w-0 gap-8">
         {teams.map(({ side, players }) => {
           const score = teamScore(data, side)
@@ -375,7 +387,7 @@ export const Scoreboard = memo(function Scoreboard({
               <div className="mb-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <span
                   className={cn(
-                    'font-mono text-2xl tabular-nums',
+                    'font-mono text-section tabular-nums',
                     score > enemy
                       ? 'text-success'
                       : score < enemy
@@ -387,7 +399,7 @@ export const Scoreboard = memo(function Scoreboard({
                 </span>
                 <span className="font-medium">{label}</span>
                 <Badge tone={side === 'CT' ? 'ct' : 't'}>Started {side}</Badge>
-                <span className="ml-auto flex items-center gap-4 text-[13px] text-muted">
+                <span className="ml-auto flex items-center gap-4 text-small text-muted">
                   {avg !== null && (
                     <span className="flex items-center gap-2">
                       Team avg
@@ -413,7 +425,7 @@ export const Scoreboard = memo(function Scoreboard({
 
               <ScrollTable>
                 {/* Fixed widths so both teams line up; rows are separated vertically only. */}
-                <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-[13px] tabular-nums">
+                <table className="w-full min-w-[68rem] table-fixed border-separate border-spacing-x-0 border-spacing-y-[3px] text-small tabular-nums">
                   <colgroup>
                     <col className="w-[4.25rem]" />
                     <col className="w-[12rem]" />
@@ -428,12 +440,17 @@ export const Scoreboard = memo(function Scoreboard({
                     <col className="w-0" />
                   </colgroup>
                   <thead>
-                    <tr className="text-left text-[12px] text-muted">
+                    <tr className="text-left text-label text-muted">
                       <th className={shell(IDENTITY)} aria-label="Party and avatar">
                         <div className={block(IDENTITY, true, 'pl-2.5')}>
-                          <span className="grid w-3 place-items-center" title="Party">
-                            <Users className="size-3" aria-hidden />
-                          </span>
+                          <Tooltip
+                            content="Party"
+                            trigger={
+                              <span className="grid w-3 place-items-center">
+                                <Users className="size-3" aria-hidden />
+                              </span>
+                            }
+                          />
                         </div>
                       </th>
                       <th className={shell(NAME)}>
@@ -503,6 +520,7 @@ export const Scoreboard = memo(function Scoreboard({
                         />
                         {COLUMNS.map((c, i) => {
                           const value = c.value(p)
+
                           return (
                             <td key={c.id} className={shell(statShape(i))}>
                               <div

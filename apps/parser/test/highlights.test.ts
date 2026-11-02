@@ -6,6 +6,7 @@ import { type RoundSpec, buildTestTimeline, roundTick } from './builders'
 
 const detect = (rounds: RoundSpec[]) => {
   const timeline = buildTestTimeline(rounds)
+
   return detectHighlights(timeline, detectClutches(timeline), []).highlights
 }
 

@@ -47,5 +47,6 @@ export const tagKills = (timeline: MatchTimeline, flicks: Set<number>, config: H
 
     result.set(k.id, tags)
   }
+
   return result
 }

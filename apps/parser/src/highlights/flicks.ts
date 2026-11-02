@@ -16,12 +16,14 @@ export const flickSampleRequest = (kills: Kill[], config: HighlightConfig) => {
     steamIds.add(k.attacker)
     for (let t = k.tick - config.tags.flickTicks; t <= k.tick; t++) ticks.add(t)
   }
+
   return { ticks: [...ticks].toSorted((a, b) => a - b), steamIds: [...steamIds] }
 }
 
 const angleBetween = (a: ViewAngleSample, b: ViewAngleSample) => {
   const yaw = Math.abs(((b.yaw - a.yaw + 540) % 360) - 180)
   const pitch = b.pitch - a.pitch
+
   return Math.hypot(yaw, pitch)
 }
 

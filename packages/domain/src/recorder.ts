@@ -10,6 +10,7 @@ export const RECORDER_STATES = [
   'idle',
   'recording',
 ] as const
+
 export type RecorderState = (typeof RECORDER_STATES)[number]
 
 /** Recorders report every 15 s. */

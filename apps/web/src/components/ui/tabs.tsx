@@ -52,13 +52,14 @@ export const TabsList = ({
 
 export const Tab = ({ className, ...props }: ComponentProps<typeof BaseTabs.Tab>) => {
   const { variant, size } = useContext(StyleContext)
+
   return (
     <BaseTabs.Tab
       className={cn(
         'relative z-10 flex shrink-0 cursor-pointer items-center whitespace-nowrap text-muted outline-none select-none transition-colors',
         // Inset, so the scrolling row doesn't clip the ring.
         'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset data-active:text-foreground',
-        size === 'sm' ? 'h-7 px-2.5 text-[13px]' : 'h-8 px-3 text-sm',
+        size === 'sm' ? 'h-7 px-2.5 text-small' : 'h-8 px-3 text-body',
         radius(variant, size),
         className,
       )}

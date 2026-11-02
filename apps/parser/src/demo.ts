@@ -277,10 +277,12 @@ export const openDemo = (data: Buffer): Demo => {
         ['team_num', 'is_alive', 'current_equip_value', 'crosshair_code'],
         ticks,
       ) as Row[]
+
       return tickRows.flatMap((r) => {
         const steamId = str(r.steamid)
         const teamNum = num(r.team_num)
         if (!steamId || teamNum === null || !sideFromTeamNum(teamNum)) return []
+
         return [
           {
             tick: r.tick as number,
@@ -297,11 +299,13 @@ export const openDemo = (data: Buffer): Demo => {
     viewAngles(ticks, steamIds) {
       if (ticks.length === 0 || steamIds.length === 0) return []
       const angleRows = parseTicks(data, ['pitch', 'yaw'], ticks, steamIds) as Row[]
+
       return angleRows.flatMap((r) => {
         const steamId = str(r.steamid)
         const pitch = num(r.pitch)
         const yaw = num(r.yaw)
         if (!steamId || pitch === null || yaw === null) return []
+
         return [{ tick: r.tick as number, steamId, pitch, yaw }]
       })
     },

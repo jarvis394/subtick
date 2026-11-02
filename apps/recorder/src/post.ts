@@ -9,6 +9,7 @@ const run = async (command: string[]) => {
   ])
   if (code !== 0)
     throw new Error(`${command[0]} failed: ${stderr.trim().split('\n').slice(-3).join(' ')}`)
+
   return stdout
 }
 
@@ -40,6 +41,7 @@ export const probe = async (path: string): Promise<VideoInfo> => {
   }
   const stream = json.streams[0]
   if (!stream) throw new Error(`${path} has no video stream`)
+
   return {
     durationMs: Math.round(Number(json.format.duration) * 1000),
     width: stream.width,

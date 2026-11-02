@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
  */
 export const FadeImage = ({ className, onLoad, ...props }: ComponentProps<'img'>) => {
   const [loaded, setLoaded] = useState(false)
+
   return (
     <img
       // Already in the cache: `load` may have fired before React attached the handler.

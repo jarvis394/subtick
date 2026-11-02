@@ -1,0 +1,8 @@
+{
+  "extends": "@subtick/tsconfig/base.json",
+  "compilerOptions": {
+    "types": ["bun", "node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["**/*.ts"]
+}

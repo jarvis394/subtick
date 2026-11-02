@@ -18,6 +18,7 @@ const update = () => {
   }
   for (const listener of listeners) listener()
 }
+
 window.addEventListener('focus', update)
 window.addEventListener('blur', update)
 document.addEventListener('visibilitychange', update)
@@ -30,5 +31,6 @@ export const isClockRunning = () => since !== null
 /** Calls `listener` whenever the clock starts or stops. */
 export const onClockChange = (listener: () => void) => {
   listeners.add(listener)
+
   return () => void listeners.delete(listener)
 }

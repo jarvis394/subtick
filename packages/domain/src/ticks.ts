@@ -3,4 +3,5 @@ export const TICKRATE = 64
 
 export const secondsToTicks = (seconds: number, tickrate = TICKRATE) =>
   Math.round(seconds * tickrate)
+
 export const ticksToSeconds = (ticks: number, tickrate = TICKRATE) => ticks / tickrate

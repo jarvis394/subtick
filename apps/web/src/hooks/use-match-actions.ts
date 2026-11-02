@@ -6,6 +6,7 @@ import type { MatchDetail, QueueItem } from '@/lib/queries'
 /** Everything that shows a match's pipeline state. */
 const useRefreshMatch = () => {
   const queryClient = useQueryClient()
+
   return (id: string) =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['match', id] }),
@@ -20,6 +21,7 @@ type ActionOptions = { inlineError?: boolean }
 /** Stops a match's processing; Retry picks it up again. */
 export const useCancelMatch = ({ inlineError = false }: ActionOptions = {}) => {
   const refresh = useRefreshMatch()
+
   return useMutation({
     meta: { inlineError },
     mutationFn: (id: string) => unwrap(api.matches({ id }).cancel.post()),
@@ -30,6 +32,7 @@ export const useCancelMatch = ({ inlineError = false }: ActionOptions = {}) => {
 /** Runs a failed, expired or cancelled match through the pipeline again. */
 export const useRetryMatch = ({ inlineError = false }: ActionOptions = {}) => {
   const refresh = useRefreshMatch()
+
   return useMutation({
     meta: { inlineError },
     mutationFn: (id: string) => unwrap(api.matches({ id }).retry.post()),
@@ -45,6 +48,7 @@ export const useCancelMoment = (matchId: string) => {
   const queryClient = useQueryClient()
   const refresh = useRefreshMatch()
   const key = ['match', matchId]
+
   const markCandidate = (id: string) =>
     queryClient.setQueryData<MatchDetail>(
       key,
@@ -96,6 +100,7 @@ export const useRefreshMatches = () => {
         unwrap(api.matches.refresh.post()),
         new Promise((resolve) => setTimeout(resolve, 600)),
       ])
+
       return { ...result, at: focusedNow() }
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['matches'] }),
@@ -105,5 +110,6 @@ export const useRefreshMatches = () => {
     filters: { mutationKey: REFRESH_KEY, status: 'success' },
     select: (m) => m.state.data as RefreshResult,
   }).at(-1)
+
   return { isPending, data, mutate: () => !isPending && mutate() }
 }

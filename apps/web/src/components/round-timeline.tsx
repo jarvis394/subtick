@@ -2,6 +2,7 @@ import { ROUNDS_PER_HALF, type Side } from '@subtick/domain'
 import { memo } from 'react'
 import type { MatchDetail } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { Tooltip } from '@/components/ui/tooltip'
 
 /** One cell per round: who won it (from the viewer's side), and how many kills they got. */
 export const RoundTimeline = memo(function RoundTimeline({
@@ -22,41 +23,46 @@ export const RoundTimeline = memo(function RoundTimeline({
 
   return (
     <section>
-      <h2 className="mb-4 font-serif text-xl tracking-tight">Rounds</h2>
+      <h2 className="mb-4 font-serif text-heading tracking-tight">Rounds</h2>
       <div className="flex flex-wrap gap-1">
         {data.rounds.map((r) => {
           const won = viewerTeam && r.winnerTeam ? r.winnerTeam === viewerTeam : undefined
           const kills = killsByRound.get(r.number) ?? 0
+
           return (
-            <div
+            <Tooltip
               key={r.number}
-              title={`Round ${r.number}: ${r.winner} won (${r.reason.replaceAll('_', ' ')})`}
-              className={cn(
-                'grid w-8 gap-1 text-center',
-                r.number === ROUNDS_PER_HALF + 1 && 'ml-3',
-              )}
-            >
-              <div
-                className={cn(
-                  'h-8 rounded-md',
-                  won === undefined
-                    ? r.winner === 'CT'
-                      ? 'bg-side-ct/70'
-                      : 'bg-side-t/70'
-                    : won
-                      ? 'bg-success/80'
-                      : 'bg-surface-3',
-                )}
-              />
-              <span
-                className={cn(
-                  'text-[11px] tabular-nums',
-                  kills >= 3 ? 'font-semibold text-foreground' : 'text-muted',
-                )}
-              >
-                {kills > 0 ? `${kills}k` : '·'}
-              </span>
-            </div>
+              content={`Round ${r.number}: ${r.winner} won (${r.reason.replaceAll('_', ' ')})`}
+              trigger={
+                <div
+                  className={cn(
+                    'grid w-8 gap-1 text-center',
+                    r.number === ROUNDS_PER_HALF + 1 && 'ml-3',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'h-8 rounded-md',
+                      won === undefined
+                        ? r.winner === 'CT'
+                          ? 'bg-side-ct/70'
+                          : 'bg-side-t/70'
+                        : won
+                          ? 'bg-success/80'
+                          : 'bg-surface-3',
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'text-caption tabular-nums',
+                      kills >= 3 ? 'font-semibold text-foreground' : 'text-muted',
+                    )}
+                  >
+                    {kills > 0 ? `${kills}k` : '·'}
+                  </span>
+                </div>
+              }
+            />
           )
         })}
       </div>

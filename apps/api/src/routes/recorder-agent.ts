@@ -34,6 +34,7 @@ export const recorderAgentRoutes = ({ db }: Context) =>
             .from(recorder)
             .where(eq(recorder.tokenHash, hashRecorderToken(token)))
           if (!row) return status(401, { error: 'unauthorized' as const })
+
           return { recorder: row }
         },
       },
@@ -45,6 +46,7 @@ export const recorderAgentRoutes = ({ db }: Context) =>
           .update(recorder)
           .set({ ...body, lastSeenAt: new Date() })
           .where(eq(recorder.id, self.id))
+
         return { name: self.name, paused: self.paused }
       },
       { recorderToken: true, body: Heartbeat },

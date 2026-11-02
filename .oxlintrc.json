@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "import", "promise"],
+  "plugins": ["typescript", "react", "react-perf", "oxc", "unicorn", "import", "promise"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -10,13 +10,58 @@
     "no-console": "off",
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error",
+    "subtick/no-em-dash-copy": "error",
+    "subtick/no-hookless-use-function": "error",
+    "subtick/no-low-value-comments": "error",
+    "subtick/no-native-title-tooltip": "error",
+    "subtick/no-raw-resize-observer": "error",
+    "subtick/no-unreasoned-state-sync": "error",
+    "subtick/no-unscoped-has": "error",
+    "subtick/require-centered-scroll-gutter": "error",
+    "subtick/statement-padding": "error",
+    "subtick/tailwind-scale": "error",
     "import/no-cycle": "error",
     "import/no-unassigned-import": [
       "warn",
       {
         "allow": ["**/*.css"]
       }
-    ]
+    ],
+    "react/react-in-jsx-scope": "off",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+    "react-perf/jsx-no-jsx-as-prop": "off",
+    "oxc/no-map-spread": "off"
   },
-  "ignorePatterns": ["**/dist/**", "**/drizzle/**", "**/routeTree.gen.ts", "**/test/fixtures/**"]
+  "ignorePatterns": ["**/dist/**", "**/drizzle/**", "**/routeTree.gen.ts", "**/test/fixtures/**"],
+  "overrides": [
+    {
+      "files": ["apps/web/src/**"],
+      "rules": {
+        "subtick/no-manual-memo": "error",
+        "react/jsx-no-constructed-context-values": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/lib/resizeObserve.ts"],
+      "rules": {
+        "subtick/no-raw-resize-observer": "off"
+      }
+    },
+    {
+      "files": ["packages/oxlint-plugin-subtick/**"],
+      "rules": {
+        "subtick/no-em-dash-copy": "off",
+        "subtick/no-unscoped-has": "off",
+        "subtick/tailwind-scale": "off"
+      }
+    }
+  ],
+  "jsPlugins": [
+    {
+      "name": "subtick",
+      "specifier": "./packages/oxlint-plugin-subtick/index.ts"
+    }
+  ]
 }

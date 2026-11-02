@@ -52,15 +52,18 @@ export const decodeCrosshair = (code: string): Crosshair | null => {
     b[i] = Number(big & 0xffn)
     big >>= 8n
   }
-  const byte = (i: number) => b[i]!
 
   const sum = b.slice(1).reduce((total, x) => total + x, 0)
+
+  const byte = (i: number) => b[i]!
+
   if ((sum & 0xff) !== byte(0) || byte(1) !== 1) return null
   const screenHeight = byte(2) | (byte(3) << 8)
   if (screenHeight === 0) return null
 
   // A signed 16-bit integer.
   const gap = ((byte(14) | (byte(15) << 8)) << 16) >> 16
+
   return {
     style: Math.min(byte(4) & 0x1f, CROSSHAIR_STYLES.length - 1),
     followRecoil: (byte(4) & 0x20) !== 0,

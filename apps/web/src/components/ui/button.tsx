@@ -6,19 +6,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Every button is one variant (how loud) × one tone (what it means) × one size.
- *
- * Variant
- * - `primary`: the one main action of a surface (Continue, Record, Create). The page's own
- *   foreground as the fill: black on light, white on dark.
- * - `secondary`: every other real action. The default.
- * - `ghost`: dismissing and low-key actions (Cancel, Skip, Done), and icon buttons in chrome.
- * - `link`: inline in a sentence; no box, no size.
- *
- * Tone
- * - `neutral`: the default.
- * - `danger`: destructive. `primary` only for the final confirm (Delete account); `ghost` for the
- *   entry points (Delete, Sign out, Unlink, Cancel recording).
- * - `brand`: needs attention without alarm (retry a failed recording), usually `secondary`.
+ * When to use which: docs/internal/web.md#buttons.
  */
 const styles = {
   primary: {
@@ -51,10 +39,10 @@ const styles = {
 }
 
 const sizes = {
-  xs: 'h-7 gap-1 rounded-md px-2 text-[12px] [&_svg]:size-3.5',
-  sm: 'h-8 gap-1.5 rounded-lg px-2.5 text-[13px]',
-  md: 'h-9 gap-2 rounded-control px-3.5 text-sm',
-  lg: 'h-11 gap-2 rounded-xl px-5 text-[15px]',
+  xs: 'h-7 gap-1 rounded-md px-2 text-label [&_svg]:size-3.5',
+  sm: 'h-8 gap-1.5 rounded-lg px-2.5 text-small',
+  md: 'h-9 gap-2 rounded-control px-3.5 text-body',
+  lg: 'h-11 gap-2 rounded-xl px-5 text-lead',
 }
 
 /**
@@ -64,7 +52,7 @@ const sizes = {
 const iconSizes = {
   xs: 'size-7 rounded-md [&_svg]:size-3.5 after:absolute after:-inset-1.5',
   sm: 'size-8 rounded-lg [&_svg]:size-4 after:absolute after:-inset-1',
-  md: 'size-9 rounded-control [&_svg]:size-[18px]',
+  md: 'size-9 rounded-control [&_svg]:size-4.5',
   lg: 'size-10 rounded-lg [&_svg]:size-5',
 }
 
@@ -180,6 +168,7 @@ const ButtonRoot = ({
       </>
     )
   if (render) return <Rendered render={render} props={{ ...props, className, children: content }} />
+
   return (
     <BaseButton
       className={className}
@@ -237,5 +226,6 @@ export const IconButton = ({
       {...props}
     />
   )
+
   return tooltip ? <Tooltip content={label} trigger={button} /> : button
 }

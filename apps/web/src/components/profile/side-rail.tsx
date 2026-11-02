@@ -27,7 +27,7 @@ const RailCard = ({
 }) => (
   <Card className={cn('p-4', className)}>
     <div className="mb-3 flex h-7 items-center justify-between gap-3">
-      <h2 className="text-[15px] font-medium">{title}</h2>
+      <h2 className="text-lead font-medium">{title}</h2>
       {action}
     </div>
     {children}
@@ -52,22 +52,22 @@ export const RanksCard = ({ ranks }: { ranks: Player['ranks'] }) => {
     ranks.competitive && {
       label: 'Competitive',
       current: <RankBadge rank={rank('competitive', ranks.competitive.group)} />,
-      detail: <span className="text-[13px] text-muted">{mapName(ranks.competitive.map)}</span>,
+      detail: <span className="text-small text-muted">{mapName(ranks.competitive.map)}</span>,
     },
     ranks.wingman && {
       label: 'Wingman',
       current: <RankBadge rank={rank('wingman', ranks.wingman.group)} />,
-      detail: <span className="text-[13px] text-muted">{mapName(ranks.wingman.map)}</span>,
+      detail: <span className="text-small text-muted">{mapName(ranks.wingman.map)}</span>,
     },
   ].filter((row) => row !== null)
   if (!rows.length) return null
 
   return (
     <RailCard title="Ranks">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 gap-y-2.5 text-sm">
-        <span className="text-[12px] text-muted">Mode</span>
-        <span className="text-[12px] text-muted">Latest</span>
-        <span className="text-right text-[12px] text-muted">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 gap-y-2.5 text-body">
+        <span className="text-label text-muted">Mode</span>
+        <span className="text-label text-muted">Latest</span>
+        <span className="text-right text-label text-muted">
           {ranks.premier ? 'Best / map' : 'Map'}
         </span>
         {rows.map((row) => (
@@ -117,14 +117,14 @@ export const CrosshairCard = ({ crosshair }: { crosshair: Player['crosshair'] })
         )}
         <CrosshairPreview crosshair={decoded} className="relative size-full" />
       </div>
-      <p className="mt-3 text-[13px] text-muted">
+      <p className="mt-3 text-small text-muted">
         {CROSSHAIR_STYLES[decoded.style]}. From{' '}
         <Link to="/matches/$id" params={{ id: crosshair.matchId }} className="link text-foreground">
           {mapName(crosshair.map)}
         </Link>
         , {timeAgo(crosshair.playedAt)}.
       </p>
-      <p className="mt-1 truncate font-mono text-[12px] text-muted/80 select-all">
+      <p className="mt-1 truncate font-mono text-label text-muted/80 select-all">
         {crosshair.code}
       </p>
     </RailCard>
@@ -132,6 +132,7 @@ export const CrosshairCard = ({ crosshair }: { crosshair: Player['crosshair'] })
 }
 
 const PARTY_LABELS = ['Solo', 'Duo', 'Trio', '4-stack', '5-stack']
+
 /** One hue per size. */
 const PARTY_COLORS = [
   'bg-neutral-400',
@@ -148,7 +149,7 @@ export const PartyCard = ({ party }: { party: Player['party'] }) => {
 
   return (
     <RailCard title="Usual party">
-      <p className="text-sm">
+      <p className="text-body">
         {party.usual === 1
           ? 'Mostly queues solo'
           : `Mostly queues as a ${PARTY_LABELS[party.usual - 1]!.toLowerCase()}`}
@@ -156,7 +157,7 @@ export const PartyCard = ({ party }: { party: Player['party'] }) => {
       <div className="mt-4 grid grid-cols-5 items-end gap-1.5" aria-label="Matches by party size">
         {party.sizes.map((count, i) => (
           <Tooltip
-            key={i}
+            key={PARTY_LABELS[i]}
             content={`${PARTY_LABELS[i]}: ${count} of ${total} matches`}
             trigger={
               <div
@@ -170,7 +171,7 @@ export const PartyCard = ({ party }: { party: Player['party'] }) => {
                     style={{ height: `${top ? Math.max((count / top) * 100, count ? 8 : 3) : 3}%` }}
                   />
                 </div>
-                <span className="text-[11px] text-muted">{PARTY_LABELS[i]}</span>
+                <span className="text-caption text-muted">{PARTY_LABELS[i]}</span>
               </div>
             }
           />
@@ -203,20 +204,20 @@ export const SteamCard = ({ player }: { player: Player }) => (
   >
     <div className="flex items-center gap-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
-        <SteamIcon className="size-[18px]" />
+        <SteamIcon className="size-4.5" />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{player.personaName ?? player.name}</p>
-        <p className="font-mono text-[12px] text-muted select-all">{player.steamId}</p>
+        <p className="truncate text-body font-medium">{player.personaName ?? player.name}</p>
+        <p className="font-mono text-label text-muted select-all">{player.steamId}</p>
       </div>
     </div>
-    <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-sm">
+    <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-body">
       <div>
-        <dt className="text-[12px] text-muted">Last match</dt>
+        <dt className="text-label text-muted">Last match</dt>
         <dd className="mt-0.5">{player.lastMatchAt ? timeAgo(player.lastMatchAt) : '–'}</dd>
       </div>
       <div>
-        <dt className="text-[12px] text-muted">On subtick</dt>
+        <dt className="text-label text-muted">On subtick</dt>
         <dd className="mt-0.5">
           {player.memberSince
             ? `Since ${MONTH_YEAR.format(new Date(player.memberSince))}`

@@ -62,6 +62,7 @@ const groupByDay = (clips: Clip[]) => {
     if (last?.label === label) last.clips.push(clip)
     else groups.push({ label, clips: [clip] })
   }
+
   return groups
 }
 
@@ -73,17 +74,13 @@ const groupByDay = (clips: Clip[]) => {
 export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const search: ClipListSearch = useSearch({ strict: false })
   const navigate = useNavigate()
-  const update = (patch: Partial<ClipListSearch>) =>
-    navigate({ to: '.', search: (s) => ({ ...s, ...patch }) })
 
   const kind = search.kind ?? 'all'
   const kinds = [...KIND_FILTERS.find((f) => f.id === kind)!.kinds]
   const mine = steamId ? undefined : search.mine
   const filters = { kinds, map: search.map, mine, steamId }
-
   const clips = useInfiniteQuery(clipsQuery(filters))
   const facets = useQuery(clipFacetsQuery)
-
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
   const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
   const filtered = kind !== 'all' || Boolean(search.map) || Boolean(mine)
@@ -100,6 +97,9 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
     ...(facets.data?.maps ?? []).map((m) => ({ value: m, label: mapName(m) })),
   ]
 
+  const update = (patch: Partial<ClipListSearch>) =>
+    navigate({ to: '.', search: (s) => ({ ...s, ...patch }) })
+
   return (
     <>
       <div className="mb-8 flex flex-wrap items-center gap-2">
@@ -115,7 +115,7 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
             update({ map: value === ALL_MAPS || !value ? undefined : String(value) })
           }
         >
-          <Select.Trigger className="flex h-9 min-w-36 cursor-pointer items-center gap-2 rounded-control border border-border-strong px-3 text-sm outline-none select-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2">
+          <Select.Trigger className="flex h-9 min-w-36 cursor-pointer items-center gap-2 rounded-control border border-border-strong px-3 text-body outline-none select-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2">
             <Select.Value className="flex-1 text-left" />
             <Select.Icon>
               <ChevronDown className="size-4 text-muted" />
@@ -129,12 +129,12 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
                     <Select.Item
                       key={item.value}
                       value={item.value}
-                      className="flex h-9 cursor-pointer items-center gap-2.5 rounded-md pr-8 pl-2 text-sm outline-none select-none data-highlighted:bg-surface-2"
+                      className="flex h-9 cursor-pointer items-center gap-2.5 rounded-md pr-8 pl-2 text-body outline-none select-none data-highlighted:bg-surface-2"
                     >
                       {item.value === ALL_MAPS ? (
                         <span className="size-5" />
                       ) : (
-                        <MapIcon map={item.value} className="size-5 rounded-sm text-[10px]" />
+                        <MapIcon map={item.value} className="size-5 rounded-sm text-micro" />
                       )}
                       <Select.ItemText>{item.label}</Select.ItemText>
                       <Select.ItemIndicator className="ml-auto">
@@ -176,7 +176,7 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
           <div className="grid gap-12">
             {groupByDay(items).map((group) => (
               <section key={group.label}>
-                <h2 className="mb-4 text-sm font-medium">
+                <h2 className="mb-4 text-body font-medium">
                   {group.label}
                   <span className="text-muted">
                     {' · '}

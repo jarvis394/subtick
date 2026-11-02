@@ -1,14 +1,8 @@
 /**
- * better-auth plugin: add an email to a Steam-only account, or change the sign-in email, through a
- * magic link sent to the new address.
- *
- *   POST /api/auth/email/change { email, password? } → { email }  (requires a session)
- *   GET  /api/auth/email/confirm?token=…                          ← the link in the email
- *
- * `password` is required when the account has none yet (signed up with Steam): it's hashed right
- * away and only becomes a credential account once the link is opened. Opening the link sets the
- * email at once, marks it verified and signs that browser in. It then lands on
- * `/settings?email=confirmed`, or `/settings?error=<code>` when the link can't be used.
+ * better-auth plugin: add or change the sign-in email through a magic link to the new address.
+ * `POST /api/auth/email/change { email, password? }` sends it; `GET /api/auth/email/confirm` opens it.
+ * `password` is required when the account has none (Steam sign-up); it's hashed now and applied on open.
+ * Opening sets and verifies the email, signs that browser in, and lands on `/settings?email=confirmed|error=<code>`.
  */
 import { type Mailer, confirmEmailMail } from '@subtick/mail'
 import type { BetterAuthPlugin } from 'better-auth'
@@ -86,6 +80,7 @@ export const emailChange = ({ mailer }: { mailer: Mailer }) =>
             )
             throw fail('BAD_GATEWAY', 'email_send_failed')
           }
+
           return ctx.json({ email })
         },
       ),
@@ -94,9 +89,6 @@ export const emailChange = ({ mailer }: { mailer: Mailer }) =>
         '/email/confirm',
         { method: 'GET', query: z.object({ token: z.string().default('') }) },
         async (ctx) => {
-          const redirectError = (code: string): never => {
-            throw ctx.redirect(`/settings?${new URLSearchParams({ error: code })}`)
-          }
           const record = await ctx.context.internalAdapter.consumeVerificationValue(
             `${TOKEN_PREFIX}${ctx.query.token}`,
           )
@@ -104,6 +96,11 @@ export const emailChange = ({ mailer }: { mailer: Mailer }) =>
             record && record.expiresAt > new Date()
               ? Pending.safeParse(JSON.parse(record.value))
               : null
+
+          const redirectError = (code: string): never => {
+            throw ctx.redirect(`/settings?${new URLSearchParams({ error: code })}`)
+          }
+
           if (!parsed?.success) return redirectError('email_link_invalid')
           const { userId, email, passwordHash } = parsed.data
 

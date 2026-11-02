@@ -10,6 +10,7 @@ const WEAPON_ICONS = new Set<string>(WEAPON_ICON_NAMES)
 
 const weaponUrl = (name: string) =>
   WEAPON_ICONS.has(name) ? `/killfeed/weapons/${name}.svg` : undefined
+
 const tagUrl = (name: string) => `/killfeed/${name}.svg`
 
 /** Event weapon ids that have a differently named icon. */
@@ -69,11 +70,15 @@ export const momentFeed = (
   moment: { round: number; startTick: number; endTick: number; segments: ClipSegment[] },
 ): FeedEntry[] => {
   const segments = clipSegments(moment)
-  const inClip = (tick: number) => segments.some((s) => tick >= s.startTick && tick <= s.endTick)
+
   const round = data.rounds.find((r) => r.number === moment.round)
   const players = new Map(data.players.map((p) => [p.steamId, p]))
+
+  const inClip = (tick: number) => segments.some((s) => tick >= s.startTick && tick <= s.endTick)
+
   const person = (steamId: string | null) => {
     const p = steamId ? players.get(steamId) : undefined
+
     return p?.startingSide
       ? { steamId: p.steamId, name: p.name, side: sideInRound(p.startingSide, round) }
       : null
@@ -84,6 +89,7 @@ export const momentFeed = (
     .flatMap((k): KillEntry[] => {
       const victim = person(k.victimSteamId)
       if (!victim) return []
+
       return [
         {
           type: 'kill',

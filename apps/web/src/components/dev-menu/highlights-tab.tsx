@@ -30,6 +30,7 @@ export const DevHighlightsTab = ({
     queryFn: () => unwrap(api.dev.highlights.get({ query: { matchId: matchId! } })),
     enabled: matchId !== null,
   })
+
   // What shows highlights re-reads them; the fakes list is its own query.
   const refresh = () =>
     Promise.all([
@@ -38,6 +39,7 @@ export const DevHighlightsTab = ({
       queryClient.invalidateQueries({ queryKey: ['highlights'] }),
       queryClient.invalidateQueries({ queryKey: ['queue'] }),
     ])
+
   const add = useMutation({
     mutationFn: (state: State) => unwrap(api.dev.highlights.post({ matchId: matchId!, state })),
     onSuccess: refresh,
@@ -49,7 +51,7 @@ export const DevHighlightsTab = ({
 
   if (matchId === null) {
     return (
-      <p className="px-3 py-6 text-center text-[12px] text-muted">
+      <p className="px-3 py-6 text-center text-label text-muted">
         Open a match first: fake highlights go onto it
       </p>
     )
@@ -61,7 +63,7 @@ export const DevHighlightsTab = ({
         to="/matches/$id"
         params={{ id: matchId }}
         onClick={onNavigate}
-        className="truncate px-1 text-[11px] text-muted hover:text-foreground"
+        className="truncate px-1 text-caption text-muted hover:text-foreground"
       >
         Adding to match {matchId}
       </Link>
@@ -87,7 +89,7 @@ export const DevHighlightsTab = ({
         </Button>
       </div>
       {add.error && (
-        <p className="px-1 text-[12px] text-danger">
+        <p className="px-1 text-label text-danger">
           {add.error.message === 'no_clip_to_borrow'
             ? 'No recorded clip to borrow a video from'
             : 'Could not add it'}
@@ -100,7 +102,7 @@ export const DevHighlightsTab = ({
             {data.map((fake) => (
               <FadeItem key={fake.id}>
                 <div className="flex h-11 items-center gap-2.5 rounded-xl border bg-surface pr-1.5 pl-3">
-                  <span className="min-w-0 flex-1 truncate text-[13px]">
+                  <span className="min-w-0 flex-1 truncate text-small">
                     {fake.title.replace('[dev] ', '')}
                   </span>
                   <IconButton
@@ -117,7 +119,7 @@ export const DevHighlightsTab = ({
             ))}
           </FadeList>
           <Presence show={data.length === 0}>
-            <p className="py-4 text-center text-[12px] text-muted">No fake highlights here yet</p>
+            <p className="py-4 text-center text-label text-muted">No fake highlights here yet</p>
           </Presence>
         </div>
       )}

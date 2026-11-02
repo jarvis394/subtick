@@ -1,7 +1,7 @@
 import { Drawer } from '@base-ui/react/drawer'
 import { Menu as MenuIcon } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { type ReactNode, Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { type ReactNode, Suspense, lazy, useRef, useState } from 'react'
 import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
 import { IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
@@ -13,12 +13,9 @@ import { cn } from '@/lib/utils'
 const DevMenu = import.meta.env.DEV ? lazy(() => import('@/components/dev-menu')) : null
 
 /**
- * Sidebar on md+, a top bar with a full-screen drawer below that.
- *
- * The drawer sits under the page and the page slides right off it (Gemini-style): opening pushes
- * the page out while the drawer's content settles in place from 98% scale and 0.8 opacity; a
- * swipe left on the drawer drags the page back over it, following the finger. `Drawer.Indent`
- * carries the live swipe progress (0 open, 1 closed) and `data-active` while the drawer is open.
+ * Sidebar on md+, a full-screen drawer under the page below that. Opening slides the page right off the
+ * drawer while its content settles in from 98% scale; a left swipe drags the page back, following the finger.
+ * `Drawer.Indent` carries the swipe progress (0 open, 1 closed) and `data-active` while open.
  */
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const [collapsed, setCollapsed] = useLocalStorage('subtick:sidebar-collapsed', false)
@@ -29,11 +26,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   // drawer doesn't slide away to reveal the old page still sitting there.
   const [closeOnArrival, setCloseOnArrival] = useState(false)
   const navigating = useRouterState({ select: (s) => s.status === 'pending' })
-  useEffect(() => {
-    if (!closeOnArrival || navigating) return
+  if (closeOnArrival && !navigating) {
     setCloseOnArrival(false)
     setDrawerOpen(false)
-  }, [closeOnArrival, navigating])
+  }
   useMatchEvents()
 
   return (

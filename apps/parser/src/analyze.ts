@@ -39,6 +39,7 @@ export const latestCrosshairs = (snapshots: PlayerSnapshot[]) => {
   for (const s of snapshots.toSorted((a, b) => a.tick - b.tick)) {
     if (s.crosshairCode) codes.set(s.steamId, s.crosshairCode)
   }
+
   return codes
 }
 

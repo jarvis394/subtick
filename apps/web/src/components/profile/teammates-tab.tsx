@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 
 const GRID =
   'grid grid-cols-[minmax(0,1fr)_3.5rem_4rem] items-center gap-x-3 px-4 md:grid-cols-[minmax(0,1fr)_5rem_6rem_6rem_6rem] md:px-5'
+
 const WIDE = 'hidden md:block'
 
 const tone = (rating: number) =>
@@ -14,7 +15,7 @@ const tone = (rating: number) =>
 export const TeammatesTab = ({ player }: { player: Player }) => {
   if (!player.teammates.length)
     return (
-      <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted">
+      <p className="rounded-xl border border-dashed px-4 py-10 text-center text-body text-muted">
         <Users className="mx-auto mb-2 size-5" />
         Players who queue with {player.isMe ? 'you' : player.name} more than once show up here.
       </p>
@@ -22,7 +23,7 @@ export const TeammatesTab = ({ player }: { player: Player }) => {
 
   return (
     <div className="-mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
-      <div className={cn(GRID, 'h-10 border-b text-[12px] font-medium text-muted')}>
+      <div className={cn(GRID, 'h-10 border-b text-label font-medium text-muted')}>
         <span>Player</span>
         <span className="text-right">Matches</span>
         <span className="text-right">Win rate</span>
@@ -36,7 +37,7 @@ export const TeammatesTab = ({ player }: { player: Player }) => {
           params={{ steamId: t.steamId }}
           className={cn(
             GRID,
-            'h-14 border-b text-sm tabular-nums outline-none last:border-0',
+            'h-14 border-b text-body tabular-nums outline-none last:border-0',
             'hover:bg-surface-2/60 focus-visible:bg-surface-2/60',
           )}
         >

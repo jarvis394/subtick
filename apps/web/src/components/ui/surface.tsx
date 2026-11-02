@@ -14,7 +14,7 @@ export const Badge = ({
 }) => (
   <span
     className={cn(
-      'inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium tracking-wide whitespace-nowrap uppercase',
+      'inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-caption font-medium tracking-wide whitespace-nowrap uppercase',
       {
         neutral: 'bg-surface-2 text-muted',
         accent: 'bg-accent/12 text-accent',

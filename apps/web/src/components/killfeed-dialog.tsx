@@ -22,6 +22,7 @@ import {
 } from '@/lib/killfeed'
 import type { MatchDetail } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { Tooltip } from '@/components/ui/tooltip'
 
 /** The in-game killfeed colors, not the app's muted side tokens. */
 const SIDE_COLOR: Record<Side, string> = { CT: 'text-[#8cb4f5]', T: 'text-[#eac15c]' }
@@ -40,7 +41,7 @@ type Own = 'action' | 'death' | null
 const Line = ({ own, children }: { own: Own; children: ReactNode }) => (
   <div
     className={cn(
-      'flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-[4px] px-2.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-sm',
+      'flex h-8 max-w-full min-w-0 items-center gap-1.5 rounded-[4px] px-2.5 text-small font-semibold whitespace-nowrap text-white shadow-sm',
       own === 'action'
         ? 'bg-black/80 ring-2 ring-[#e0261f] ring-inset'
         : own === 'death'
@@ -60,9 +61,10 @@ const BOMB: Record<BombEntry['type'], { icon: string; text: string }> = {
 
 const BombLine = ({ entry, own }: { entry: BombEntry; own: Own }) => {
   const { icon, text } = BOMB[entry.type]
+
   return (
     <Line own={own}>
-      <img src={icon} alt="" className="h-[18px]" />
+      <img src={icon} alt="" className="h-4.5" />
       {entry.player && <Name side={entry.player.side}>{entry.player.name}</Name>}
       <span className="text-white/80">{text}</span>
     </Line>
@@ -71,12 +73,16 @@ const BombLine = ({ entry, own }: { entry: BombEntry; own: Own }) => {
 
 const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
   const icon = weaponIcon(entry.weapon)
+
   return (
     <Line own={own}>
       {entry.attacker && entry.attacker.steamId !== entry.victim.steamId && (
         <>
           {entry.tags.includes('blind') && (
-            <img src={BLIND_ICON} alt="Blind" title="Blind" className="h-[18px]" />
+            <Tooltip
+              content="Blind"
+              trigger={<img src={BLIND_ICON} alt="Blind" className="h-4.5" />}
+            />
           )}
           <Name side={entry.attacker.side}>{entry.attacker.name}</Name>
           {entry.assister && (
@@ -88,17 +94,19 @@ const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
         </>
       )}
       {icon ? (
-        <img
-          src={icon}
-          alt={weaponName(entry.weapon)}
-          title={weaponName(entry.weapon)}
-          className="mx-1 h-[18px] w-auto"
+        <Tooltip
+          content={weaponName(entry.weapon)}
+          trigger={<img src={icon} alt={weaponName(entry.weapon)} className="mx-1 h-4.5 w-auto" />}
         />
       ) : (
         <span className="mx-1 text-white/80">{weaponName(entry.weapon)}</span>
       )}
       {modifierIcons(entry.tags).map(({ tag, src }) => (
-        <img key={tag} src={src} alt={tag} title={tag} className="-ml-0.5 h-[18px]" />
+        <Tooltip
+          key={tag}
+          content={tag}
+          trigger={<img src={src} alt={tag} className="-ml-0.5 h-4.5" />}
+        />
       ))}
       <Name side={entry.victim.side}>{entry.victim.name}</Name>
     </Line>
@@ -108,6 +116,7 @@ const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
 const involves = (entry: FeedEntry, steamId: string): Own => {
   if (entry.type !== 'kill') return entry.player?.steamId === steamId ? 'action' : null
   if (entry.victim.steamId === steamId) return 'death'
+
   return entry.attacker?.steamId === steamId ? 'action' : null
 }
 
@@ -121,6 +130,7 @@ const Feed = ({
 }) => {
   const feed = momentFeed(match, moment)
   const preview = mapPreviewUrl(match.match.map)
+
   return (
     <div className="relative isolate overflow-hidden bg-[#0d0d0d]">
       {preview && (
@@ -137,7 +147,7 @@ const Feed = ({
             key={`${entry.tick}:${entry.type === 'kill' ? entry.victim.steamId : entry.type}`}
             className="flex min-w-0 items-center gap-3"
           >
-            <span className="w-8 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
+            <span className="w-8 shrink-0 font-mono text-caption text-white/60 tabular-nums">
               {clipTime(moment, entry.tick)}
             </span>
             {entry.type === 'kill' ? (
@@ -148,7 +158,7 @@ const Feed = ({
           </li>
         ))}
         {feed.length === 0 && (
-          <li className="py-6 text-center text-sm text-white/60">
+          <li className="py-6 text-center text-body text-white/60">
             Nothing happened in this moment.
           </li>
         )}
@@ -215,10 +225,10 @@ export const KillfeedDialog = ({
                 className="size-10"
               />
               <div className="min-w-0">
-                <Dialog.Title className="truncate text-base font-semibold">
+                <Dialog.Title className="truncate text-title font-semibold">
                   {moment.title}
                 </Dialog.Title>
-                <Dialog.Description className="mt-0.5 truncate text-[13px] text-muted">
+                <Dialog.Description className="mt-0.5 truncate text-small text-muted">
                   <PlayerLink
                     steamId={moment.steamId}
                     className="text-foreground/80 hover:text-foreground"

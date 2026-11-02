@@ -34,15 +34,18 @@ export const withParties = async <P extends Player>(
 
   const side = new Map(players.map((p) => [p.steamId, p.startingSide]))
   const root = new Map(ids.map((id) => [id, id]))
+
+  const firstInParty = new Map<string, string>()
+
   const find = (id: string): string => {
     const parent = root.get(id)!
+
     return parent === id ? id : find(parent)
   }
   const link = (x: string, y: string) => {
     if (side.get(x) === side.get(y)) root.set(find(x), find(y))
   }
 
-  const firstInParty = new Map<string, string>()
   for (const p of players) {
     if (!p.partyId) continue
     const first = firstInParty.get(p.partyId)

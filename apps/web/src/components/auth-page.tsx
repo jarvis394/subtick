@@ -44,6 +44,7 @@ const describeError = (error: { code?: string; message?: string }): Errors => {
   const match = error.message?.match(/^\[body\.(\w+)\]/)
   const field = match?.[1] as FieldName | undefined
   if (field && field in FIELD_PROBLEM) return { [field]: FIELD_PROBLEM[field] }
+
   return { form: error.message || 'Something went wrong. Please try again' }
 }
 
@@ -67,16 +68,18 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
   const queryClient = useQueryClient()
   const [errors, setErrors] = useState<Errors>(() => {
     const steamError = describeAuthError(search.error)
+
     return steamError ? { form: steamError } : {}
   })
-  // Editing a field clears what was wrong with it.
-  const clearError = (field: FieldName) =>
-    errors[field] && setErrors((all) => ({ ...all, [field]: undefined }))
-  const [pending, setPending] = useState<'email' | 'steam' | null>(null)
 
+  const [pending, setPending] = useState<'email' | 'steam' | null>(null)
   // Only same-origin paths; anything else falls back to the feed.
   const next =
     search.redirect?.startsWith('/') && !search.redirect.startsWith('//') ? search.redirect : '/'
+
+  // Editing a field clears what was wrong with it.
+  const clearError = (field: FieldName) =>
+    errors[field] && setErrors((all) => ({ ...all, [field]: undefined }))
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -111,9 +114,9 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
       <div className="grid w-full max-w-[25rem] flex-1 content-center justify-items-center gap-8">
         <div className="grid justify-items-center gap-2 text-center select-text">
           <h1 className="[view-transition-name:auth-logo] [view-transition-class:auth]">
-            <Wordmark className="text-4xl" />
+            <Wordmark className="text-hero" />
           </h1>
-          <p className="font-serif text-xl tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
+          <p className="font-serif text-heading tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
             {COPY[mode].subtitle}
           </p>
         </div>
@@ -134,7 +137,7 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
               Continue with Steam
             </Button>
 
-            <p className="text-center text-xs text-muted [view-transition-name:auth-or] [view-transition-class:auth]">
+            <p className="text-center text-label text-muted [view-transition-name:auth-or] [view-transition-class:auth]">
               OR
             </p>
 
@@ -249,6 +252,7 @@ const ErrorText = ({
   const [shown, setShown] = useState(message)
   if (message && message !== shown) setShown(message)
   const open = Boolean(message)
+
   return (
     <div
       aria-live="polite"
@@ -262,7 +266,7 @@ const ErrorText = ({
         open ? 'opacity-100' : 'opacity-0',
       )}
     >
-      <p className="min-h-0 overflow-hidden text-[13px] text-danger">{open ? message : shown}</p>
+      <p className="min-h-0 overflow-hidden text-small text-danger">{open ? message : shown}</p>
     </div>
   )
 }

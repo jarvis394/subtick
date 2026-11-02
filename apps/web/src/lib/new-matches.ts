@@ -1,11 +1,9 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Which matches are new to this browser: discovered after the newest one it had already seen (in
- * server time, so client clocks don't matter), and not opened since. Kept in localStorage, so the
- * dot survives a reload and matches found while the app was closed get one too. The very first
- * list load only sets the baseline. Storage can be unavailable (private mode), so every access is
- * guarded; the state then lasts as long as the page.
+ * Matches new to this browser: discovered (server time) after the newest one it had seen, and not opened
+ * since. Kept in localStorage so the dot survives reloads; the first list load only sets the baseline.
+ * Storage can be unavailable (private mode), so every access is guarded.
  */
 const KEY = 'subtick:new-matches'
 
@@ -14,6 +12,7 @@ type Stored = { baseline: number; unseen: string[] }
 const read = (): Stored | null => {
   try {
     const raw = localStorage.getItem(KEY)
+
     return raw ? (JSON.parse(raw) as Stored) : null
   } catch {
     return null
@@ -28,10 +27,13 @@ const arrived = new Map<string, number>()
 let observed = false
 
 const listeners = new Set<() => void>()
+
 const subscribe = (listener: () => void) => {
   listeners.add(listener)
+
   return () => listeners.delete(listener)
 }
+
 const commit = () => {
   try {
     localStorage.setItem(KEY, JSON.stringify({ baseline, unseen: [...unseen] }))
@@ -48,6 +50,7 @@ export const observeMatches = (items: { id: string; discoveredAt: string | Date 
   observed = true
   if (baseline === null) {
     baseline = newest
+
     return commit()
   }
   const fresh = items.filter((m, i) => times[i]! > baseline! && !unseen.has(m.id))
@@ -73,5 +76,6 @@ export const useIsNew = (id: string) => useSyncExternalStore(subscribe, () => un
 /** Whether the match only just turned up, so its row should animate in. */
 export const justFound = (id: string) => {
   const at = arrived.get(id)
+
   return at !== undefined && performance.now() - at < 1500
 }

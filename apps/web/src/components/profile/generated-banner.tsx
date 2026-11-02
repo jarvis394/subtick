@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import type { ReactNode } from 'react'
 
 const W = 600
 const H = 200
@@ -7,6 +7,7 @@ const H = 200
 const hash = (text: string) => {
   let h = 0x811c9dc5
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193)
+
   return h >>> 0
 }
 
@@ -15,6 +16,7 @@ const random = (seed: number) => () => {
   seed = (seed + 0x6d2b79f5) | 0
   let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296
 }
 
@@ -29,13 +31,16 @@ const waves = (rand: Rand) => {
   const frequency = between(rand, 1.5, 3.5)
   const phase = rand() * Math.PI * 2
   const drift = between(rand, 0.3, 1.2)
+
   return Array.from({ length: count }, (_, i) => {
     const y0 = ((i + 0.5) / count) * H * 1.3 - H * 0.15
     const points = Array.from({ length: 41 }, (__, j) => {
       const x = (j / 40) * W
       const y = y0 + Math.sin((j / 40) * Math.PI * frequency + phase + i * drift) * amplitude
+
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
+
     return (
       <polyline
         key={i}
@@ -62,6 +67,7 @@ const halftone = (rand: Rand) => {
       if (r > 0.6) dots.push(<circle key={`${x}-${y}`} cx={x} cy={y} r={r} />)
     }
   }
+
   return (
     <g fill="white" fillOpacity={0.16}>
       {dots}
@@ -90,6 +96,7 @@ const stripes = (rand: Rand) => {
     }
     x += width + between(rand, 6, 40)
   }
+
   return <g transform={`rotate(${angle} ${W / 2} ${H / 2})`}>{bands}</g>
 }
 
@@ -98,6 +105,7 @@ const rings = (rand: Rand) => {
   const cx = pick(rand, [between(rand, -60, 120), between(rand, W - 120, W + 60)])
   const cy = between(rand, -40, H + 40)
   const gap = between(rand, 14, 26)
+
   return Array.from({ length: Math.ceil(W / gap) }, (_, i) => (
     <circle
       key={i}
@@ -114,19 +122,22 @@ const rings = (rand: Rand) => {
 
 const PATTERNS = [waves, halftone, stripes, rings]
 
+const artFor = (seed: string) => {
+  const rand = random(hash(seed))
+  const hue = Math.floor(rand() * 360)
+  const shift = between(rand, 25, 70) * (rand() > 0.5 ? 1 : -1)
+  const from = `hsl(${hue} ${between(rand, 25, 40).toFixed(0)}% 40%)`
+  const to = `hsl(${(hue + shift + 360) % 360} ${between(rand, 28, 42).toFixed(0)}% 26%)`
+
+  return { from, to, pattern: pick(rand, PATTERNS)(rand) }
+}
+
 /**
  * A banner for players who haven't uploaded one: a two-hue gradient under a pattern, all chosen
  * from `seed` (their Steam ID), so each player keeps the same one everywhere.
  */
 export const GeneratedBanner = ({ seed, className }: { seed: string; className?: string }) => {
-  const art = useMemo(() => {
-    const rand = random(hash(seed))
-    const hue = Math.floor(rand() * 360)
-    const shift = between(rand, 25, 70) * (rand() > 0.5 ? 1 : -1)
-    const from = `hsl(${hue} ${between(rand, 25, 40).toFixed(0)}% 40%)`
-    const to = `hsl(${(hue + shift + 360) % 360} ${between(rand, 28, 42).toFixed(0)}% 26%)`
-    return { from, to, pattern: pick(rand, PATTERNS)(rand) }
-  }, [seed])
+  const art = artFor(seed)
   const id = `banner-${hash(seed).toString(36)}`
 
   return (

@@ -10,6 +10,7 @@ export const MATCH_STATUSES = [
   'failed',
   'expired',
 ] as const
+
 export type MatchStatus = (typeof MATCH_STATUSES)[number]
 
 /** Statuses a match is still moving through the pipeline in. */
@@ -37,6 +38,7 @@ export const isCancelled = (row: { status: MatchStatus; error: string | null }) 
 export const winsNeeded = (roundsPlayed: number) => {
   if (roundsPlayed < REGULATION_ROUNDS) return ROUNDS_PER_HALF + 1
   const overtime = Math.floor((roundsPlayed - REGULATION_ROUNDS) / OVERTIME_ROUNDS) + 1
+
   return ROUNDS_PER_HALF + (OVERTIME_ROUNDS / 2) * overtime + 1
 }
 

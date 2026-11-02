@@ -9,5 +9,6 @@ export const useRefreshNotice = (refresh: ReturnType<typeof useRefreshMatches>) 
   const live = useFocusedExpiry(result?.at, NOTICE_MS)
   if (!live || !result) return null
   if (result.newMatches === 0) return result.done ? 'Up to date' : 'Still looking…'
+
   return `${result.newMatches} new ${result.newMatches === 1 ? 'match' : 'matches'}`
 }

@@ -101,6 +101,7 @@ for (const demo of DEMOS) {
 
     test('stats are consistent with the kill feed', () => {
       const stats = [...a.stats.values()]
+
       const sum = (pick: (s: (typeof stats)[number]) => number) =>
         stats.reduce((n, s) => n + pick(s), 0)
 
@@ -167,6 +168,7 @@ for (const demo of DEMOS) {
 
     test('highlight selection snapshot', () => {
       const name = (id: string) => a.timeline.players.get(id)?.name ?? id
+
       const summary = a.highlights
         .toSorted((x, y) => y.score - x.score || x.startTick - y.startTick)
         .map(

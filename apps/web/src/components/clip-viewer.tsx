@@ -15,6 +15,7 @@ import { FadeImage } from '@/components/ui/fade-image'
 import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { useLocalStorage } from '@/hooks/use-local-storage'
+import { useStableCallback } from '@/hooks/use-stable-callback'
 import { ApiError } from '@/lib/api'
 import { clipLength, formatDate, timeAgo } from '@/lib/format'
 import { KIND_LABEL, tagSummary } from '@/lib/highlights'
@@ -56,6 +57,7 @@ const useReel = (source: ReelSource) => {
         avatarUrl: players.get(h.steamId)?.avatarUrl ?? null,
       },
     }))
+
     return {
       items,
       isPending: match.isPending,
@@ -64,6 +66,7 @@ const useReel = (source: ReelSource) => {
       fetchNextPage: () => {},
     }
   }
+
   return {
     items: (feed.data?.pages.flatMap((p) => p.items) ?? []).filter(recorded),
     isPending: feed.isPending,
@@ -80,6 +83,7 @@ const useReel = (source: ReelSource) => {
 const useHeld = <T,>(key: string, value: T | undefined) => {
   const [held, setHeld] = useState<{ key: string; value: T } | null>(null)
   if (value !== undefined && held?.key !== key) setHeld({ key, value })
+
   return held?.key === key ? held.value : value
 }
 
@@ -129,7 +133,7 @@ export const ClipViewerDialog = ({
                 >
                   {/* Stays at the top of the screen while the dialog scrolls under it. */}
                   <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background pr-2.5 pl-4 md:hidden">
-                    <span className="text-[15px] font-medium">Highlights</span>
+                    <span className="text-lead font-medium">Highlights</span>
                     <CloseButton />
                   </header>
                   {shownId && (
@@ -206,28 +210,34 @@ export const ClipViewer = ({
 
   const prev = index > 0 ? reel.items[index - 1] : undefined
   const next = index === -1 ? undefined : reel.items[index + 1]
-  const go = (clip: ReelClip | undefined) => clip && onSelect(clip.id)
 
   // Keep the reel one page ahead of the clip playing.
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = reel
   const nearEnd = index !== -1 && index >= reel.items.length - 2
+
+  const go = (clip: ReelClip | undefined) => clip && onSelect(clip.id)
+
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- autoplay, keys and clicks all move the clip, so the reel's paging follows the position
   useEffect(() => {
     if (nearEnd && hasNextPage && !isFetchingNextPage) fetchNextPage()
   }, [nearEnd, hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const goRef = useRef({ prev: () => go(prev), next: () => go(next) })
-  goRef.current = { prev: () => go(prev), next: () => go(next) }
+  const goPrev = useStableCallback(() => go(prev))
+  const goNext = useStableCallback(() => go(next))
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- window keydown listener for reel navigation while mounted
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return
-      if (e.key === 'ArrowDown' || e.key === 'j') goRef.current.next()
-      else if (e.key === 'ArrowUp' || e.key === 'k') goRef.current.prev()
+      if (e.key === 'ArrowDown' || e.key === 'j') goNext()
+      else if (e.key === 'ArrowUp' || e.key === 'k') goPrev()
       else return
       e.preventDefault()
     }
+
     window.addEventListener('keydown', onKey)
+
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [goNext, goPrev])
 
   const position =
     index === -1
@@ -259,7 +269,7 @@ export const ClipViewer = ({
         {!modal && !missing && (
           <Link
             to="/"
-            className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="mb-4 inline-flex items-center gap-1.5 rounded-md text-body text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="size-4" /> Highlights
           </Link>
@@ -353,7 +363,7 @@ const Player = ({
       <div className={cn(modal ? cn(CONTENT_INSET, 'max-lg:pb-4 md:max-lg:pb-6') : 'max-lg:pb-8')}>
         {/* Buttons stay on the first line; a long title wraps beside them. */}
         <div className="mt-5 flex items-start gap-3">
-          <Title className="min-w-0 flex-1 text-xl leading-8 font-semibold tracking-tight text-balance">
+          <Title className="min-w-0 flex-1 text-heading leading-8 font-semibold tracking-tight text-balance">
             {clip.title}
           </Title>
           <ShareActions url={`${window.location.origin}/clips/${clip.id}`} title={clip.title} />
@@ -367,12 +377,12 @@ const Player = ({
             render={
               <Link to="/players/$steamId" params={{ steamId: clip.steamId }} onClick={onClose} />
             }
-            className="-ml-1.5 min-w-0 pl-1.5 text-[15px] font-medium text-foreground"
+            className="-ml-1.5 min-w-0 pl-1.5 text-lead font-medium text-foreground"
           >
             <Avatar
               src={clip.player.avatarUrl}
               name={clip.player.name}
-              className="size-6 text-[10px]"
+              className="size-6 text-micro"
             />
             <span className="truncate">{clip.player.name}</span>
           </Button>
@@ -388,11 +398,11 @@ const Player = ({
               render={<Link to="/matches/$id" params={{ id: clip.matchId }} onClick={onClose} />}
               // On the match page the link is the current page, which would light it like a hovered
               // button; it should look like its neighbour.
-              className="min-w-0 text-[15px] aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground"
+              className="min-w-0 text-lead aria-[current=page]:text-muted aria-[current=page]:[--bg:transparent] aria-[current=page]:hover:text-foreground"
             >
               {/* Same 24px box as the avatar, with a smaller logo inside. */}
               <span className="grid size-6 shrink-0 place-items-center">
-                <MapIcon map={clip.map} className="size-5 rounded-sm text-[9px]" />
+                <MapIcon map={clip.map} className="size-5 rounded-sm text-micro" />
               </span>
               <span className="truncate">
                 {mapName(clip.map)}
@@ -413,8 +423,8 @@ const Player = ({
               matchId={clip.matchId}
               momentId={clip.id}
               player={clip.player}
-              trigger={(handlers) => (
-                <Button variant="ghost" size="sm" className="text-[15px]" {...handlers}>
+              renderTrigger={(handlers) => (
+                <Button variant="ghost" size="sm" className="text-lead" {...handlers}>
                   Round {clip.round}
                 </Button>
               )}
@@ -511,6 +521,7 @@ const VideoLayer = ({
   const [ended, setEnded] = useState(false)
 
   // Arriving by click allows sound; a fresh tab may not, so fall back to muted playback.
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- plays and pauses the <video> element with the active layer
   useEffect(() => {
     const el = video.current
     if (!el || !active) return
@@ -518,17 +529,20 @@ const VideoLayer = ({
       el.muted = true
       void el.play().catch(() => {})
     })
+
     return () => el.pause()
   }, [active])
 
   // Seeking back or pressing play again during the pause cancels the move on.
-  const advance = useRef(onEnded)
-  advance.current = onEnded
+  const advance = useStableCallback(() => onEnded?.())
+  const canAdvance = Boolean(onEnded)
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- autoplay timer that moves on after a clip ends
   useEffect(() => {
-    if (!ended || !active || !advance.current) return
-    const timer = setTimeout(() => advance.current?.(), AUTOPLAY_DELAY_MS)
+    if (!ended || !active || !canAdvance) return
+    const timer = setTimeout(advance, AUTOPLAY_DELAY_MS)
+
     return () => clearTimeout(timer)
-  }, [ended, active])
+  }, [ended, active, canAdvance, advance])
 
   return (
     <video
@@ -581,13 +595,16 @@ const Reel = ({
 
   // Keep the playing clip in view as autoplay or the keyboard moves through the reel. Only where
   // the reel scrolls on its own: elsewhere it would scroll the player away.
+  const activeListed = reel.items.some((c) => c.id === activeId)
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- scrolls the list DOM to the playing clip
   useEffect(() => {
-    if (!ownScroll()) return
+    if (!ownScroll() || !activeListed) return
     const el = list.current?.querySelector<HTMLElement>(`[data-clip="${activeId}"]`)
     el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [activeId, reel.items.length])
+  }, [activeId, activeListed])
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = reel
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- IntersectionObserver on the sentinel loads the next page
   useEffect(() => {
     const el = sentinel.current
     if (!el || !hasNextPage) return
@@ -596,6 +613,7 @@ const Reel = ({
       { root: ownScroll() ? list.current : null },
     )
     observer.observe(el)
+
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
@@ -613,7 +631,7 @@ const Reel = ({
     >
       <div
         className={cn(
-          'mb-2 pb-1 flex items-center gap-2 text-sm',
+          'mb-2 pb-1 flex items-center gap-2 text-body',
           // Item padding (p-2) lines the heading up with the thumbnails.
           modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
@@ -674,7 +692,7 @@ const Reel = ({
               </li>
             )}
             {!reel.isPending && reel.items.length === 0 && (
-              <li className="px-2 py-6 text-sm text-muted">No other clips here.</li>
+              <li className="px-2 py-6 text-body text-muted">No other clips here.</li>
             )}
           </ol>
         </ScrollArea.Viewport>
@@ -728,7 +746,7 @@ const ReelItem = ({
           loading="lazy"
           className="size-full object-cover"
         />
-        <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px font-mono text-[10px] text-white">
+        <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px font-mono text-micro text-white">
           {clipLength(clip)}
         </span>
         <span
@@ -740,16 +758,16 @@ const ReelItem = ({
         />
       </div>
       <div className="min-w-0 flex-1 py-0.5">
-        <p className="line-clamp-2 text-[13px] leading-snug font-medium">{clip.title}</p>
-        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+        <p className="line-clamp-2 text-small leading-snug font-medium">{clip.title}</p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-label text-muted">
           <Avatar
             src={clip.player.avatarUrl}
             name={clip.player.name}
-            className="size-4 text-[8px]"
+            className="size-4 text-micro"
           />
           <span className="truncate">{clip.player.name}</span>
         </p>
-        <p className="truncate text-[12px] text-muted">
+        <p className="truncate text-label text-muted">
           {KIND_LABEL[clip.kind]} · R{clip.round}
           {clip.playedAt && ` · ${timeAgo(clip.playedAt)}`}
         </p>

@@ -9,6 +9,7 @@ export const HIGHLIGHT_KINDS = [
   'special',
   'single',
 ] as const
+
 export type HighlightKind = (typeof HIGHLIGHT_KINDS)[number]
 
 export const HIGHLIGHT_STATUSES = ['candidate', 'queued', 'recorded', 'skipped', 'failed'] as const
@@ -31,6 +32,7 @@ export const KILL_TAGS = [
   'low_hp',
   'eco',
 ] as const
+
 export type KillTag = (typeof KILL_TAGS)[number]
 
 /** Per-highlight context that is not tied to a single kill. */
@@ -43,6 +45,7 @@ export const MOMENT_TAGS = [
   'defuse',
   'ninja_defuse',
 ] as const
+
 export type MomentTag = (typeof MOMENT_TAGS)[number]
 
 export interface HighlightKill {
@@ -106,5 +109,6 @@ export const clipOffsetTicks = (segments: ClipSegment[], tick: number) => {
     if (tick <= s.endTick) return offset + tick - s.startTick
     offset += s.endTick - s.startTick
   }
+
   return offset
 }

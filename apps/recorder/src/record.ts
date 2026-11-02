@@ -37,6 +37,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
       .set({ status: 'skipped' })
       .where(and(inArray(highlight.id, highlightIds), eq(highlight.status, 'queued')))
     log.warn({ matchId }, 'no stored demo, highlights skipped')
+
     return finishMatch(ctx, matchId)
   }
 
@@ -64,6 +65,8 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
   if (current.length)
     await db.update(highlight).set({ status: 'recorded' }).where(inArray(highlight.id, current))
 
+  const work = join(env.SCRATCH_DIR, 'recorder', matchId)
+
   /**
    * Where the batch is, for the Queue page: the match's share of clips done (a clip's capture is
    * most of its time; encoding and upload the rest), and the clip's own phase and frames.
@@ -77,13 +80,13 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           : 0
     const value = (index + within) / pending.length
     const onClip = { id, phase, progress }
+
     return Promise.all([
       ctx.progress(matchId, value, onClip),
       job.updateProgress({ value, clip: onClip }),
     ])
   }
 
-  const work = join(env.SCRATCH_DIR, 'recorder', matchId)
   await mkdir(work, { recursive: true })
   try {
     if (pending.length) {
@@ -101,6 +104,9 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
           await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
         }
         await report(index, h.id, 'recording', 0)
+
+        let raw: RecordedFile
+
         const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
           await db
@@ -108,7 +114,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
             .set({ status: 'failed', error: failureReason(stage, error) })
             .where(eq(highlight.id, h.id))
         }
-        let raw: RecordedFile
+
         try {
           raw = await recorder.record({
             highlightId: h.id,
@@ -140,6 +146,7 @@ const stillQueued = async ({ db }: Context, highlightId: string) => {
     .select({ status: highlight.status })
     .from(highlight)
     .where(eq(highlight.id, highlightId))
+
   return row?.status === 'queued'
 }
 

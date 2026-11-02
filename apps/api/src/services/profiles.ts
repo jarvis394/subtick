@@ -50,5 +50,6 @@ export const getProfiles = async (
   } catch (error) {
     log.warn({ count: stale.length }, 'steam profile refresh failed', error)
   }
+
   return profiles
 }

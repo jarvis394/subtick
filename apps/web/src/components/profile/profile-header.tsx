@@ -34,12 +34,16 @@ export const ProfileIdentity = ({ player }: { player: Player }) => {
         enabled={player.isMe}
         className="-mt-12 flex rounded-full ring-4 ring-surface md:-mt-14"
       >
-        <Avatar src={player.avatarUrl} name={player.name} className="size-24 text-3xl md:size-28" />
+        <Avatar
+          src={player.avatarUrl}
+          name={player.name}
+          className="size-24 text-display md:size-28"
+        />
       </EditableImage>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-2xl font-semibold tracking-tight">{player.name}</h1>
+        <h1 className="truncate text-section font-semibold tracking-tight">{player.name}</h1>
         {steamName && (
-          <p className="truncate text-sm text-muted">
+          <p className="truncate text-body text-muted">
             <span className="sr-only">Steam name: </span>
             {steamName} on Steam
           </p>

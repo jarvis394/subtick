@@ -1,9 +1,7 @@
 /**
- * Puts a match into the pipeline without a Steam account:
- *   bun run enqueue <demo-url | share-code>... [--user <steamId64>]
- * A demo URL skips the Game Coordinator and goes straight to download. Its match id comes from
- * the file name, which differs from the share code's, so prefer share codes for real matches. `--user` links the match
- * to the subtick user who owns that Steam account, so it shows up in their match list.
+ * Puts a match into the pipeline without a Steam account: `bun run enqueue <demo-url | share-code>... [--user <steamId64>]`.
+ * A demo URL skips the Game Coordinator, but its match id comes from the file name, so prefer share codes.
+ * `--user` links the match to the subtick user who owns that Steam account.
  */
 import { parseArgs } from 'node:util'
 import { DatabaseEnv, RedisEnv, loadEnv } from '@subtick/config'
@@ -16,6 +14,7 @@ const { values, positionals } = parseArgs({
   options: { user: { type: 'string' } },
   allowPositionals: true,
 })
+
 if (!positionals.length) {
   console.error('usage: bun run enqueue <demo-url | share-code>... [--user <steamId64>]')
   process.exit(1)
@@ -35,6 +34,7 @@ const clearFinished = async <N extends QueueName>(queue: TypedQueue<N>, id: stri
 const owner = values.user
   ? (await db.select().from(schema.steamLink).where(eq(schema.steamLink.steamId, values.user)))[0]
   : undefined
+
 if (values.user && !owner)
   throw new Error(`No subtick user has linked Steam account ${values.user}`)
 

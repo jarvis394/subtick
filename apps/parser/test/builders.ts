@@ -9,6 +9,7 @@ const sideOf = (id: string): Side => (id.startsWith('ct') ? 'CT' : 'T')
 
 /** 64 ticks per second; each round is 2 minutes long, starting at `(n - 1) * 10_000`. */
 const ROUND_LENGTH = 10_000
+
 export const roundTick = (round: number, seconds: number) =>
   (round - 1) * ROUND_LENGTH + 1000 + seconds * 64
 
@@ -69,6 +70,7 @@ export const buildTestTimeline = (specs: RoundSpec[]): MatchTimeline => {
     const lastKill = spec.kills?.at(-1)?.at
     const endTick = roundTick(number, spec.endsAt ?? lastKill ?? 100)
     const all = [...CT, ...T]
+
     return {
       number,
       startTick: (number - 1) * ROUND_LENGTH,

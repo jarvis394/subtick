@@ -21,6 +21,7 @@ export const steamLinkRoutes = (ctx: Context) => {
       .select()
       .from(schema.steamLink)
       .where(and(eq(schema.steamLink.steamId, steamId), eq(schema.steamLink.userId, userId)))
+
     return link
   }
 
@@ -60,6 +61,7 @@ export const steamLinkRoutes = (ctx: Context) => {
           shareCode: body.shareCode,
         })
         await enqueue(queues.syncUser, { steamId: params.steamId })
+
         return { ok: true as const }
       },
       { auth: true, body: MatchAuthBody, params: z.object({ steamId: z.string() }) },
@@ -89,6 +91,7 @@ export const steamLinkRoutes = (ctx: Context) => {
               ),
             )
         })
+
         return { ok: true as const }
       },
       { auth: true, params: z.object({ steamId: z.string() }) },

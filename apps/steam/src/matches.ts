@@ -19,5 +19,6 @@ export const registerShareCode = async (
     .returning({ id: schema.match.id })
   await db.insert(schema.userMatch).values({ userId, matchId, steamId }).onConflictDoNothing()
   if (created) await enqueue(queues.resolveMatch, { shareCode, userId, steamId })
+
   return { matchId, isNew: Boolean(created) }
 }

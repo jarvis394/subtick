@@ -55,6 +55,7 @@ export const confirmEmailMail = ({
     ? `Open this link to sign in to subtick with ${address(to)} as well as Steam.`
     : `Open this link to change your subtick sign-in email to ${address(to)}.`
   const expires = `It works once and expires in ${expiresInHours} hour${expiresInHours === 1 ? '' : 's'}.`
+
   return {
     to,
     subject: adding ? 'Confirm your subtick email' : 'Confirm your new subtick email',

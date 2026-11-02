@@ -6,7 +6,7 @@ import { IconButton } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export const inputClass = cn(
-  'h-10 w-full rounded-control border border-border-strong bg-surface px-3 text-[15px] text-foreground select-text',
+  'h-10 w-full rounded-control border border-border-strong bg-surface px-3 text-lead text-foreground select-text',
   'placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-150',
   'focus:border-accent focus:ring-3 focus:ring-ring/40 data-invalid:border-danger',
   // Invalid stays red while focused, ring included.
@@ -20,6 +20,7 @@ export const Input = ({ className, ...props }: ComponentProps<typeof BaseInput>)
 /** A password field with an eye button that shows or hides what was typed. */
 export const PasswordInput = ({ className, ...props }: ComponentProps<typeof Input>) => {
   const [visible, setVisible] = useState(false)
+
   return (
     <div className="relative">
       <Input
@@ -56,14 +57,12 @@ export const Field = ({
     invalid={Boolean(error)}
     {...props}
   >
-    <BaseField.Label className="text-[13px] font-medium text-foreground">{label}</BaseField.Label>
+    <BaseField.Label className="text-small font-medium text-foreground">{label}</BaseField.Label>
     {children}
     {description && !error && (
-      <BaseField.Description className="text-[13px] text-muted">
-        {description}
-      </BaseField.Description>
+      <BaseField.Description className="text-small text-muted">{description}</BaseField.Description>
     )}
-    {error && <p className="text-[13px] text-danger select-text">{error}</p>}
+    {error && <p className="text-small text-danger select-text">{error}</p>}
   </BaseField.Root>
 )
 

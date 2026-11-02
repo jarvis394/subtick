@@ -18,6 +18,7 @@ const analysis = analyzeDemo(await readDemoFile(path))
 
 await db.insert(schema.match).values({ id: matchId }).onConflictDoNothing()
 await persistAnalysis(db, matchId, analysis, PARSER_VERSION)
+
 await db
   .update(schema.match)
   .set({ status: 'ready', playedAt: new Date(Date.now() - Math.random() * 3 * 24 * 3600 * 1000) })
@@ -25,13 +26,16 @@ await db
 
 const [best] = [...analysis.stats].toSorted((a, b) => b[1].rating - a[1].rating)
 const users = await db.select({ id: schema.user.id }).from(schema.user)
+
 if (users.length) {
   await db
     .insert(schema.userMatch)
     .values(users.map((user) => ({ userId: user.id, matchId, steamId: best![0] })))
     .onConflictDoNothing()
 }
+
 console.log(
   `seeded ${analysis.timeline.header.map} as ${matchId} for ${users.length} user(s), ${analysis.highlights.length} highlights`,
 )
+
 process.exit(0)

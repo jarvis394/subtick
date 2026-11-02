@@ -17,5 +17,6 @@ const installedBuild = async (dir: string) =>
 export const staleWindowsBinaries = async (cs2Dir: string, serverDir: string) => {
   const server = await installedBuild(serverDir)
   const binaries = (await read(join(cs2Dir, '.windows-binaries/.build'))).trim()
+
   return server && binaries && server !== binaries ? { server, binaries } : null
 }

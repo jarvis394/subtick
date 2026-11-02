@@ -51,9 +51,10 @@ export const MomentDialogFooter = ({ moment, matchId }: { moment: Moment; matchI
   const record = useRecordMoment(matchId)
   const cancel = useCancelMoment(matchId)
   const failed = moment.status === 'failed'
+
   return (
     <>
-      <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted">
+      <span className="flex min-w-0 items-center gap-1.5 text-small text-muted">
         {!failed && <Spinner className="size-3 shrink-0" />}
         <span className="truncate">
           {failed ? 'Recording failed' : 'Waiting to record'} · {requestedLabel(moment)}
@@ -128,8 +129,8 @@ export const MomentRow = ({
             <MomentBadge moment={moment} />
             {player && <Avatar src={player.avatarUrl} name={player.name} className="size-7" />}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{moment.title}</p>
-              <p className="truncate text-[12px] text-muted">{details}</p>
+              <p className="truncate text-body font-medium">{moment.title}</p>
+              <p className="truncate text-label text-muted">{details}</p>
             </div>
           </Dialog.Trigger>
         }
@@ -145,7 +146,7 @@ export const MomentRow = ({
         </Button>
       ) : (
         <span className="flex items-center gap-1">
-          <span className="flex items-center gap-1.5 text-[13px] text-muted">
+          <span className="flex items-center gap-1.5 text-small text-muted">
             <Spinner className="size-3" /> {phase ? phaseLabel(phase) : 'Recording'}
           </span>
           {moment.canCancel && (

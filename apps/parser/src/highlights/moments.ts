@@ -30,6 +30,7 @@ const mergeWindows = (windows: ClipSegment[], minCut: number) => {
       last.endTick = Math.max(last.endTick, w.endTick)
     else merged.push({ ...w })
   }
+
   return merged
 }
 
@@ -46,10 +47,14 @@ const finalize = (
   const w = config.window
   const pad = secondsToTicks(w.killPaddingSeconds)
   const { round, kills, defuse } = draft
+
+  const max = secondsToTicks(w.maxClipSeconds)
+
   const clamp = (s: ClipSegment): ClipSegment => ({
     startTick: Math.max(s.startTick, round.freezeEndTick),
     endTick: Math.min(s.endTick, round.lastTick),
   })
+
   const windows = [
     ...kills.map((k) => ({ startTick: k.tick - pad, endTick: k.tick + pad })),
     ...(defuse
@@ -65,7 +70,6 @@ const finalize = (
     .filter((s) => s.endTick > s.startTick)
   const segments = mergeWindows(windows, secondsToTicks(w.minCutSeconds))
 
-  const max = secondsToTicks(w.maxClipSeconds)
   let total = segmentsTicks(segments)
   while (total > max && segments.length > 1) total -= segmentsTicks(segments.splice(0, 1))
   // A single segment that is still too long keeps its end.

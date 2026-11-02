@@ -18,6 +18,7 @@ const diskStatus = async (url: string) => {
   }
   const disks = body.DiskStatuses ?? []
   if (disks.length === 0) return null
+
   // Several data dirs on one disk would count it twice; `weed server` has one.
   return disks.reduce(
     (sum, d) => ({
@@ -57,6 +58,7 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
       other: { bytes: 0, count: 0 },
     }
     const sizes: ObjectSizes = { demos: new Map(), clips: new Map() }
+
     const add = (category: StorageCategory, size: number) => {
       usage[category].bytes += size
       usage[category].count += 1
@@ -66,6 +68,7 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
       env.S3_DISK_STATUS_URL
         ? diskStatus(env.S3_DISK_STATUS_URL).catch((error) => {
             log.warn({ error: String(error) }, 'disk status unavailable')
+
             return null
           })
         : null,
@@ -109,6 +112,7 @@ export const createStorageReport = ({ db, demos, clips, env, log }: Context) => 
         if (cached?.result === result) cached = null
       })
     }
+
     return cached.result
   }
 

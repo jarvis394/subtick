@@ -138,6 +138,7 @@ export const playerRoutes = (ctx: Context) => {
           teammates: shown.map((t) => {
             const mate = mates.get(t.steamId)
             const profile = profiles.get(t.steamId)
+
             return {
               ...t,
               name: mate?.name ?? profile?.personaName ?? t.name,

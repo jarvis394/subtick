@@ -40,6 +40,7 @@ interface MatchHead {
 
 const headFromDetail = (data: MatchDetail): MatchHead => {
   const me = data.players.find((p) => p.steamId === data.viewerSteamId)
+
   return {
     map: data.match.map,
     playedAt: data.match.playedAt ?? data.match.createdAt,
@@ -76,6 +77,7 @@ const cachedHead = (queryClient: QueryClient, id: string) => {
     const found = items.find((m) => m.id === id)
     if (found) return headFromList(found)
   }
+
   return null
 }
 
@@ -84,6 +86,7 @@ export const Route = createFileRoute('/_app/matches/$id')({
   // rest fades in when the match arrives.
   loader: ({ context, params }) => {
     void context.queryClient.prefetchQuery(matchQuery(params.id))
+
     return { preview: cachedHead(context.queryClient, params.id) }
   },
   validateSearch: clipViewerSearch,
@@ -92,6 +95,7 @@ export const Route = createFileRoute('/_app/matches/$id')({
 
 function MatchPage() {
   const { id } = Route.useParams()
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- records the opened match in localStorage for the "new" dots
   useEffect(() => markSeen(id), [id])
   const { preview } = Route.useLoaderData()
   const { clip } = Route.useSearch()
@@ -161,7 +165,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
     <div>
       <Link
         to="/matches"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-body text-muted hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Matches
       </Link>
@@ -169,12 +173,12 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
         <FadeSwap swapKey={head ? 'ready' : 'pending'}>
           {head ? (
             <div className="flex items-center gap-4">
-              <MapIcon map={head.map} className="size-14 text-2xl" />
+              <MapIcon map={head.map} className="size-14 text-section" />
               <div>
-                <h1 className="font-serif text-4xl tracking-tight">
+                <h1 className="font-serif text-hero tracking-tight">
                   {matchName(head.map, head.status)}
                 </h1>
-                <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-body text-muted">
                   <span>{formatDate(head.playedAt)}</span>
                   {head.roundsPlayed !== null && (
                     <>
@@ -219,7 +223,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                   )}
                 </p>
                 {error && (
-                  <p className="mt-1.5 text-sm text-danger select-text">
+                  <p className="mt-1.5 text-body text-danger select-text">
                     {error.message === 'forbidden'
                       ? 'Only players who imported this match can change its processing.'
                       : 'Something went wrong. Try again in a moment.'}
@@ -240,7 +244,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
         {head?.score && (
           <div className="flex justify-center border-t pt-6 transition-opacity duration-200 ease-out-quart starting:opacity-0 md:justify-end md:border-0 md:pt-0">
             {/* Equal side columns keep the colon (and the result under it) at the true center. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-mono text-4xl tabular-nums">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-mono text-hero tabular-nums">
               <span
                 className={cn(
                   'text-right',
@@ -253,7 +257,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
               <span className="text-muted">:</span>
               <span>{head.score.enemy}</span>
               {head.hasPlayer && (
-                <span className="col-span-3 mt-3 text-center font-sans md:mt-1.5 text-sm text-muted capitalize">
+                <span className="col-span-3 mt-3 text-center font-sans md:mt-1.5 text-body text-muted capitalize">
                   {head.score.result}
                 </span>
               )}
@@ -281,6 +285,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
   const players = new Map(
     data.players.map((p) => [p.steamId, { name: p.name, avatarUrl: p.avatarUrl }]),
   )
+
   const playerOf = (steamId: string) => players.get(steamId) ?? { name: 'Unknown', avatarUrl: null }
 
   return (
@@ -289,7 +294,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
       <section className="min-w-0">
         {/* Title, Create and the tabs don't fit a phone side by side: the actions wrap under. */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <h2 className="font-serif text-xl tracking-tight">Highlights</h2>
+          <h2 className="font-serif text-heading tracking-tight">Highlights</h2>
           <div className="flex items-center gap-3">
             {canCreate && (
               <Button
@@ -317,7 +322,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
         {/* Placeholder and sections are always mounted, so each fades in and out (and the page
           eases to the new height) as clips and the queue come and go. */}
         <Presence show={clips.length === 0 && queue.length === 0}>
-          <p className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted">
+          <p className="rounded-2xl border border-dashed px-6 py-10 text-center text-body text-muted">
             {data.match.status !== 'ready'
               ? 'Highlights appear once the demo is analyzed.'
               : canCreate
@@ -345,7 +350,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
           <Presence show={queue.length > 0}>
             {/* Long titles truncate instead of widening the page. */}
             <div className={cn('min-w-0', clips.length > 0 && 'pt-10')}>
-              <h3 className="mb-2 text-sm font-medium text-muted">Queue</h3>
+              <h3 className="mb-2 text-body font-medium text-muted">Queue</h3>
               {/* Eases to its new height as rows come and go, so the border never jumps. */}
               <AutoHeight className="-mx-4 border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
                 <FadeList>

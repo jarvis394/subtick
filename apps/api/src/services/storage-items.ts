@@ -30,6 +30,7 @@ export const listRecordedHighlights = async ({ db }: Pick<Context, 'db'>, sizes:
       and(eq(matchPlayer.matchId, highlight.matchId), eq(matchPlayer.steamId, highlight.steamId)),
     )
     .orderBy(desc(clip.createdAt))
+
   return rows.map(({ videoKey, thumbnailKey, ...row }) => ({
     ...row,
     bytes: sizeOf(sizes.clips, videoKey) + sizeOf(sizes.clips, thumbnailKey),
@@ -69,9 +70,11 @@ export const listStoredMatches = async ({ db }: Pick<Context, 'db'>, sizes: Obje
     entry.bytes += sizeOf(sizes.clips, c.videoKey) + sizeOf(sizes.clips, c.thumbnailKey)
     byMatch.set(c.matchId, entry)
   }
+
   return matches.map(({ demoKey, ...row }) => {
     const recorded = byMatch.get(row.id) ?? { count: 0, bytes: 0 }
     const demoBytes = sizeOf(sizes.demos, demoKey)
+
     return {
       ...row,
       clips: recorded.count,
@@ -126,6 +129,7 @@ export const deleteRecordedHighlight = async (ctx: Context, id: string) => {
       .where(eq(highlight.id, id))
   })
   await deleteUnreferenced(ctx, [row.videoKey, row.thumbnailKey])
+
   return 'deleted' as const
 }
 
@@ -165,5 +169,6 @@ export const deleteStoredMatch = async (ctx: Context, id: string) => {
     ctx,
     clipKeys.flatMap((c) => [c.videoKey, c.thumbnailKey]),
   )
+
   return 'deleted' as const
 }

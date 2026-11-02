@@ -80,6 +80,7 @@ if (fleet) {
     log.info('taking jobs')
     worker.run().catch((error: Error) => log.error('worker stopped', error))
   }
+
   fleet.onSettings((settings) => {
     if (!settings.paused) run()
     if (worker.isRunning() && settings.paused !== worker.isPaused()) {
@@ -92,6 +93,7 @@ if (fleet) {
 }
 
 status.state = 'idle'
+
 if (fleet) {
   await fleet.start()
   // subtick is unreachable: record anyway rather than sit idle until it's back.
@@ -100,7 +102,9 @@ if (fleet) {
     worker.run().catch((error: Error) => log.error('worker stopped', error))
   }
 }
+
 closeOnSignal(worker, { close: async () => fleet?.stop() })
+
 log.info(
   { version: RECORDER_VERSION, fleet: fleet ? env.SUBTICK_URL : 'standalone' },
   'recorder worker started',

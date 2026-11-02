@@ -77,12 +77,14 @@ export const useImageUpload = (kind: ImageKind) => {
       onClose={() => setPicked(null)}
     />
   )
+
   return { pick: () => input.current?.click(), picker, dialog }
 }
 
 /** Drops the uploaded picture: the avatar falls back to Steam's, the banner to the default. */
 export const useRemoveImage = (kind: ImageKind) => {
   const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: () => unwrap(api.me.images({ kind }).delete()),
     onSuccess: () => invalidateProfile(queryClient),

@@ -15,6 +15,7 @@ const STEPS = [
   { stage: 'downloading', label: 'Download the demo' },
   { stage: 'parsing', label: 'Analyze it' },
 ] as const
+
 type Stage = (typeof STEPS)[number]['stage']
 
 /** Matches the workers take before this one at its stage. */
@@ -44,6 +45,7 @@ export const MatchProgress = ({ match }: { match: Match }) => {
         Something went wrong along the way. Retry to run it again.
       </Stopped>
     )
+
   return <Steps match={match} />
 }
 
@@ -73,6 +75,7 @@ const Steps = ({ match }: { match: Match }) => {
         ? 'Waiting for Valve to upload the demo'
         : 'Retrying shortly'
     const ahead = aheadOf(items, item)
+
     return ahead ? `${ahead} ${ahead === 1 ? 'match' : 'matches'} ahead` : 'Up next'
   })()
 
@@ -81,6 +84,7 @@ const Steps = ({ match }: { match: Match }) => {
       <ol className="overflow-hidden rounded-2xl border bg-surface">
         {STEPS.map((step, i) => {
           const state = i < current ? 'done' : i === current ? 'current' : 'next'
+
           return (
             <li
               key={step.stage}
@@ -103,14 +107,14 @@ const Steps = ({ match }: { match: Match }) => {
               </span>
               <span
                 className={cn(
-                  'flex-1 text-sm',
+                  'flex-1 text-body',
                   state === 'current' ? 'font-medium' : 'text-muted',
                   state === 'next' && 'text-muted/70',
                 )}
               >
                 {step.label}
               </span>
-              <span className="text-[13px] text-muted tabular-nums">
+              <span className="text-small text-muted tabular-nums">
                 {state === 'done' ? 'Done' : state === 'current' ? detail : null}
               </span>
               {state === 'current' && running && progress !== undefined && (
@@ -124,7 +128,7 @@ const Steps = ({ match }: { match: Match }) => {
           )
         })}
       </ol>
-      <p className="text-sm text-balance text-muted">
+      <p className="text-body text-balance text-muted">
         Rounds, stats and highlights show up here once the demo is analyzed. No need to keep this
         page open: it'll be in your{' '}
         <Link to="/matches" className="link">
@@ -153,7 +157,7 @@ const Stopped = ({
     <span className="mb-4 grid size-11 place-items-center rounded-xl border bg-surface text-muted [&_svg]:size-5">
       {icon}
     </span>
-    <p className="font-serif text-xl">{title}</p>
-    <p className="mt-1.5 max-w-sm text-sm text-balance text-muted">{children}</p>
+    <p className="font-serif text-heading">{title}</p>
+    <p className="mt-1.5 max-w-sm text-body text-balance text-muted">{children}</p>
   </div>
 )

@@ -17,5 +17,6 @@ const MAP_NAMES: Record<string, string> = {
 export const mapName = (id: string | null | undefined) => {
   if (!id) return 'Unknown map'
   const bare = id.replace(/^(de|cs|ar|dz)_/, '')
+
   return MAP_NAMES[id] ?? bare.charAt(0).toUpperCase() + bare.slice(1)
 }

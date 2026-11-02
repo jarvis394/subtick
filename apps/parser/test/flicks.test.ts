@@ -13,6 +13,7 @@ const timeline = buildTestTimeline([
     ],
   },
 ])
+
 const killTick = roundTick(1, 1)
 
 /** Yaw for the 10 ticks before the kill, ending at the kill tick. */

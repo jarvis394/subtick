@@ -25,6 +25,7 @@ export const ProgressRing = ({
   const circumference = 2 * Math.PI * radius
   const sweeping = progress === undefined
   const filled = sweeping ? 0.25 : Math.max(progress, 0.04)
+
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
@@ -78,6 +79,7 @@ export const liveProgress = (item: QueueItem, streamed: ProgressMap) => {
     (reported?.phase
       ? { id: reported.id, phase: reported.phase, progress: reported.progress ?? undefined }
       : undefined)
+
   return { progress: Math.max(fresh?.progress ?? 0, item.progress ?? 0) || undefined, clip }
 }
 
@@ -91,6 +93,7 @@ export const clipState = (clip: QueueClip, current: ClipProgress | undefined) =>
   if (current?.id === clip.id) return { state: 'recording' as const, phase: current }
   // The recorder moved on to another clip since the last poll.
   if (current) return { state: 'waiting' as const }
+
   return clip.state === 'recording'
     ? { state: 'recording' as const, phase: { id: clip.id, phase: 'recording' as const } }
     : { state: clip.state }
@@ -125,6 +128,7 @@ export const taskLabel = (item: QueueItem, streamed: ProgressMap) => {
   const { progress, clip } = liveProgress(item, streamed)
   const title = clip && item.moments.find((m) => m.id === clip.id)?.title
   if (clip && title) return { title, detail: phaseLabel(clip) }
+
   return {
     title: undefined,
     detail:
@@ -151,6 +155,7 @@ export const useQueueSummary = (items: QueueItem[]) => {
       map: matchName(item.map, item.status),
       ...taskLabel(item, streamed),
     }))
+
   return { running, waiting: items.length - running.length }
 }
 
@@ -161,6 +166,7 @@ const useRunningProgress = (items: QueueItem[]) => {
     .filter((item) => item.state === 'active')
     .map((item) => liveProgress(item, streamed).progress ?? 0)
   if (values.every((v) => v === 0)) return undefined
+
   return values.reduce((a, b) => a + b, 0) / values.length
 }
 
@@ -174,7 +180,7 @@ export const QueueRing = ({ items }: { items: QueueItem[] }) => {
   const busy = items.length > 0
 
   return (
-    <span className="relative grid size-[22px] place-items-center *:col-start-1 *:row-start-1">
+    <span className="relative grid size-5.5 place-items-center *:col-start-1 *:row-start-1">
       <ListVideo
         aria-hidden
         className={cn(
@@ -200,7 +206,7 @@ export const QueueRing = ({ items }: { items: QueueItem[] }) => {
           )}
           trackClassName="stroke-foreground/10"
         />
-        <span className="text-[10px] leading-none font-semibold text-foreground tabular-nums">
+        <span className="text-micro leading-none font-semibold text-foreground tabular-nums">
           {count > 9 ? '9+' : count || ''}
         </span>
       </span>

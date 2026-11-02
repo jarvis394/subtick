@@ -4,15 +4,9 @@ import { EASE_OUT_QUART } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 /**
- * Crossfades between views when `swapKey` changes. The old view stays mounted in the same grid cell
- * while it fades out and the new one fades in over it, so nothing waits on the exit. Swapping back
- * mid-fade picks the old view up from wherever its fade had got to.
- *
- * `enterDelay` holds the new view's fade-in back, so a placeholder that's only needed for a moment
- * (a skeleton on a fast load) is gone again before it was ever seen.
- *
- * `appear={false}` skips the fade-in of the very first view, for pages the route's view
- * transition already brings in.
+ * Crossfades views on `swapKey` change: the old view fades out in the same grid cell while the new one fades
+ * in over it, and swapping back mid-fade resumes from where it was. `enterDelay` holds the fade-in so a
+ * brief placeholder (a skeleton on a fast load) is never seen; `appear={false}` skips the first view's fade.
  */
 export const FadeSwap = ({
   swapKey,
@@ -38,6 +32,7 @@ export const FadeSwap = ({
 
 const Layer = ({ enterDelay, children }: { enterDelay: number; children: ReactNode }) => {
   const present = useIsPresent()
+
   return (
     <motion.div
       inert={!present}

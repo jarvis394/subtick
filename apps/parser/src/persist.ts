@@ -72,6 +72,7 @@ export const persistAnalysis = async (
         const plant = timeline.plants.find((e) => e.round === r.number)
         const defuse = timeline.defuses.find((e) => e.round === r.number)
         const explosion = timeline.explosions.find((e) => e.round === r.number)
+
         return {
           matchId,
           number: r.number,

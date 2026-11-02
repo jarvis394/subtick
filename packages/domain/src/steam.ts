@@ -23,5 +23,6 @@ const DEMO_URL_RE = /\/(\d{19,21})_\d+\.dem(\.bz2)?$/
 
 export const demoIdFromUrl = (url: string) => {
   const digits = DEMO_URL_RE.exec(new URL(url).pathname)?.[1]
+
   return digits ? BigInt(digits).toString() : null
 }

@@ -26,6 +26,7 @@ const FFMPEG_EXIT_POLLS = 120
  */
 const SLOW_RENDER_RATIO = 12
 const CLIPS_PER_SESSION = 4
+
 /**
  * What the mirv_pov fork prints when its HUD hooks don't match the CS2 build, or what CS2 prints
  * when the loaded AfxHookSource2.dll has no mirv_pov at all. Side features failing (radio, kill
@@ -33,6 +34,7 @@ const CLIPS_PER_SESSION = 4
  */
 const POV_FAILURE =
   /Unknown command.*mirv_pov|\[mirv_pov_hud\].*(?:not found|not available|not loaded)|pov-target-unavailable/i
+
 const POV_CHECK_MS = 1500
 /** Offline rendering on a weak GPU runs well below real time; scale the timeout with the clip. */
 const RENDER_TIMEOUT_PER_DEMO_SECOND_MS = 30_000
@@ -40,6 +42,7 @@ const RENDER_TIMEOUT_PER_DEMO_SECOND_MS = 30_000
 const FPS = 60
 /** How often the frame count is read while a segment captures. */
 const PROGRESS_POLL_MS = 1000
+
 /**
  * H.264 that browsers stream directly; `{QUOTE}` and `\\` are HLAE's escapes. `-progress` has
  * ffmpeg append its frame count to a file in the take: how far the capture has got.
@@ -49,6 +52,7 @@ const CAPTURE_FFMPEG = [
   '-progress {QUOTE}{AFX_STREAM_PATH}\\\\progress.txt{QUOTE}',
   '{QUOTE}{AFX_STREAM_PATH}\\\\video.mp4{QUOTE}',
 ].join(' ')
+
 /** Demos are copied here, relative to `game/csgo`, as `playdemo` only reads from the game tree. */
 const DEMO_NAME = 'subtick/demo'
 
@@ -63,6 +67,7 @@ const capturedFrames = async (dir: string) => {
     .text()
     .catch(() => '')
   const frames = [...text.matchAll(/^frame=(\d+)/gm)].at(-1)?.[1]
+
   return frames === undefined ? null : Number(frames)
 }
 
@@ -188,6 +193,7 @@ export class Cs2Recorder implements Recorder {
       )
       await this.reset()
     }
+
     return { parts: parts.map(({ path, audioPath }) => ({ path, audioPath })), dir, renderMs }
   }
 
@@ -217,11 +223,13 @@ export class Cs2Recorder implements Recorder {
     netcon.send(`spec_player "${playerName}"`)
     await this.#enablePov(netcon)
 
+    const demoSeconds = (segment.endTick - segment.startTick) / TICKRATE
+
     // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
     // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
     const marker = (name: string) => new RegExp(`(?:^|\\W)${name}_${take}(?!\\d)`)
+
     const started = netcon.waitFor(marker('subtick_start'), SEEK_TIMEOUT_MS)
-    const demoSeconds = (segment.endTick - segment.startTick) / TICKRATE
     const done = netcon.waitFor(
       marker('subtick_done'),
       SEEK_TIMEOUT_MS + demoSeconds * RENDER_TIMEOUT_PER_DEMO_SECOND_MS,
@@ -253,6 +261,7 @@ export class Cs2Recorder implements Recorder {
     const path = join(dir, takes.at(-1) ?? 'take0000', 'video.mp4')
     if (!(await Bun.file(path).exists())) throw new Error(`HLAE wrote no video in ${dir}`)
     const wav = (await readdir(dirname(path))).find((f) => f.endsWith('.wav'))
+
     return { path, audioPath: wav && join(dirname(path), wav), renderMs }
   }
 

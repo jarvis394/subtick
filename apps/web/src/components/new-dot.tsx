@@ -18,6 +18,7 @@ export const NewDot = ({
 }) => {
   const isNew = useIsNew(matchId)
   const reduce = useReducedMotion()
+
   return (
     <AnimatePresence initial={false}>
       {isNew && (

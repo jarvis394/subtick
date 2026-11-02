@@ -11,13 +11,16 @@ const COPIED_MS = 1500
 const useCopied = () => {
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- clears the pending "copied" timer on unmount
   useEffect(() => () => clearTimeout(timer.current), [])
+
   const copy = (text: string) => {
     void navigator.clipboard.writeText(text)
     setCopied(true)
     clearTimeout(timer.current)
     timer.current = setTimeout(() => setCopied(false), COPIED_MS)
   }
+
   return { copied, copy }
 }
 

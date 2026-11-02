@@ -18,10 +18,12 @@ export const eventRoutes = ({ auth, env }: Context) => {
       // Bridge the push-based hub into this pull-based generator.
       const pending: MatchEvent[] = []
       let wake: (() => void) | null = null
+
       const notify = () => {
         wake?.()
         wake = null
       }
+
       const unlisten = listen((event) => {
         pending.push(event)
         notify()

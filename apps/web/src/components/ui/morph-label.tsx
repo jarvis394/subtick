@@ -1,15 +1,11 @@
 import { AnimatePresence, animate, motion, useIsPresent, useReducedMotion } from 'motion/react'
-import { type Ref, useLayoutEffect, useRef, useState } from 'react'
+import { type Ref, useRef, useState } from 'react'
 import { EASE_OUT_STRONG } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 /**
- * A label that morphs when its text changes (Add email ↔ Cancel): the old text fades out over the
- * new one fading in, while the width eases to the new text's so the button doesn't jump.
- *
- * Nothing clips: the new text is laid out at its full width from the first frame (overflowing the
- * still-narrow box evenly while it is faint), and the old one is lifted out of the flow, so
- * neither moves when the other leaves.
+ * A label that crossfades when its text changes (Add email ↔ Cancel) while the width eases to the new text's.
+ * Nothing clips: the new text lays out at full width from the first frame, and the old one leaves the flow.
  */
 export const MorphLabel = ({
   children,
@@ -20,7 +16,6 @@ export const MorphLabel = ({
   align?: 'center' | 'start'
 }) => {
   const box = useRef<HTMLSpanElement>(null)
-  const incoming = useRef<HTMLSpanElement>(null)
   const measured = useRef(false)
   const reduce = useReducedMotion()
   // Each change is a new element, never an exiting one brought back: flipping A -> B -> A faster
@@ -28,11 +23,12 @@ export const MorphLabel = ({
   const [shown, setShown] = useState({ text: children, id: 0 })
   if (shown.text !== children) setShown({ text: children, id: shown.id + 1 })
 
-  // The first width is set outright, so the first change has a width to ease from; after that
-  // each change eases (and takes over from a still-running one).
-  useLayoutEffect(() => {
-    if (!box.current || !incoming.current) return
-    const next = incoming.current.offsetWidth
+  // Each change mounts a new incoming text, so its ref measures it. The first width is set
+  // outright, so the first change has a width to ease from; later ones ease (taking over any
+  // still running).
+  const measure = (incoming: HTMLSpanElement | null) => {
+    if (!box.current || !incoming) return
+    const next = incoming.offsetWidth
     if (!measured.current) {
       measured.current = true
       box.current.style.width = `${next}px`
@@ -43,7 +39,7 @@ export const MorphLabel = ({
         reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG },
       )
     }
-  }, [children, reduce])
+  }
 
   return (
     <span
@@ -54,7 +50,7 @@ export const MorphLabel = ({
       )}
     >
       <AnimatePresence initial={false}>
-        <Text key={shown.id} ref={incoming} align={align} reduce={!!reduce}>
+        <Text key={shown.id} ref={measure} align={align} reduce={!!reduce}>
           {shown.text}
         </Text>
       </AnimatePresence>
@@ -74,6 +70,7 @@ const Text = ({
   children: string
 }) => {
   const present = useIsPresent()
+
   return (
     <motion.span
       ref={present ? ref : undefined}

@@ -21,6 +21,7 @@ export const syncNow = async ({ db, queues, env }: Context, userId: string, stea
     const { materializeFakeMatches, stagedFakeMatches } = await import('./dev-matches')
     if (stagedFakeMatches(userId)) {
       await sleep(800)
+
       return { newMatches: await materializeFakeMatches(db, userId, steamIds[0]!), done: true }
     }
   }
@@ -48,5 +49,6 @@ export const syncNow = async ({ db, queues, env }: Context, userId: string, stea
         gte(schema.userMatch.discoveredAt, startedAt),
       ),
     )
+
   return { newMatches: found?.count ?? 0, done }
 }

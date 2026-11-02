@@ -35,6 +35,7 @@ export const createS3Storage = ({
   // Each signing stamps the current time, so a fresh URL every call would miss the browser cache
   // and re-download every poster whenever a list refetches. Reuse one while half its life remains.
   const signed = new Map<string, { url: string; renewAt: number }>()
+
   const presign = (key: string, expiresIn: number) => {
     const now = Date.now()
     const id = `${expiresIn}:${key}`
@@ -43,6 +44,7 @@ export const createS3Storage = ({
     if (signed.size >= 10_000) for (const [k, v] of signed) if (v.renewAt <= now) signed.delete(k)
     const url = publicClient.presign(key, { expiresIn })
     signed.set(id, { url, renewAt: now + (expiresIn * 1000) / 2 })
+
     return url
   }
 
@@ -57,6 +59,7 @@ export const createS3Storage = ({
     async *objects() {
       let continuationToken: string | undefined
       do {
+        // oxlint-disable-next-line no-await-in-loop -- each page needs the previous page's continuation token
         const page = await client.list({ maxKeys: 1000, continuationToken })
         for (const { key, size } of page.contents ?? []) yield { key, size: size ?? 0 }
         continuationToken = page.isTruncated ? page.nextContinuationToken : undefined

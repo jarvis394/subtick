@@ -9,6 +9,7 @@ const describe = (error: unknown) => {
       : error.message
   // fetch rejects with a TypeError when the request never got an answer.
   if (error instanceof TypeError) return 'Couldn’t reach the server. Check your connection.'
+
   return error instanceof Error ? error.message : undefined
 }
 

@@ -93,6 +93,7 @@ export const createGameCoordinator = (
         cleanup()
         reject(new GcUnavailableError('Timed out connecting to the CS2 Game Coordinator'))
       }, CONNECT_TIMEOUT_MS)
+
       const onReady = () => {
         cleanup()
         log.info('connected to GC')
@@ -107,6 +108,7 @@ export const createGameCoordinator = (
         gc.off('connectedToGC', onReady)
         user.off('error', onError)
       }
+
       gc.on('connectedToGC', onReady)
       user.once('error', onError)
       if (!user.steamID) void logOn().catch(onError)
@@ -115,6 +117,7 @@ export const createGameCoordinator = (
   const ensureSession = () => {
     if (gc.haveGCSession) return Promise.resolve()
     ready ??= connect().finally(() => (ready = null))
+
     return ready
   }
 
@@ -127,6 +130,7 @@ export const createGameCoordinator = (
           gc.off('matchList', onList)
           reject(new GcUnavailableError('The Game Coordinator did not answer in time'))
         }, REQUEST_TIMEOUT_MS)
+
         const onList = (matches: GlobalOffensive.MatchInfo[]) => {
           const found = matches.find((m) => m.matchid === matchId)
           if (!found) return
@@ -134,6 +138,7 @@ export const createGameCoordinator = (
           gc.off('matchList', onList)
           resolve(found)
         }
+
         gc.on('matchList', onList)
         gc.requestGame(shareCode)
       })
@@ -141,6 +146,7 @@ export const createGameCoordinator = (
       // Round stats arrive once per round; the last one carries the final demo URL.
       const last = info.roundstatsall.at(-1)
       const reservation = info.roundstatsall.find((r) => r.reservation)?.reservation
+
       return {
         demoUrl: last?.map || null,
         playedAt: info.matchtime ? new Date(info.matchtime * 1000) : null,
@@ -166,6 +172,7 @@ const partiesOf = ({ account_ids, party_ids }: GlobalOffensive.Reservation) => {
     const party = party_ids[i]
     if (party) parties[accountIdToSteamId(accountId)] = String(party)
   })
+
   return parties
 }
 
@@ -176,5 +183,6 @@ const partiesOf = ({ account_ids, party_ids }: GlobalOffensive.Reservation) => {
 const finalScore = ({ team_scores, max_rounds }: GlobalOffensive.RoundStats) => {
   const [startedCt, startedT] = team_scores
   if (max_rounds !== 24 || startedCt === undefined || startedT === undefined) return null
+
   return { startedCt, startedT }
 }
