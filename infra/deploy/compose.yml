@@ -8,9 +8,12 @@ name: subtick
 # Dokploy runs `docker compose` from inside its container, so relative bind mounts would point at
 # paths only it can see: everything mounted here is an absolute host path or inline.
 
+# api, parser, steam and migrate share one image. Only migrate builds it: four identical builds in
+# parallel each run their own `bun install`, and one flaky download fails the whole deploy. The
+# others never pull it, so they wait for that build.
 x-server: &server
   image: subtick-server
-  build: { context: ../.., dockerfile: infra/deploy/server.Dockerfile }
+  pull_policy: never
   env_file: .env
   environment: &server-env
     DATABASE_URL: postgres://subtick:${POSTGRES_PASSWORD}@postgres:5432/subtick
@@ -79,6 +82,8 @@ services:
 
   migrate:
     <<: *server
+    build: { context: ../.., dockerfile: infra/deploy/server.Dockerfile }
+    pull_policy: build
     command: ['bun', 'packages/db/src/migrate.ts']
     depends_on: { postgres: { condition: service_healthy } }
     restart: on-failure
