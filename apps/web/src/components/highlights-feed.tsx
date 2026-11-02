@@ -123,7 +123,7 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
           </Select.Trigger>
           <Select.Portal>
             <Select.Positioner sideOffset={6} className="z-50">
-              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
+              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
                 <Select.List>
                   {mapItems.map((item) => (
                     <Select.Item
@@ -170,6 +170,16 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
               filtered
                 ? `Try another kind or map${mine ? ', or turn off Only mine' : ''}.`
                 : 'The best moments of every match are clipped automatically. They show up here once recorded.'
+            }
+            action={
+              filtered && (
+                <Button
+                  size="sm"
+                  onClick={() => update({ kind: undefined, map: undefined, mine: undefined })}
+                >
+                  Clear filters
+                </Button>
+              )
             }
           />
         ) : (

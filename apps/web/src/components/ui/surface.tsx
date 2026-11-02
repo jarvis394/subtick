@@ -18,11 +18,11 @@ export const Badge = ({
       {
         neutral: 'bg-surface-2 text-muted',
         accent: 'bg-accent/12 text-accent',
-        brand: 'bg-brand/12 text-brand',
+        brand: 'bg-brand/12 text-brand-text',
         success: 'bg-success/12 text-success',
         danger: 'bg-danger/12 text-danger',
         ct: 'bg-side-ct/14 text-side-ct',
-        t: 'bg-side-t/16 text-side-t',
+        t: 'bg-side-t/16 text-side-t-text',
       }[tone],
       className,
     )}

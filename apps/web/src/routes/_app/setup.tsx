@@ -15,6 +15,7 @@ import { skipSetup } from '@/lib/setup'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/setup')({
+  head: () => ({ meta: [{ title: 'Set up · subtick' }] }),
   validateSearch: z.object({ error: z.string().optional() }),
   component: SetupPage,
 })

@@ -26,6 +26,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]['id']
 
 export const Route = createFileRoute('/_app/players/$player')({
+  head: () => ({ meta: [{ title: 'Player · subtick' }] }),
   validateSearch: clipViewerSearch.extend({
     tab: z.enum(TABS.map((t) => t.id) as [Tab, ...Tab[]]).optional(),
   }),

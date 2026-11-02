@@ -82,6 +82,7 @@ const cachedHead = (queryClient: QueryClient, id: string) => {
 }
 
 export const Route = createFileRoute('/_app/matches/$id')({
+  head: () => ({ meta: [{ title: 'Match · subtick' }] }),
   // Not awaited: the page opens straight away on the header the lists already have, and the
   // rest fades in when the match arrives.
   loader: ({ context, params }) => {

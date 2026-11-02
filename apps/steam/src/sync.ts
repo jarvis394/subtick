@@ -26,9 +26,34 @@ const RETRY_INTERVAL_MS = 5 * MINUTE
 const MAX_CODES_PER_JOB = 25
 /** Links picked per scheduler tick. */
 const SCHEDULE_BATCH = 200
+/** First pause after Valve throttles the key; doubles on each repeat, up to the cap. */
+const RATE_LIMIT_BASE_MS = 10 * MINUTE
+const RATE_LIMIT_MAX_MS = 6 * HOUR
+
+/**
+ * Valve throttles the API key, not one account, so a 429 pauses every sync in this worker until it
+ * passes; retrying sooner only extends it. Kept in memory: a restart costs one request to find out.
+ */
+const throttle = { until: 0, backoffMs: 0 }
+const throttled = () => Date.now() < throttle.until
+
+/** Starts (or, when the last pause has run out, doubles) the pause; returns when it ends. */
+const pauseForRateLimit = (retryAfterMs: number | null) => {
+  // Concurrent jobs hitting the same limit share one pause instead of doubling it each.
+  if (!throttled()) {
+    throttle.backoffMs = Math.min(
+      throttle.backoffMs ? throttle.backoffMs * 2 : RATE_LIMIT_BASE_MS,
+      RATE_LIMIT_MAX_MS,
+    )
+    throttle.until = Date.now() + Math.max(retryAfterMs ?? 0, throttle.backoffMs)
+  }
+
+  return new Date(throttle.until)
+}
 
 /** Scheduler tick: queues a sync for every linked account that is due. */
 export const scheduleSyncs = async ({ db, queues, log }: Context) => {
+  if (throttled()) return
   const due = await db
     .select({ steamId: steamLink.steamId })
     .from(steamLink)
@@ -58,6 +83,13 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
   const update = (values: Partial<typeof steamLink.$inferInsert>) =>
     db.update(steamLink).set(values).where(eq(steamLink.steamId, steamId))
 
+  // Queued before the pause began: wait it out without spending a request.
+  if (throttled()) {
+    await update({ nextSyncAt: new Date(throttle.until) })
+
+    return
+  }
+
   await update({ syncState: 'syncing' })
   const authCode = await secrets.decrypt(link.authCode)
   let knownCode = link.lastShareCode
@@ -68,6 +100,15 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
       // oxlint-disable-next-line no-await-in-loop -- each code is the key for the next request
       const next = await steamApi.getNextShareCode({ steamId, authCode, knownCode })
       if (next.status === 'none') break
+      if (next.status === 'rate_limited') {
+        // Not thrown: job retries would only hit the limit again. The scheduler resumes it.
+        const until = pauseForRateLimit(next.retryAfterMs)
+        // oxlint-disable-next-line no-await-in-loop -- leaves the loop right after
+        await update({ syncState: 'error', lastError: 'rate_limited', nextSyncAt: until })
+        log.warn({ steamId, until }, 'Steam Web API rate limited, syncs paused')
+
+        return
+      }
       if (next.status !== 'next') {
         // The user revoked the code or it never matched this account: only they can fix it.
         // oxlint-disable-next-line no-await-in-loop -- leaves the loop right after
@@ -92,6 +133,7 @@ export const syncUser = async (ctx: Context, job: TypedJob<'steam.sync-user'>) =
     throw error
   }
 
+  throttle.backoffMs = 0
   const backlog = found === MAX_CODES_PER_JOB
   await update({
     syncState: 'idle',

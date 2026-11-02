@@ -20,7 +20,8 @@ const styles = {
     neutral: 'text-foreground [--bg:var(--color-surface-2)] [--bg-hover:var(--color-surface-3)]',
     danger:
       'text-danger [--bg:var(--color-danger-soft)] [--bg-hover:var(--color-danger-soft-hover)]',
-    brand: 'text-brand [--bg:var(--color-brand-soft)] [--bg-hover:var(--color-brand-soft-hover)]',
+    brand:
+      'text-brand-text [--bg:var(--color-brand-soft)] [--bg-hover:var(--color-brand-soft-hover)]',
   },
   ghost: {
     neutral: cn(
@@ -29,12 +30,12 @@ const styles = {
       'hover:text-foreground aria-pressed:text-foreground aria-[current=page]:text-foreground data-popup-open:text-foreground',
     ),
     danger: 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
-    brand: 'text-brand [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
+    brand: 'text-brand-text [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
   },
   link: {
     neutral: 'text-link',
     danger: 'text-danger',
-    brand: 'text-brand',
+    brand: 'text-brand-text',
   },
 }
 
@@ -83,9 +84,9 @@ const linkClass = (tone: ButtonTone) =>
   )
 
 /**
- * Two layers: the background is its own element and scales down on press, the label does not.
- * That keeps text crisp while the button still "gives". Only `scale` (compositor-only) animates;
- * Tailwind 4's `scale-*` utilities set the `scale` property, not `transform`.
+ * Two layers: the background is its own element and shrinks on press, the label does not.
+ * That keeps text crisp while the button still "gives". It insets by 1px a side (2px overall)
+ * rather than scaling, so a wide button gives as much as an icon button instead of more.
  */
 const ButtonLayer = () => (
   <span
@@ -93,11 +94,11 @@ const ButtonLayer = () => (
     className={cn(
       'absolute inset-0 -z-10 rounded-[inherit] bg-(--bg)',
       // Press moves (strong ease-out); hover only recolors (plain ease).
-      '[transition:scale_160ms_var(--ease-out-quart),background-color_150ms_ease]',
-      'group-hover/button:bg-(--bg-hover) group-active/button:scale-[0.96]',
-      'group-disabled/button:scale-100 group-data-disabled/button:scale-100',
+      '[transition:inset_160ms_var(--ease-out-quart),background-color_150ms_ease]',
+      'group-hover/button:bg-(--bg-hover) group-active/button:inset-px',
+      'group-disabled/button:inset-0 group-data-disabled/button:inset-0',
       // Reduced motion: no press movement, keep the color fade.
-      'motion-reduce:group-active/button:scale-100',
+      'motion-reduce:group-active/button:inset-0',
     )}
   />
 )

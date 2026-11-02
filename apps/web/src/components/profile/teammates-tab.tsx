@@ -39,7 +39,7 @@ export const TeammatesTab = ({ player }: { player: Player }) => {
           className={cn(
             GRID,
             'h-14 border-b text-body tabular-nums outline-none last:border-0',
-            'hover:bg-surface-2/60 focus-visible:bg-surface-2/60',
+            'hover:bg-surface-2/60 focus-visible:bg-surface-2/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
           )}
         >
           <span className="flex min-w-0 items-center gap-3">

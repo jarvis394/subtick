@@ -48,13 +48,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           '[--nav-duration:calc(400ms*(1-clamp(0,var(--drawer-swipe-progress)*100000,1)))]',
         )}
       >
+        {/* First stop for keyboard users, so they can pass over the sidebar. */}
+        <a
+          href="#content"
+          className="sr-only rounded-control bg-surface px-3 py-2 text-body font-medium shadow-lg focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:ring-2 focus:ring-ring"
+        >
+          Skip to content
+        </a>
         {/* The drawer portals in here, under the page (which stacks above it with z-10). */}
         <div ref={setDrawerLayer} />
 
         <div
           className={cn(
             // The page is the raised surface; the sidebar and the drawer sit on the background.
-            'relative z-10 flex min-h-dvh bg-surface select-none',
+            'relative z-10 flex min-h-dvh bg-surface',
             // Pushed fully off to the right while open, less the swipe progress while dragged back.
             'max-md:group-data-active/indent:[translate:calc(100%*(1-var(--nav-progress)))_0]',
             '[transition:translate_var(--nav-duration)_var(--ease-drawer)]',
@@ -137,7 +144,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 <Wordmark />
               </Link>
             </header>
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">{children}</main>
+            <main
+              id="content"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-6xl px-4 py-6 outline-none md:px-8 md:py-10"
+            >
+              {children}
+            </main>
           </div>
         </div>
       </Drawer.Indent>

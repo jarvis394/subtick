@@ -22,6 +22,8 @@ export type NextShareCodeResult =
   | { status: 'invalid_auth_code' }
   /** The known share code is not one of this account's matches. */
   | { status: 'invalid_share_code' }
+  /** HTTP 429: Valve is throttling the API key. `retryAfterMs` is from `Retry-After`, if sent. */
+  | { status: 'rate_limited'; retryAfterMs: number | null }
 
 export class SteamApiError extends Error {
   constructor(
@@ -53,6 +55,15 @@ const FriendList = z.object({
 const ResolveVanityUrl = z.object({
   response: z.object({ success: z.number(), steamid: z.string().optional() }),
 })
+
+/** `Retry-After` as milliseconds: either delay-seconds or an HTTP date. */
+const retryAfterMs = (header: string | null) => {
+  if (!header) return null
+  const seconds = Number(header)
+  const ms = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(header) - Date.now()
+
+  return Number.isFinite(ms) && ms > 0 ? ms : null
+}
 
 const vanityOf = (profileUrl?: string) => profileUrl?.match(/\/id\/([^/]+)\/?$/)?.[1] ?? null
 
@@ -130,6 +141,12 @@ export const createSteamWebApi = (apiKey: string) => {
       })
       if (response.status === 403) return { status: 'invalid_auth_code' }
       if (response.status === 412) return { status: 'invalid_share_code' }
+      if (response.status === 429) {
+        return {
+          status: 'rate_limited',
+          retryAfterMs: retryAfterMs(response.headers.get('retry-after')),
+        }
+      }
       // 202 = no newer match yet.
       if (response.status === 202) return { status: 'none' }
       if (!response.ok) throw new SteamApiError(endpoint, response.status)

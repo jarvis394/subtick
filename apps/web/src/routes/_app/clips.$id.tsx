@@ -6,6 +6,7 @@ import { ClipViewer } from '@/components/clip-viewer'
  * with the viewer in a dialog; loading it directly (reload, a shared link) lands here instead.
  */
 export const Route = createFileRoute('/_app/clips/$id')({
+  head: () => ({ meta: [{ title: 'Clip · subtick' }] }),
   component: ClipPage,
 })
 

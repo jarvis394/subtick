@@ -20,7 +20,7 @@ import { MorphLabel } from '@/components/ui/morph-label'
 import { cn } from '@/lib/utils'
 
 export const menuPopupClass =
-  'min-w-52 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 outline-none transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0'
+  'min-w-52 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 outline-none transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100'
 
 export const menuItemClass =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body whitespace-nowrap outline-none select-none data-disabled:cursor-default data-disabled:opacity-50 data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted'

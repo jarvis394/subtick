@@ -90,7 +90,7 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
         'h-16 border-b text-body tabular-nums outline-none last:border-0',
         entering &&
           'overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
-        'hover:bg-surface-2/60 focus-visible:bg-surface-2/60',
+        'hover:bg-surface-2/60 focus-visible:bg-surface-2/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
       )}
     >
       <span className="flex min-w-0 items-center gap-3">

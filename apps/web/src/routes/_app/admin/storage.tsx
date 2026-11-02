@@ -27,6 +27,7 @@ import { EASE_OUT_QUART } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/admin/storage')({
+  head: () => ({ meta: [{ title: 'Storage · Admin · subtick' }] }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.prefetchQuery(storageQuery),

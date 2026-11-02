@@ -10,6 +10,7 @@ import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { matchesQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/matches/')({
+  head: () => ({ meta: [{ title: 'Matches · subtick' }] }),
   loader: ({ context }) => context.queryClient.prefetchInfiniteQuery(matchesQuery),
   component: MatchesPage,
 })

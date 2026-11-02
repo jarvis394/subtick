@@ -7,16 +7,19 @@ import { isSetUp } from '@/lib/setup'
 
 /**
  * A dashed placeholder for a page with nothing to show. Until setup is done, nothing can show up,
- * so it says so and links there instead of the usual description.
+ * so it says so and links there instead of the usual description and action.
  */
 export const EmptyState = ({
   icon,
   title,
   description,
+  action,
 }: {
   icon: ReactNode
   title: string
   description: string
+  /** One way forward, such as clearing the filters that emptied the page. */
+  action?: ReactNode
 }) => {
   const { data: me } = useSuspenseQuery(meQuery)
   const setUp = isSetUp(me)
@@ -30,10 +33,12 @@ export const EmptyState = ({
       <p className="mt-1.5 max-w-sm text-body text-balance text-muted">
         {setUp ? description : 'Finish setup to start picking up your matches.'}
       </p>
-      {!setUp && (
+      {!setUp ? (
         <Button size="sm" className="mt-5" render={<Link to="/setup" />}>
           Finish setup
         </Button>
+      ) : (
+        action && <div className="mt-5">{action}</div>
       )}
     </div>
   )

@@ -10,6 +10,7 @@ import { playerQuery } from '@/lib/queries'
 
 /** The highlights page, for one player. */
 export const Route = createFileRoute('/_app/players/$player_/highlights')({
+  head: () => ({ meta: [{ title: 'Player highlights · subtick' }] }),
   validateSearch: clipListSearch,
   component: PlayerHighlightsPage,
 })

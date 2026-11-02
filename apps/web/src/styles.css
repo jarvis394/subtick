@@ -18,14 +18,19 @@
   --accent-hover: #2363b0;
   --accent-foreground: #ffffff;
   --brand: rgb(227 135 23);
+  /* The brand as text: the orange itself is too light to read on the light surface. */
+  --brand-text: #9a5200;
   --danger: #c8442f;
   /* Fill for solid danger buttons: deep enough for white text (>= 4.5:1) in both themes. */
   --danger-solid: #bf2f1d;
   --danger-solid-hover: #cc3824;
-  --success: #3f8f4a;
+  --success: #29703a;
   --ct: #3f78bd;
   --t: #b9852a;
-  --ring: rgb(41 116 207 / 0.5);
+  /* T-side as text (badges): deeper than the fill so it reads on its own tint. */
+  --t-text: #8a6118;
+  /* Solid, so the focus ring keeps >= 3:1 against the surface in both themes. */
+  --ring: var(--accent);
   /* Links and the app's own notices: the accent, deep enough to read on the light surface. */
   --link: #2363b0;
   /* Text selection: a light accent tint here, the deeper blue in dark mode. */
@@ -49,6 +54,8 @@
     --danger: #e0614f;
     --ct: #6fa2df;
     --t: #e0b25a;
+    --t-text: #e0b25a;
+    --brand-text: var(--brand);
   }
 }
 
@@ -70,6 +77,8 @@
   --danger: #e0614f;
   --ct: #6fa2df;
   --t: #e0b25a;
+  --t-text: #e0b25a;
+  --brand-text: var(--brand);
 }
 
 @theme inline {
@@ -86,6 +95,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-link: var(--link);
   --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
   --color-danger: var(--danger);
   --color-danger-solid: var(--danger-solid);
   --color-danger-solid-hover: var(--danger-solid-hover);
@@ -93,6 +103,7 @@
   /* Not `t`/`ct`: `border-t` would read as a border color. */
   --color-side-ct: var(--ct);
   --color-side-t: var(--t);
+  --color-side-t-text: var(--t-text);
   --color-ring: var(--ring);
   /* Button fills derived from the palette, so both themes follow without their own values. */
   --color-contrast-hover: color-mix(in oklab, var(--foreground) 88%, var(--background));
@@ -106,9 +117,9 @@
   --radius-control: 10px;
 
   /* Type scale. tailwind-scale rejects raw font sizes, so every text size comes from here. */
-  --text-micro: 10px;
-  --text-micro--line-height: 12px;
-  --text-caption: 11px;
+  --text-micro: 11px;
+  --text-micro--line-height: 14px;
+  --text-caption: 12px;
   --text-caption--line-height: 16px;
   --text-label: 12px;
   --text-label--line-height: 16px;
@@ -145,13 +156,17 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
+    /* Below md the app shell's sticky header (h-14) would cover focused and anchored content. */
+    @media (width < 48rem) {
+      scroll-padding-top: 3.5rem;
+    }
   }
   body {
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: 'tnum' 0;
+    font-variant-numeric: normal;
   }
   /* In the app shell the page is the surface color, so overscroll above and below continues it. */
   html:has([data-app-shell]) body {

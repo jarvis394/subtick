@@ -9,6 +9,7 @@ import { timeAgo } from '@/lib/format'
 import { meQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/admin/users')({
+  head: () => ({ meta: [{ title: 'Users · Admin · subtick' }] }),
   loader: ({ context }) => context.queryClient.prefetchQuery(usersQuery),
   component: UsersPage,
 })

@@ -310,7 +310,7 @@ const QueueButton = ({
             // Fades out with the last job; `invisible` lands after the fade and takes it out of
             // the tab order.
             'transition-[color,translate,opacity,scale,visibility]',
-            empty && 'invisible scale-90 opacity-0',
+            empty && 'invisible scale-90 opacity-0 motion-reduce:scale-100',
           )}
         >
           <QueueRing items={items} />
@@ -566,7 +566,7 @@ export const SidebarContent = ({
           </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
-              <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
+              <Menu.Popup className="w-56 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
                 <p className="truncate px-2 pt-1 pb-1.5 text-small text-muted">{subtitle}</p>
                 {me.user.isAdmin && (
                   <Menu.Item

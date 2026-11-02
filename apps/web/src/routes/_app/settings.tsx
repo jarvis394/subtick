@@ -19,8 +19,10 @@ import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { timeAgo } from '@/lib/format'
 import { type Me, meQuery } from '@/lib/queries'
 import { clearStoredMe } from '@/lib/stored-me'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/settings')({
+  head: () => ({ meta: [{ title: 'Settings · subtick' }] }),
   validateSearch: z.object({
     error: z.string().optional(),
     email: z.literal('confirmed').optional(),
@@ -45,11 +47,13 @@ function SettingsPage() {
       <h1 className="font-serif text-display tracking-tight">Settings</h1>
 
       {/* Sections sit side by side once the content area (not the viewport: the sidebar takes
-        its share) has room for two readable columns. */}
-      <div className="grid gap-10 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-6">
+        its share) has room for two readable columns. Account fills the right column on its own,
+        so Steam accounts sits right under the profile instead of under the taller of the two;
+        the second row takes the slack when Account outgrows the left column. */}
+      <div className="grid gap-10 @3xl:grid-cols-2 @3xl:grid-rows-[auto_1fr] @3xl:items-start @3xl:gap-6">
         <ProfileSection me={me} />
 
-        <Section title="Account">
+        <Section title="Account" className="@3xl:col-start-2 @3xl:row-span-2 @3xl:row-start-1">
           {emailStatus === 'confirmed' && (
             <p className="text-body text-accent">Email confirmed. You can sign in with it now</p>
           )}
@@ -153,13 +157,15 @@ function SettingsPage() {
 const Section = ({
   title,
   action,
+  className,
   children,
 }: {
   title: string
   action?: ReactNode
+  className?: string
   children: ReactNode
 }) => (
-  <section className="flex flex-col gap-3">
+  <section className={cn('flex flex-col gap-3', className)}>
     <div className="flex h-8 items-center justify-between gap-4">
       <h2 className="text-lead font-medium">{title}</h2>
       {action}
@@ -203,6 +209,18 @@ const SYNC_LABEL = {
   error: 'Sync error',
 } as const
 
+/** Clock time the worker tries again, e.g. "14:30" (or "Mon 14:30" past today). */
+const retryTime = (date: Date | string) => {
+  const at = new Date(date)
+  const today = at.toDateString() === new Date().toDateString()
+
+  return new Intl.DateTimeFormat(undefined, {
+    ...(today ? {} : { weekday: 'short' }),
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(at)
+}
+
 function SteamLinkGroup({
   link,
   onAddEmail,
@@ -218,8 +236,12 @@ function SteamLinkGroup({
     onSuccess: () => queryClient.invalidateQueries(),
   })
 
+  // Steam throttling the API is temporary and nothing the user can fix: shown as a wait, not an error.
+  const rateLimited = link.lastError === 'rate_limited'
   const syncTone =
-    link.syncState === 'needs_auth' || link.syncState === 'error' ? 'danger' : 'neutral'
+    !rateLimited && (link.syncState === 'needs_auth' || link.syncState === 'error')
+      ? 'danger'
+      : 'neutral'
   const lastSignIn =
     unlink.error instanceof ApiError && unlink.error.message === 'last_sign_in_method'
 
@@ -268,10 +290,21 @@ function SteamLinkGroup({
           description={
             link.hasMatchAuth ? (
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <Badge tone={syncTone}>{SYNC_LABEL[link.syncState]}</Badge>
+                <Badge tone={syncTone}>
+                  {rateLimited ? 'Waiting on Steam' : SYNC_LABEL[link.syncState]}
+                </Badge>
                 {link.lastSyncedAt && `checked ${timeAgo(link.lastSyncedAt)}`}
-                {link.lastError && (
-                  <span className="text-danger select-text">{link.lastError}</span>
+                {rateLimited ? (
+                  <span>
+                    Steam is limiting requests.{' '}
+                    {link.nextSyncAt
+                      ? `Trying again at ${retryTime(link.nextSyncAt)}`
+                      : 'Trying again soon'}
+                  </span>
+                ) : (
+                  link.lastError && (
+                    <span className="text-danger select-text">{link.lastError}</span>
+                  )
                 )}
               </span>
             ) : (
@@ -324,7 +357,7 @@ function DeleteAccountDialog() {
     error &&
     (error.code === 'SESSION_EXPIRED'
       ? 'For your safety, sign out and sign back in, then delete your account within a day'
-      : error.message || 'Could not delete your account. Please try again')
+      : error.message || 'Couldn’t delete your account. Check your connection and try again')
 
   return (
     <Dialog.Root
@@ -342,7 +375,7 @@ function DeleteAccountDialog() {
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
           <Dialog.Title className="text-title font-medium">Delete your account?</Dialog.Title>
           <Dialog.Description className="mt-2 text-body text-muted">
             Your account, its linked Steam accounts and your place in their matches are removed for

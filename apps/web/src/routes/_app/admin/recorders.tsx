@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { useCopied } from '@/lib/use-copied'
 
 export const Route = createFileRoute('/_app/admin/recorders')({
+  head: () => ({ meta: [{ title: 'Recorders · Admin · subtick' }] }),
   loader: ({ context }) => context.queryClient.prefetchQuery(recordersQuery),
   component: RecordersPage,
 })

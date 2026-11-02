@@ -72,6 +72,8 @@ export const meRoutes = (ctx: Context) => {
             syncState: link.syncState,
             lastError: link.lastError,
             lastSyncedAt: link.lastSyncedAt,
+            /** When the worker tries again; shown while it waits out a rate limit. */
+            nextSyncAt: link.nextSyncAt,
             lastShareCode: link.lastShareCode,
             hasMatchAuth: link.authCode !== null && link.lastShareCode !== null,
           })),

@@ -7,6 +7,7 @@ import { clipListSearch } from '@/lib/highlights'
 import { recentMatchesQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/')({
+  head: () => ({ meta: [{ title: 'Highlights · subtick' }] }),
   validateSearch: clipListSearch,
   component: HighlightsPage,
 })

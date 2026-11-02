@@ -30,7 +30,8 @@ export const Tooltip = ({
             className={cn(
               'max-w-72 origin-(--transform-origin) rounded-lg border bg-surface px-2.5 py-1.5 text-label shadow-xl shadow-black/20',
               'transition-[scale,opacity] duration-150 ease-out-quart',
-              'data-ending-style:scale-[0.97] data-ending-style:opacity-0 data-starting-style:scale-[0.97] data-starting-style:opacity-0',
+              'data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
+              'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
               // Following the pointer between triggers, it moves instead of popping out and in.
               'data-instant:transition-none',
               className,

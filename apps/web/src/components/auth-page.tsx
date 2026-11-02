@@ -45,7 +45,7 @@ const describeError = (error: { code?: string; message?: string }): Errors => {
   const field = match?.[1] as FieldName | undefined
   if (field && field in FIELD_PROBLEM) return { [field]: FIELD_PROBLEM[field] }
 
-  return { form: error.message || 'Something went wrong. Please try again' }
+  return { form: error.message || 'Couldn’t reach subtick. Check your connection and try again' }
 }
 
 /** A piece that morphs between the two screens; styles.css times the `auth` class. */
@@ -153,7 +153,7 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
                 >
                   <Input
                     name="name"
-                    placeholder="Enter your name"
+                    placeholder="Alex"
                     required
                     autoComplete="nickname"
                     className="h-11"
@@ -171,7 +171,7 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
                 <Input
                   name="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
                   required
                   autoComplete="email"
                   className="h-11"

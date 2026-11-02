@@ -30,7 +30,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
         throw new Error(
           ERRORS[error.message ?? ''] ??
             (error.status === 429 ? 'Too many tries. Wait a minute' : error.message) ??
-            'Something went wrong. Please try again',
+            'Couldn’t reach subtick. Check your connection and try again',
         )
       }
 

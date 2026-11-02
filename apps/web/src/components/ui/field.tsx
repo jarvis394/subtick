@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export const inputClass = cn(
   'h-10 w-full rounded-control border border-border-strong bg-surface px-3 text-lead text-foreground select-text',
   'placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-150',
-  'focus:border-accent focus:ring-3 focus:ring-ring/40 data-invalid:border-danger',
+  'focus:border-accent focus:ring-3 focus:ring-ring/20 data-invalid:border-danger',
   // Invalid stays red while focused, ring included.
   'data-invalid:focus:border-danger data-invalid:focus:ring-danger/30',
 )

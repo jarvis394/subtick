@@ -26,6 +26,7 @@ import { type QueueItem, matchQuery, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/queue')({
+  head: () => ({ meta: [{ title: 'Queue · subtick' }] }),
   loader: ({ context }) => void context.queryClient.prefetchQuery(queueQuery),
   component: QueuePage,
 })
