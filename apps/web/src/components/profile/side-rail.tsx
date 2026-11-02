@@ -1,7 +1,7 @@
 import { CROSSHAIR_STYLES, decodeCrosshair, mapName } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import { Check, Copy, ExternalLink } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import type { ReactNode } from 'react'
 import { mapPreviewUrl } from '@/components/map-icon'
 import { RankBadge } from '@/components/rank-badge'
 import { SteamIcon } from '@/components/steam-icon'
@@ -10,6 +10,7 @@ import { MorphLabel } from '@/components/ui/morph-label'
 import { Card } from '@/components/ui/surface'
 import { Tooltip } from '@/components/ui/tooltip'
 import { timeAgo } from '@/lib/format'
+import { useCopied } from '@/lib/use-copied'
 import type { Player } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { CrosshairPreview } from './crosshair-preview'
@@ -84,28 +85,36 @@ export const RanksCard = ({ ranks }: { ranks: Player['ranks'] }) => {
 
 /** The crosshair over the map it was last used on, zoomed in, with its code to copy. */
 export const CrosshairCard = ({ crosshair }: { crosshair: Player['crosshair'] }) => {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopied()
   const decoded = crosshair ? decodeCrosshair(crosshair.code) : null
   if (!crosshair || !decoded) return null
   const preview = mapPreviewUrl(crosshair.map)
-
-  const copy = async () => {
-    await navigator.clipboard.writeText(crosshair.code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1600)
-  }
 
   return (
     <RailCard
       title="Crosshair"
       action={
-        <Button size="xs" variant="ghost" onClick={copy} aria-live="polite">
-          {copied ? <Check /> : <Copy />}
+        <Button size="xs" variant="ghost" onClick={() => copy(crosshair.code)} aria-live="polite">
+          {/* Both icons stacked, crossfading like the label beside them. */}
+          <span className="grid place-items-center *:col-start-1 *:row-start-1">
+            <Copy
+              className={cn(
+                'transition-[opacity,scale] duration-150 ease-out',
+                copied && 'scale-75 opacity-0',
+              )}
+            />
+            <Check
+              className={cn(
+                'text-success transition-[opacity,scale] duration-150 ease-out',
+                !copied && 'scale-75 opacity-0',
+              )}
+            />
+          </span>
           <MorphLabel>{copied ? 'Copied' : 'Copy code'}</MorphLabel>
         </Button>
       }
     >
-      <div className="relative grid aspect-[16/10] place-items-center overflow-hidden rounded-xl bg-neutral-800">
+      <div className="relative grid aspect-[2/1] place-items-center overflow-hidden rounded-xl bg-neutral-800">
         {preview && (
           // Darkened and soft so any crosshair color reads against it, as it would in game.
           <img
@@ -202,16 +211,28 @@ export const SteamCard = ({ player }: { player: Player }) => (
       </Button>
     }
   >
-    <div className="flex items-center gap-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
-        <SteamIcon className="size-4.5" />
+    <Button
+      variant="ghost"
+      render={
+        <a
+          href={`https://steamcommunity.com/profiles/${player.steamId}`}
+          target="_blank"
+          rel="noreferrer"
+        />
+      }
+      className="-mx-2 h-auto w-[calc(100%+1rem)] justify-start gap-3 px-2 py-1.5 text-left font-normal [&_svg]:size-4.5"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-foreground">
+        <SteamIcon />
       </span>
-      <div className="min-w-0">
-        <p className="truncate text-body font-medium">{player.personaName ?? player.name}</p>
-        <p className="font-mono text-label text-muted select-all">{player.steamId}</p>
-      </div>
-    </div>
-    <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-body">
+      <span className="min-w-0">
+        <span className="block truncate text-body font-medium text-foreground">
+          {player.personaName ?? player.name}
+        </span>
+        <span className="block font-mono text-label text-muted">{player.steamId}</span>
+      </span>
+    </Button>
+    <dl className="mt-2.5 grid grid-cols-2 gap-3 border-t pt-3 text-body">
       <div>
         <dt className="text-label text-muted">Last match</dt>
         <dd className="mt-0.5">{player.lastMatchAt ? timeAgo(player.lastMatchAt) : '–'}</dd>

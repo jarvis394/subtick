@@ -1,28 +1,8 @@
 import { Check, Link2, Share2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import { Button, IconButton } from '@/components/ui/button'
 import { MorphLabel } from '@/components/ui/morph-label'
+import { useCopied } from '@/lib/use-copied'
 import { cn } from '@/lib/utils'
-
-/** How long a copy confirms itself before going back. */
-const COPIED_MS = 1500
-
-/** Says "copied" for a moment after `copy()`; the timer restarts on every copy. */
-const useCopied = () => {
-  const [copied, setCopied] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- clears the pending "copied" timer on unmount
-  useEffect(() => () => clearTimeout(timer.current), [])
-
-  const copy = (text: string) => {
-    void navigator.clipboard.writeText(text)
-    setCopied(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), COPIED_MS)
-  }
-
-  return { copied, copy }
-}
 
 /**
  * Share (the system share sheet where there is one, otherwise a copy) and a copy-link icon button

@@ -10,6 +10,7 @@ import { type AdminRecorder, recordersQuery } from '@/lib/admin'
 import { api, unwrap } from '@/lib/api'
 import { timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { useCopied } from '@/lib/use-copied'
 
 export const Route = createFileRoute('/_app/admin/recorders')({
   loader: ({ context }) => context.queryClient.prefetchQuery(recordersQuery),
@@ -122,18 +123,10 @@ function AddRecorderForm({
 }
 
 const CopyButton = ({ text }: { text: string }) => {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopied()
 
   return (
-    <Button
-      size="sm"
-      variant="secondary"
-      onClick={async () => {
-        await navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      }}
-    >
+    <Button size="sm" variant="secondary" onClick={() => copy(text)}>
       {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
     </Button>
   )
