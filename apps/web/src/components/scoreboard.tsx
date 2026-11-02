@@ -487,6 +487,7 @@ export const Scoreboard = memo(function Scoreboard({
                             <PartyMarker marker={parties.get(p.steamId)} />
                             <PlayerAvatarLink
                               steamId={p.steamId}
+                              vanity={p.vanity}
                               src={p.avatarUrl}
                               name={p.name}
                               className="size-7"
@@ -497,6 +498,7 @@ export const Scoreboard = memo(function Scoreboard({
                           <div className={block(NAME, false, 'min-w-0 gap-2 pr-2.5 pl-3 md:pl-0')}>
                             <PlayerLink
                               steamId={p.steamId}
+                              vanity={p.vanity}
                               className="truncate font-medium hover:text-foreground/80"
                             >
                               {p.name}

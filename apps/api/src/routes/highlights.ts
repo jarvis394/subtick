@@ -53,6 +53,7 @@ export const highlightRoutes = (ctx: Context) => {
       player: {
         name: row.playerName,
         avatarUrl: profiles.get(row.highlight.steamId)?.avatarUrl ?? null,
+        vanity: profiles.get(row.highlight.steamId)?.vanity ?? null,
       },
     }))
   }

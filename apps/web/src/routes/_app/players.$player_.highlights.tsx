@@ -2,26 +2,27 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { HighlightsFeed } from '@/components/highlights-feed'
+import { playerSlug } from '@/components/player-link'
 import { Avatar } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/surface'
 import { clipListSearch } from '@/lib/highlights'
 import { playerQuery } from '@/lib/queries'
 
 /** The highlights page, for one player. */
-export const Route = createFileRoute('/_app/players/$steamId_/highlights')({
+export const Route = createFileRoute('/_app/players/$player_/highlights')({
   validateSearch: clipListSearch,
   component: PlayerHighlightsPage,
 })
 
 function PlayerHighlightsPage() {
-  const { steamId } = Route.useParams()
-  const player = useQuery(playerQuery(steamId))
+  const params = Route.useParams()
+  const player = useQuery(playerQuery(params.player))
 
   return (
     <div>
       <Link
-        to="/players/$steamId"
-        params={{ steamId }}
+        to="/players/$player"
+        params={{ player: player.data ? playerSlug(player.data) : params.player }}
         className="mb-4 inline-flex items-center gap-1 text-body text-muted hover:text-foreground"
       >
         <ArrowLeft className="size-4" /> Profile
@@ -36,7 +37,7 @@ function PlayerHighlightsPage() {
           {player.data ? `${player.data.name}’s highlights` : 'Highlights'}
         </h1>
       </div>
-      <HighlightsFeed steamId={steamId} />
+      {player.data && <HighlightsFeed steamId={player.data.steamId} />}
     </div>
   )
 }

@@ -31,6 +31,7 @@ type ClipCardData = Pick<
 export interface HighlightPlayer {
   name: string
   avatarUrl: string | null
+  vanity?: string | null
 }
 
 /** Kinds rare enough to stand out in the feed: their badge is black on white. */
@@ -177,6 +178,7 @@ export const HighlightCard = memo(
         <div className="mt-3 flex gap-3">
           <PlayerAvatarLink
             steamId={highlight.steamId}
+            vanity={player.vanity}
             src={player.avatarUrl}
             name={player.name}
             className="mt-0.5 size-8"
@@ -190,6 +192,7 @@ export const HighlightCard = memo(
             <p className="mt-0.5 truncate text-small text-muted">
               <PlayerLink
                 steamId={highlight.steamId}
+                vanity={player.vanity}
                 className="text-foreground/80 hover:text-foreground"
               >
                 {player.name}

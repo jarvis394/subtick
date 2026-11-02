@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { FadeImage } from '@/components/ui/fade-image'
 import { GeneratedBanner } from '@/components/profile/generated-banner'
 import type { Player } from '@/lib/queries'
+import { playerSlug } from '@/components/player-link'
 
 export const ProfileBanner = ({ player }: { player: Player }) => (
   // Edge to edge and flush with the top on phones.
@@ -51,7 +52,7 @@ export const ProfileIdentity = ({ player }: { player: Player }) => {
         <div className="mt-1.5 flex items-center gap-1.5">
           <ShareActions
             quiet
-            url={`${window.location.origin}/players/${player.steamId}`}
+            url={`${window.location.origin}/players/${playerSlug(player)}`}
             title={`${player.name} on subtick`}
           />
           {player.isMe && (

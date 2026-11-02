@@ -9,6 +9,7 @@ import {
   imageUrl,
   replaceImage,
 } from '../services/profile-images'
+import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
 const ProfileBody = z.object({
@@ -44,6 +45,10 @@ export const meRoutes = (ctx: Context) => {
             .where(eq(schema.user.id, user.id)),
         ])
         const uploadedAvatar = imageUrl(ctx, row?.avatarKey ?? null)
+        const profiles = await getProfiles(
+          ctx,
+          links.map((link) => link.steamId),
+        )
 
         return {
           user: {
@@ -61,6 +66,7 @@ export const meRoutes = (ctx: Context) => {
           },
           steamLinks: links.map((link) => ({
             steamId: link.steamId,
+            vanity: profiles.get(link.steamId)?.vanity ?? null,
             personaName: link.personaName,
             avatarUrl: link.avatarUrl,
             syncState: link.syncState,

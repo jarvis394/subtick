@@ -9,6 +9,7 @@ import { api, unwrap } from '@/lib/api'
 import type { Me } from '@/lib/queries'
 import { EditableImage } from './editable-image'
 import { UPLOAD_LIMITS, invalidateProfile, useRemoveImage } from './use-image-upload'
+import { playerSlug } from '@/components/player-link'
 
 const Row = ({
   label,
@@ -84,7 +85,7 @@ export const ProfileSection = ({ me }: { me: Me }) => {
           <Button
             size="sm"
             variant="ghost"
-            render={<Link to="/players/$steamId" params={{ steamId: steam.steamId }} />}
+            render={<Link to="/players/$player" params={{ player: playerSlug(steam) }} />}
           >
             View profile
           </Button>

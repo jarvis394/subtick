@@ -1,4 +1,5 @@
 import { STEAM_SYNC_STATES } from '@subtick/domain'
+import { sql } from 'drizzle-orm'
 import { index, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { user } from './auth'
 
@@ -30,9 +31,15 @@ export const steamLink = pgTable(
  * Public Steam profile of any player seen in a match (not only subtick users), for names and
  * avatars. Filled lazily by the api and refreshed when stale.
  */
-export const steamProfile = pgTable('steam_profile', {
-  steamId: text().primaryKey(),
-  personaName: text().notNull(),
-  avatarUrl: text(),
-  fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-})
+export const steamProfile = pgTable(
+  'steam_profile',
+  {
+    steamId: text().primaryKey(),
+    personaName: text().notNull(),
+    avatarUrl: text(),
+    /** steamcommunity.com/id/<vanity>; profile URLs use it in place of the Steam ID. */
+    vanity: text(),
+    fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('steam_profile_vanity_lower_idx').on(sql`lower(${t.vanity})`)],
+)

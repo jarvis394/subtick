@@ -13,7 +13,7 @@ import {
   summarize,
   teammates,
 } from '../services/player-stats'
-import { getProfiles } from '../services/profiles'
+import { getProfiles, resolvePlayer } from '../services/profiles'
 import { authGuard } from './guard'
 
 const { match, matchPlayer, highlight, steamLink } = schema
@@ -25,6 +25,8 @@ const PAGE_SIZE = 20
 
 const playedAt = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`.mapWith(match.createdAt)
 const SteamIdParams = z.object({ steamId: z.string().regex(/^\d{17}$/) })
+/** A Steam ID or a Steam vanity name (2–32 letters, digits, _ and -). */
+const PlayerParams = z.object({ steamId: z.string().regex(/^(\d{17}|[\w-]{2,32})$/) })
 
 /** Any player seen in a match has a profile, subtick user or not; profiles are shared like clips. */
 export const playerRoutes = (ctx: Context) => {
@@ -55,7 +57,10 @@ export const playerRoutes = (ctx: Context) => {
     .use(authGuard(auth))
     .get(
       '/:steamId',
-      async ({ user, params: { steamId }, status }) => {
+      async ({ user, params, status }) => {
+        const steamId = await resolvePlayer(ctx, params.steamId)
+        if (!steamId) return status(404, { error: 'not_found' as const })
+
         const [rows, identities, [link]] = await Promise.all([
           history(steamId),
           subtickIdentities(ctx, [steamId]),
@@ -108,6 +113,8 @@ export const playerRoutes = (ctx: Context) => {
 
         return {
           steamId,
+          /** Profile URLs use it in place of the Steam ID. */
+          vanity: steam?.vanity ?? null,
           isMe: identity?.userId === user.id,
           /** The subtick display name; otherwise Steam's, or the last in-game name. */
           name: identity?.name ?? steam?.personaName ?? rows[0]?.name ?? steamId,
@@ -143,6 +150,7 @@ export const playerRoutes = (ctx: Context) => {
               ...t,
               name: mate?.name ?? profile?.personaName ?? t.name,
               avatarUrl: imageUrl(ctx, mate?.avatarKey ?? null) ?? profile?.avatarUrl ?? null,
+              vanity: profile?.vanity ?? null,
             }
           }),
           crosshair: withCrosshair && {
@@ -153,7 +161,7 @@ export const playerRoutes = (ctx: Context) => {
           },
         }
       },
-      { auth: true, params: SteamIdParams },
+      { auth: true, params: PlayerParams },
     )
     .get(
       '/:steamId/matches',

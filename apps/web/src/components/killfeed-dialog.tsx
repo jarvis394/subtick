@@ -220,6 +220,7 @@ export const KillfeedDialog = ({
             <div className="flex min-w-0 items-center gap-3">
               <PlayerAvatarLink
                 steamId={moment.steamId}
+                vanity={player.vanity}
                 src={player.avatarUrl}
                 name={player.name}
                 className="size-10"
@@ -231,6 +232,7 @@ export const KillfeedDialog = ({
                 <Dialog.Description className="mt-0.5 truncate text-small text-muted">
                   <PlayerLink
                     steamId={moment.steamId}
+                    vanity={player.vanity}
                     className="text-foreground/80 hover:text-foreground"
                   >
                     {player.name}

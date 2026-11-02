@@ -3,6 +3,7 @@ import { Users } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import type { Player } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { playerSlug } from '@/components/player-link'
 
 const GRID =
   'grid grid-cols-[minmax(0,1fr)_3.5rem_4rem] items-center gap-x-3 px-4 md:grid-cols-[minmax(0,1fr)_5rem_6rem_6rem_6rem] md:px-5'
@@ -33,8 +34,8 @@ export const TeammatesTab = ({ player }: { player: Player }) => {
       {player.teammates.map((t) => (
         <Link
           key={t.steamId}
-          to="/players/$steamId"
-          params={{ steamId: t.steamId }}
+          to="/players/$player"
+          params={{ player: playerSlug(t) }}
           className={cn(
             GRID,
             'h-14 border-b text-body tabular-nums outline-none last:border-0',

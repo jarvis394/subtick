@@ -31,7 +31,11 @@ export const queueRecording = (queryClient: QueryClient, matchId: string, moment
     phase: null,
     progress: null,
     steamId: h.steamId,
-    player: { name: player?.name ?? 'Unknown', avatarUrl: player?.avatarUrl ?? null },
+    player: {
+      name: player?.name ?? 'Unknown',
+      avatarUrl: player?.avatarUrl ?? null,
+      vanity: player?.vanity ?? null,
+    },
     requester: { id: me.user.id, name: me.user.name, image: me.user.image, isViewer: true },
     canCancel: true,
   }

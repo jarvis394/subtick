@@ -48,6 +48,7 @@ import {
 import { isSetUp } from '@/lib/setup'
 import { clearStoredMe } from '@/lib/stored-me'
 import { cn } from '@/lib/utils'
+import { playerSlug } from '@/components/player-link'
 
 /**
  * Geometry is identical expanded and collapsed: the sidebar keeps its full-width layout and the
@@ -361,7 +362,7 @@ export const SidebarContent = ({
   const notice = useRefreshNotice(refresh)
 
   const avatar = me.user.avatarUrl
-  const ownSteamId = me.steamLinks[0]?.steamId
+  const ownSteamLink = me.steamLinks[0]
   const subtitle = me.user.email.endsWith('@steam.invalid') ? 'Steam account' : me.user.email
 
   const signOut = async () => {
@@ -578,14 +579,14 @@ export const SidebarContent = ({
                     <Server /> Manage instance
                   </Menu.Item>
                 )}
-                {ownSteamId && (
+                {ownSteamLink && (
                   <Menu.Item
                     className={menuItemClass}
                     onClick={() => {
                       onNavigate?.()
                       void navigate({
-                        to: '/players/$steamId',
-                        params: { steamId: ownSteamId },
+                        to: '/players/$player',
+                        params: { player: playerSlug(ownSteamLink) },
                         viewTransition,
                       })
                     }}

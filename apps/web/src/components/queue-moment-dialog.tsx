@@ -42,7 +42,11 @@ export const QueueMomentDialog = ({
       onClosed={() => setShown(null)}
       match={data}
       moment={moment}
-      player={{ name: owner?.name ?? 'Unknown', avatarUrl: owner?.avatarUrl ?? null }}
+      player={{
+        name: owner?.name ?? 'Unknown',
+        avatarUrl: owner?.avatarUrl ?? null,
+        vanity: owner?.vanity ?? null,
+      }}
       subtitle={momentDetails(moment)}
       notice={moment.status === 'failed' && <FailureNote error={moment.error} />}
       footer={

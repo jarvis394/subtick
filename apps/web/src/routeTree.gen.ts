@@ -24,9 +24,9 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppClipsIdRouteImport } from './routes/_app/clips.$id'
 import { Route as AppMatchesIndexRouteImport } from './routes/_app/matches.index'
 import { Route as AppMatchesIdRouteImport } from './routes/_app/matches.$id'
-import { Route as AppPlayersSteamIdRouteImport } from './routes/_app/players.$steamId'
+import { Route as AppPlayersPlayerRouteImport } from './routes/_app/players.$player'
 import { Route as AppMatchesIdCreateRouteImport } from './routes/_app/matches_.$id.create'
-import { Route as AppPlayersSteamIdHighlightsRouteImport } from './routes/_app/players.$steamId_.highlights'
+import { Route as AppPlayersPlayerHighlightsRouteImport } from './routes/_app/players.$player_.highlights'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -102,9 +102,9 @@ const AppMatchesIdRoute = AppMatchesIdRouteImport.update({
   path: '/matches/$id',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPlayersSteamIdRoute = AppPlayersSteamIdRouteImport.update({
-  id: '/players/$steamId',
-  path: '/players/$steamId',
+const AppPlayersPlayerRoute = AppPlayersPlayerRouteImport.update({
+  id: '/players/$player',
+  path: '/players/$player',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMatchesIdCreateRoute = AppMatchesIdCreateRouteImport.update({
@@ -112,10 +112,10 @@ const AppMatchesIdCreateRoute = AppMatchesIdCreateRouteImport.update({
   path: '/matches/$id/create',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPlayersSteamIdHighlightsRoute =
-  AppPlayersSteamIdHighlightsRouteImport.update({
-    id: '/players/$steamId_/highlights',
-    path: '/players/$steamId/highlights',
+const AppPlayersPlayerHighlightsRoute =
+  AppPlayersPlayerHighlightsRouteImport.update({
+    id: '/players/$player_/highlights',
+    path: '/players/$player/highlights',
     getParentRoute: () => AppRoute,
   } as any)
 
@@ -132,11 +132,11 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
-  '/players/$steamId': typeof AppPlayersSteamIdRoute
+  '/players/$player': typeof AppPlayersPlayerRoute
   '/admin/': typeof AppAdminIndexRoute
   '/matches/': typeof AppMatchesIndexRoute
   '/matches/$id/create': typeof AppMatchesIdCreateRoute
-  '/players/$steamId/highlights': typeof AppPlayersSteamIdHighlightsRoute
+  '/players/$player/highlights': typeof AppPlayersPlayerHighlightsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -150,11 +150,11 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AppAdminUsersRoute
   '/clips/$id': typeof AppClipsIdRoute
   '/matches/$id': typeof AppMatchesIdRoute
-  '/players/$steamId': typeof AppPlayersSteamIdRoute
+  '/players/$player': typeof AppPlayersPlayerRoute
   '/admin': typeof AppAdminIndexRoute
   '/matches': typeof AppMatchesIndexRoute
   '/matches/$id/create': typeof AppMatchesIdCreateRoute
-  '/players/$steamId/highlights': typeof AppPlayersSteamIdHighlightsRoute
+  '/players/$player/highlights': typeof AppPlayersPlayerHighlightsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,11 +171,11 @@ export interface FileRoutesById {
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/clips/$id': typeof AppClipsIdRoute
   '/_app/matches/$id': typeof AppMatchesIdRoute
-  '/_app/players/$steamId': typeof AppPlayersSteamIdRoute
+  '/_app/players/$player': typeof AppPlayersPlayerRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/matches/': typeof AppMatchesIndexRoute
   '/_app/matches_/$id/create': typeof AppMatchesIdCreateRoute
-  '/_app/players/$steamId_/highlights': typeof AppPlayersSteamIdHighlightsRoute
+  '/_app/players/$player_/highlights': typeof AppPlayersPlayerHighlightsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,11 +192,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
-    | '/players/$steamId'
+    | '/players/$player'
     | '/admin/'
     | '/matches/'
     | '/matches/$id/create'
-    | '/players/$steamId/highlights'
+    | '/players/$player/highlights'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -210,11 +210,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/clips/$id'
     | '/matches/$id'
-    | '/players/$steamId'
+    | '/players/$player'
     | '/admin'
     | '/matches'
     | '/matches/$id/create'
-    | '/players/$steamId/highlights'
+    | '/players/$player/highlights'
   id:
     | '__root__'
     | '/_app'
@@ -230,11 +230,11 @@ export interface FileRouteTypes {
     | '/_app/admin/users'
     | '/_app/clips/$id'
     | '/_app/matches/$id'
-    | '/_app/players/$steamId'
+    | '/_app/players/$player'
     | '/_app/admin/'
     | '/_app/matches/'
     | '/_app/matches_/$id/create'
-    | '/_app/players/$steamId_/highlights'
+    | '/_app/players/$player_/highlights'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -350,11 +350,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMatchesIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/players/$steamId': {
-      id: '/_app/players/$steamId'
-      path: '/players/$steamId'
-      fullPath: '/players/$steamId'
-      preLoaderRoute: typeof AppPlayersSteamIdRouteImport
+    '/_app/players/$player': {
+      id: '/_app/players/$player'
+      path: '/players/$player'
+      fullPath: '/players/$player'
+      preLoaderRoute: typeof AppPlayersPlayerRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/matches_/$id/create': {
@@ -364,11 +364,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMatchesIdCreateRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/players/$steamId_/highlights': {
-      id: '/_app/players/$steamId_/highlights'
-      path: '/players/$steamId/highlights'
-      fullPath: '/players/$steamId/highlights'
-      preLoaderRoute: typeof AppPlayersSteamIdHighlightsRouteImport
+    '/_app/players/$player_/highlights': {
+      id: '/_app/players/$player_/highlights'
+      path: '/players/$player/highlights'
+      fullPath: '/players/$player/highlights'
+      preLoaderRoute: typeof AppPlayersPlayerHighlightsRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -400,10 +400,10 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppClipsIdRoute: typeof AppClipsIdRoute
   AppMatchesIdRoute: typeof AppMatchesIdRoute
-  AppPlayersSteamIdRoute: typeof AppPlayersSteamIdRoute
+  AppPlayersPlayerRoute: typeof AppPlayersPlayerRoute
   AppMatchesIndexRoute: typeof AppMatchesIndexRoute
   AppMatchesIdCreateRoute: typeof AppMatchesIdCreateRoute
-  AppPlayersSteamIdHighlightsRoute: typeof AppPlayersSteamIdHighlightsRoute
+  AppPlayersPlayerHighlightsRoute: typeof AppPlayersPlayerHighlightsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -414,10 +414,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppClipsIdRoute: AppClipsIdRoute,
   AppMatchesIdRoute: AppMatchesIdRoute,
-  AppPlayersSteamIdRoute: AppPlayersSteamIdRoute,
+  AppPlayersPlayerRoute: AppPlayersPlayerRoute,
   AppMatchesIndexRoute: AppMatchesIndexRoute,
   AppMatchesIdCreateRoute: AppMatchesIdCreateRoute,
-  AppPlayersSteamIdHighlightsRoute: AppPlayersSteamIdHighlightsRoute,
+  AppPlayersPlayerHighlightsRoute: AppPlayersPlayerHighlightsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

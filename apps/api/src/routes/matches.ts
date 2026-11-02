@@ -160,6 +160,7 @@ export const matchRoutes = (ctx: Context) => {
           players: partied.map((p) => ({
             ...p,
             avatarUrl: profiles.get(p.steamId)?.avatarUrl ?? null,
+            vanity: profiles.get(p.steamId)?.vanity ?? null,
           })),
           rounds,
           kills,

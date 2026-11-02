@@ -256,6 +256,7 @@ export const listQueue = async (
         player: {
           name: playerName ?? 'Unknown',
           avatarUrl: profiles.get(h.steamId)?.avatarUrl ?? null,
+          vanity: profiles.get(h.steamId)?.vanity ?? null,
         },
         /** Who asked for it; null when subtick queued it itself. */
         requester: requester?.id

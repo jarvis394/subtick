@@ -10,6 +10,8 @@ export interface SteamProfile {
   steamId: string
   personaName: string
   avatarUrl: string | null
+  /** The custom part of steamcommunity.com/id/<vanity>, when the player set one. */
+  vanity: string | null
 }
 
 export type NextShareCodeResult =
@@ -33,7 +35,12 @@ export class SteamApiError extends Error {
 const PlayerSummaries = z.object({
   response: z.object({
     players: z.array(
-      z.object({ steamid: z.string(), personaname: z.string(), avatarfull: z.string().optional() }),
+      z.object({
+        steamid: z.string(),
+        personaname: z.string(),
+        avatarfull: z.string().optional(),
+        profileurl: z.string().optional(),
+      }),
     ),
   }),
 })
@@ -41,6 +48,13 @@ const PlayerSummaries = z.object({
 const FriendList = z.object({
   friendslist: z.object({ friends: z.array(z.object({ steamid: z.string() })) }),
 })
+
+/** success 1 = found; 42 = no profile has this vanity URL. */
+const ResolveVanityUrl = z.object({
+  response: z.object({ success: z.number(), steamid: z.string().optional() }),
+})
+
+const vanityOf = (profileUrl?: string) => profileUrl?.match(/\/id\/([^/]+)\/?$/)?.[1] ?? null
 
 const NextMatchSharingCode = z.object({ result: z.object({ nextcode: z.string() }) })
 
@@ -69,6 +83,7 @@ export const createSteamWebApi = (apiKey: string) => {
       steamId: player.steamid,
       personaName: player.personaname,
       avatarUrl: player.avatarfull ?? null,
+      vanity: vanityOf(player.profileurl),
     }))
   }
 
@@ -79,6 +94,16 @@ export const createSteamWebApi = (apiKey: string) => {
       const [profile] = await getProfiles([steamId])
 
       return profile ?? null
+    },
+
+    /** The Steam ID behind a steamcommunity.com/id/<vanity> URL, or null when none has it. */
+    async resolveVanity(vanity: string): Promise<string | null> {
+      const endpoint = '/ISteamUser/ResolveVanityURL/v1/'
+      const response = await get(endpoint, { vanityurl: vanity })
+      if (!response.ok) throw new SteamApiError(endpoint, response.status)
+      const { success, steamid } = ResolveVanityUrl.parse(await response.json()).response
+
+      return success === 1 ? (steamid ?? null) : null
     },
 
     /** A player's Steam friends, or null when their friend list is private. */

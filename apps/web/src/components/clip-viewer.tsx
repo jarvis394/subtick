@@ -21,6 +21,7 @@ import { clipLength, formatDate, timeAgo } from '@/lib/format'
 import { KIND_LABEL, tagSummary } from '@/lib/highlights'
 import { type Clip, clipQuery, clipsQuery, matchQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { playerSlug } from '@/components/player-link'
 
 /**
  * What the reel beside the player lists: one match's clips (best first), or the highlights feed
@@ -55,6 +56,7 @@ const useReel = (source: ReelSource) => {
       player: {
         name: players.get(h.steamId)?.name ?? 'Unknown',
         avatarUrl: players.get(h.steamId)?.avatarUrl ?? null,
+        vanity: players.get(h.steamId)?.vanity ?? null,
       },
     }))
 
@@ -375,7 +377,13 @@ const Player = ({
             variant="ghost"
             size="sm"
             render={
-              <Link to="/players/$steamId" params={{ steamId: clip.steamId }} onClick={onClose} />
+              <Link
+                to="/players/$player"
+                params={{
+                  player: playerSlug({ steamId: clip.steamId, vanity: clip.player.vanity }),
+                }}
+                onClick={onClose}
+              />
             }
             className="-ml-1.5 min-w-0 pl-1.5 text-lead font-medium text-foreground"
           >

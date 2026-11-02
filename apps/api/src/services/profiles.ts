@@ -1,4 +1,4 @@
-import { inArray, schema, sql } from '@subtick/db'
+import { eq, inArray, schema, sql } from '@subtick/db'
 import type { Context } from '../context'
 
 const STALE_MS = 7 * 24 * 3600 * 1000
@@ -6,6 +6,7 @@ const STALE_MS = 7 * 24 * 3600 * 1000
 export interface PlayerProfile {
   personaName: string
   avatarUrl: string | null
+  vanity: string | null
 }
 
 /**
@@ -42,6 +43,7 @@ export const getProfiles = async (
           set: {
             personaName: sql`excluded.persona_name`,
             avatarUrl: sql`excluded.avatar_url`,
+            vanity: sql`excluded.vanity`,
             fetchedAt: sql`excluded.fetched_at`,
           },
         })
@@ -52,4 +54,32 @@ export const getProfiles = async (
   }
 
   return profiles
+}
+
+/** A profile URL's player: a Steam ID as is, or a vanity looked up in the cache, then on Steam. */
+export const resolvePlayer = async (
+  ctx: Pick<Context, 'db' | 'steamApi' | 'log'>,
+  slug: string,
+): Promise<string | null> => {
+  if (/^\d{17}$/.test(slug)) return slug
+
+  const [cached] = await ctx.db
+    .select({ steamId: schema.steamProfile.steamId })
+    .from(schema.steamProfile)
+    .where(eq(sql`lower(${schema.steamProfile.vanity})`, slug.toLowerCase()))
+    .orderBy(sql`${schema.steamProfile.fetchedAt} desc`)
+    .limit(1)
+  if (cached) return cached.steamId
+
+  try {
+    const steamId = await ctx.steamApi.resolveVanity(slug)
+    // Cache the profile, so the next visit resolves without Steam.
+    if (steamId) await getProfiles(ctx, [steamId])
+
+    return steamId
+  } catch (error) {
+    ctx.log.warn({ slug }, 'steam vanity lookup failed', error)
+
+    return null
+  }
 }

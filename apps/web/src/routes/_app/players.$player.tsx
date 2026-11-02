@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { ErrorPage } from '@/components/error-page'
+import { playerSlug } from '@/components/player-link'
 import { MapsTab } from '@/components/profile/maps-tab'
 import { MatchesTab } from '@/components/profile/matches-tab'
 import { OverviewTab } from '@/components/profile/overview-tab'
@@ -24,11 +25,23 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]['id']
 
-export const Route = createFileRoute('/_app/players/$steamId')({
+export const Route = createFileRoute('/_app/players/$player')({
   validateSearch: clipViewerSearch.extend({
     tab: z.enum(TABS.map((t) => t.id) as [Tab, ...Tab[]]).optional(),
   }),
-  loader: ({ context, params }) => context.queryClient.prefetchQuery(playerQuery(params.steamId)),
+  // Profiles live at the vanity URL when there is one: swap a Steam ID (or a vanity in other casing) for it.
+  loader: async ({ context: { queryClient }, params }) => {
+    const player = await queryClient.ensureQueryData(playerQuery(params.player)).catch(() => null)
+    const slug = player && playerSlug(player)
+    if (!slug || slug === params.player) return
+    queryClient.setQueryData(playerQuery(slug).queryKey, player)
+    throw redirect({
+      to: '/players/$player',
+      params: { player: slug },
+      search: true,
+      replace: true,
+    })
+  },
   component: ProfilePage,
 })
 
@@ -43,10 +56,10 @@ const ProfileSkeleton = () => (
 )
 
 function ProfilePage() {
-  const { steamId } = Route.useParams()
+  const params = Route.useParams()
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
-  const player = useQuery(playerQuery(steamId))
+  const player = useQuery(playerQuery(params.player))
   const tab = search.tab ?? 'overview'
 
   if (player.isError)
@@ -89,7 +102,7 @@ function ProfilePage() {
               <OverviewTab player={p} />
             </TabsPanel>
             <TabsPanel value="matches">
-              <MatchesTab steamId={steamId} />
+              <MatchesTab steamId={p.steamId} />
             </TabsPanel>
             <TabsPanel value="maps">
               <MapsTab maps={p.maps} />
@@ -110,7 +123,7 @@ function ProfilePage() {
 
       <ClipViewerDialog
         clipId={search.clip}
-        source={{ kinds: [], steamId }}
+        source={{ kinds: [], steamId: p.steamId }}
         onSelect={(clip) =>
           navigate({
             search: (s) => ({ ...s, clip }),

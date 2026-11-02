@@ -1,3 +1,4 @@
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import { mapName } from '@subtick/domain'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -9,6 +10,7 @@ import { Skeleton } from '@/components/ui/surface'
 import { Tooltip } from '@/components/ui/tooltip'
 import { type Player, clipsQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { playerSlug } from '@/components/player-link'
 
 const ratingTone = (rating: number) =>
   rating >= 1.15 ? 'text-success' : rating < 0.85 ? 'text-danger' : undefined
@@ -38,58 +40,77 @@ const FormChart = ({ form }: { form: Player['form'] }) => {
   const height = 64
   const baseline = height - (1 / max) * height
 
+  // Like the scoreboard: the scroller bleeds 1rem into the page gutter (to the screen edge on
+  // phones), so bars scroll out past the content edge instead of being cut at it, and a Base UI
+  // scrollbar shows in padding below while hovered or scrolling.
   return (
-    <div className="-mx-1 overflow-x-auto px-1 pb-1">
-      <div
-        className="relative flex w-max min-w-full gap-1"
-        role="list"
-        aria-label="Rating by match"
-      >
-        <div
-          aria-hidden
-          className="absolute inset-x-0 border-t border-dashed border-border-strong"
-          style={{ top: baseline }}
-        />
-        {form.map((m) => (
+    <ScrollArea.Root className="relative -mx-4 data-has-overflow-x:pb-2">
+      <ScrollArea.Viewport className="overscroll-x-contain">
+        <ScrollArea.Content className="px-4 pt-1 pb-1">
           <div
-            key={m.matchId}
-            role="listitem"
-            className="flex min-w-8 flex-1 flex-col items-center"
+            className="relative flex w-max min-w-full gap-1"
+            role="list"
+            aria-label="Rating by match"
           >
-            <div className="flex h-16 w-full items-end">
-              <Tooltip
-                content={
-                  <span className="tabular-nums">
-                    {mapName(m.map)}, {m.rating.toFixed(2)}
-                    {m.result && <span className="text-muted"> · {RESULT[m.result]}</span>}
-                  </span>
-                }
-                trigger={
-                  <Link
-                    to="/matches/$id"
-                    params={{ id: m.matchId }}
-                    aria-label={`${mapName(m.map)}, rating ${m.rating.toFixed(2)}`}
-                    className={cn(
-                      'w-full rounded-[3px] outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring',
-                      m.result === 'win'
-                        ? 'bg-success/80'
-                        : m.result === 'loss'
-                          ? 'bg-danger/70'
-                          : 'bg-surface-3',
-                    )}
-                    style={{ height: `${Math.max((m.rating / max) * 100, 4)}%` }}
+            <div
+              aria-hidden
+              className="absolute inset-x-0 border-t border-dashed border-border-strong"
+              style={{ top: baseline }}
+            />
+            {form.map((m) => (
+              <div
+                key={m.matchId}
+                role="listitem"
+                className="flex min-w-8 flex-1 flex-col items-center"
+              >
+                <div className="flex h-16 w-full items-end">
+                  <Tooltip
+                    content={
+                      <span className="tabular-nums">
+                        {mapName(m.map)}, {m.rating.toFixed(2)}
+                        {m.result && <span className="text-muted"> · {RESULT[m.result]}</span>}
+                      </span>
+                    }
+                    trigger={
+                      <Link
+                        to="/matches/$id"
+                        params={{ id: m.matchId }}
+                        aria-label={`${mapName(m.map)}, rating ${m.rating.toFixed(2)}`}
+                        className={cn(
+                          'w-full rounded-[3px] outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring',
+                          m.result === 'win'
+                            ? 'bg-success/80'
+                            : m.result === 'loss'
+                              ? 'bg-danger/70'
+                              : 'bg-surface-3',
+                        )}
+                        style={{ height: `${Math.max((m.rating / max) * 100, 4)}%` }}
+                      />
+                    }
                   />
-                }
-              />
-            </div>
-            <MapIcon map={m.map} className="mt-2 size-4 rounded-sm text-micro" />
-            <span className={cn('mt-1 text-micro text-muted tabular-nums', ratingTone(m.rating))}>
-              {m.rating.toFixed(2)}
-            </span>
+                </div>
+                <MapIcon map={m.map} className="mt-2 size-4 rounded-sm text-micro" />
+                <span
+                  className={cn('mt-1 text-micro text-muted tabular-nums', ratingTone(m.rating))}
+                >
+                  {m.rating.toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </ScrollArea.Content>
+      </ScrollArea.Viewport>
+      <ScrollArea.Scrollbar
+        orientation="horizontal"
+        className={cn(
+          'absolute bottom-0 mx-4 flex h-1.5 items-center rounded-full bg-foreground/[0.04]',
+          'opacity-0 transition-opacity duration-150 data-hovering:opacity-100 data-scrolling:opacity-100',
+          'motion-reduce:transition-none',
+        )}
+      >
+        <ScrollArea.Thumb className="h-full rounded-full bg-foreground/20 transition-colors hover:bg-foreground/30 active:bg-foreground/40" />
+      </ScrollArea.Scrollbar>
+    </ScrollArea.Root>
   )
 }
 
@@ -155,7 +176,7 @@ export const OverviewTab = ({ player }: { player: Player }) => {
               size="sm"
               variant="ghost"
               render={
-                <Link to="/players/$steamId/highlights" params={{ steamId: player.steamId }} />
+                <Link to="/players/$player/highlights" params={{ player: playerSlug(player) }} />
               }
             >
               All {player.clipCount} clips <ChevronRight />
