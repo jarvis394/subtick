@@ -116,10 +116,10 @@ export const ClipViewerDialog = ({
   return (
     <Dialog.Root open={Boolean(clipId)} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/70 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Backdrop className="vt-modal fixed inset-0 z-40 bg-black/70 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         {/* Base UI's outside-scroll layout: the page stays locked, and the viewport scrolls the
           dialog, which can run past the bottom of the screen. */}
-        <Dialog.Viewport className="group/dialog fixed inset-0 z-50">
+        <Dialog.Viewport className="group/dialog vt-modal fixed inset-0 z-50">
           <ScrollArea.Root
             style={{ position: undefined }}
             className="h-full group-data-ending-style/dialog:pointer-events-none"

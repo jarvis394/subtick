@@ -33,7 +33,9 @@ export const ProfileIdentity = ({ player }: { player: Player }) => {
       <EditableImage
         kind="avatar"
         enabled={player.isMe}
-        className="-mt-12 flex rounded-full ring-4 ring-surface md:-mt-14"
+        // Positioned, so it stays over the banner while the banner image (a layer of its own
+        // until its fade-in finishes) loads, page transitions included.
+        className="relative -mt-12 flex rounded-full ring-4 ring-surface md:-mt-14"
       >
         <Avatar
           src={player.avatarUrl}
