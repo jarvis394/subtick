@@ -11,6 +11,9 @@
 #   $RECORDER_HOME/prefix         RECORDER_WINE: the Wine prefix, a host folder or a volume name
 #                                 (the `subtick-wine` volume when the folder doesn't exist)
 #   subtick-cs2                   RECORDER_CS2: the CS2 install volume
+#   (none)                        RECORDER_CS2_SERVER: a dedicated-server install for
+#                                 CS2_SOURCE=server, mounted read-only at CS2_SERVER_DIR
+#                                 (/cs2-server unless recorder.env says otherwise)
 # Waiting reads the job queue through the stack's Redis container, RECORDER_REDIS
 # (subtick-redis-1); without it the restart doesn't wait.
 set -euo pipefail
@@ -20,6 +23,7 @@ home=${RECORDER_HOME:-$(dirname "$PWD")}
 env_file=${RECORDER_ENV_FILE:-$home/recorder.env}
 wine=${RECORDER_WINE:-$([[ -d $home/prefix ]] && echo "$home/prefix" || echo subtick-wine)}
 cs2=${RECORDER_CS2:-subtick-cs2}
+cs2_server=${RECORDER_CS2_SERVER:-}
 name=${RECORDER_CONTAINER:-subtick-recorder}
 redis=${RECORDER_REDIS:-subtick-redis-1}
 [[ -f $env_file ]] || { echo "No recorder.env at $env_file" >&2; exit 1; }
@@ -46,9 +50,15 @@ if [[ ${1:-} != --now ]] && docker inspect "$redis" >/dev/null 2>&1; then
   done
 fi
 
+server_mount=()
+if [[ -n $cs2_server ]]; then
+  server_dir=$(sed -n 's/^CS2_SERVER_DIR=//p' "$env_file")
+  server_mount=(-v "$cs2_server:${server_dir:-/cs2-server}:ro" -e "CS2_SERVER_DIR=${server_dir:-/cs2-server}")
+fi
+
 docker rm -f "$name" >/dev/null 2>&1 || true
 docker run -d --init --restart unless-stopped --name "$name" --runtime nvidia --network host \
-  --env-file "$env_file" -v "$cs2:/cs2" -v "$wine:/wine" subtick-recorder >/dev/null
+  --env-file "$env_file" -v "$cs2:/cs2" -v "$wine:/wine" "${server_mount[@]}" subtick-recorder >/dev/null
 
 # The bootstrap updates the Wine prefix and checks the game files before the worker starts.
 for _ in $(seq 60); do

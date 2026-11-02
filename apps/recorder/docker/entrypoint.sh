@@ -2,6 +2,8 @@
 # Headless Xorg on the GPU, a localhost-only VNC view of it (for watching the game), the
 # bootstrap, then the worker. VNC_PASSWORD protects the view; without it no VNC.
 set -e
+# A restarted container keeps /tmp: Xorg refuses to start while the old server's lock is there.
+rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
 Xorg :0 -noreset -novtswitch -sharevts -nolisten tcp -logfile /tmp/Xorg.log vt7 &
 for _ in $(seq 40); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.5; done
 xdpyinfo >/dev/null 2>&1 || { echo "Xorg did not start"; tail -40 /tmp/Xorg.log; exit 1; }

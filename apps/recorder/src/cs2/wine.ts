@@ -16,6 +16,15 @@ export interface WineGameOptions {
 const GAME_START_TIMEOUT_MS = 4 * 60_000
 /** The menu line may come before we connect; playdemo's retries cover a still-booting game. */
 const MENU_WAIT_MS = 60_000
+/** How long HLAE may take to bring cs2.exe up. */
+const CS2_SPAWN_MS = 90_000
+
+const HOOK = 'C:\\hlae\\x64\\AfxHookSource2.dll'
+/** HLAE's own hook, which the bootstrap keeps here when it lays the mirv_pov fork over it. */
+const OFFICIAL_HOOK = 'C:\\hlae\\x64\\AfxHookSource2.official.dll'
+
+/** CS2 went away while booting: most often a CS2 update the hook DLL doesn't match yet. */
+class GameExitedError extends Error {}
 
 /** Linux path as Wine programs see it: the prefix's drive C, everything else through Z:. */
 export const windowsPath = (prefix: string, path: string) => {
@@ -24,15 +33,18 @@ export const windowsPath = (prefix: string, path: string) => {
   return windows.replaceAll('/', '\\')
 }
 
-/** Processes whose command line contains `needle` (Wine shows Windows command lines). */
-export const findProcesses = async (needle: string) => {
+/**
+ * Processes whose command line contains `needle` but not `exclude` (Wine shows Windows command
+ * lines).
+ */
+export const findProcesses = async (needle: string, exclude?: string) => {
   const pids: number[] = []
   for (const entry of await readdir('/proc')) {
     const pid = Number(entry)
     if (!Number.isInteger(pid) || pid === process.pid) continue
     try {
-      const cmdline = await Bun.file(`/proc/${pid}/cmdline`).text()
-      if (cmdline.replaceAll('\0', ' ').includes(needle)) pids.push(pid)
+      const cmdline = (await Bun.file(`/proc/${pid}/cmdline`).text()).replaceAll('\0', ' ')
+      if (cmdline.includes(needle) && !(exclude && cmdline.includes(exclude))) pids.push(pid)
     } catch {
       // The process exited while we were looking.
     }
@@ -64,13 +76,11 @@ export const createWineGame = (options: WineGameOptions) => {
     await Bun.spawn(['wineserver', '-w'], { env: { ...process.env, WINEPREFIX: prefix } }).exited
   }
 
-  /** Connects to a running CS2, or starts one through HLAE and waits for its console. */
-  const connect = async (): Promise<NetCon> => {
-    const consoleLog = { onLine: (line: string) => line && log.trace(line) }
-    const running = await connectNetCon(netconPort, consoleLog).catch(() => null)
-    if (running) return running
+  const consoleLog = { onLine: (line: string) => line && log.trace(line) }
 
-    log.info('starting CS2 through HLAE')
+  /** Starts CS2 through HLAE with `hook` and waits for its console. */
+  const start = async (hook: string): Promise<NetCon> => {
+    log.info({ hook }, 'starting CS2 through HLAE')
     spawnWine(
       [
         'C:\\hlae\\HLAE.exe',
@@ -78,7 +88,7 @@ export const createWineGame = (options: WineGameOptions) => {
         '-noGui',
         '-autoStart',
         '-hookDllPath',
-        'C:\\hlae\\x64\\AfxHookSource2.dll',
+        hook,
         '-programPath',
         windowsPath(prefix, cs2Exe),
         '-cmdLine',
@@ -90,12 +100,23 @@ export const createWineGame = (options: WineGameOptions) => {
       { USRLOCALCSGO: windowsPath(prefix, configDir) },
     )
 
-    const deadline = Date.now() + GAME_START_TIMEOUT_MS
-    while (Date.now() < deadline) {
+    const startedAt = Date.now()
+    let spawned = false
+    while (Date.now() < startedAt + GAME_START_TIMEOUT_MS) {
       await sleep(2000)
+      // HLAE's own command line names cs2.exe too.
+      const alive = (await findProcesses('cs2.exe', 'HLAE.exe')).length > 0
+      if (spawned && !alive) {
+        throw new GameExitedError(
+          'CS2 exited while starting (a CS2 update can break HLAE: bump HLAE_VERSION)',
+        )
+      }
+      spawned ||= alive
+      if (!spawned && Date.now() > startedAt + CS2_SPAWN_MS) {
+        throw new Error('CS2 did not start: HLAE never launched cs2.exe')
+      }
       const netcon = await connectNetCon(netconPort, consoleLog).catch(() => null)
       if (!netcon) continue
-      // The port opens before the game finishes booting; an echo round-trip means it's up.
       // The port opens early in boot. Once the console echoes, wait for the menu's background
       // map: until then CS2 ignores host changes like `playdemo`.
       const menu = netcon.waitFor(/Signon traffic "server"/, MENU_WAIT_MS)
@@ -113,6 +134,24 @@ export const createWineGame = (options: WineGameOptions) => {
       if (!netcon.closed) return netcon
     }
     throw new Error('CS2 did not start: no netcon answer')
+  }
+
+  /**
+   * Connects to a running CS2, or starts one. The mirv_pov fork lags behind CS2 updates; when the
+   * game dies with it, it starts again with HLAE's own hook (clips then get the spectator HUD).
+   */
+  const connect = async (): Promise<NetCon> => {
+    const running = await connectNetCon(netconPort, consoleLog).catch(() => null)
+    if (running) return running
+    try {
+      return await start(HOOK)
+    } catch (error) {
+      const official = join(hlaeDir, 'x64/AfxHookSource2.official.dll')
+      if (!(error instanceof GameExitedError) || !(await Bun.file(official).exists())) throw error
+      log.warn("CS2 exited while starting with the mirv_pov hook; retrying with HLAE's own")
+      await stopAll()
+      return start(OFFICIAL_HOOK)
+    }
   }
 
   const kill = async () => {

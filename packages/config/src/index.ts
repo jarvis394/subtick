@@ -71,6 +71,11 @@ export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
 export const RecorderEnv = {
   /** CS2 install root, the folder that holds `game/`. */
   CS2_DIR: z.string().default('/cs2'),
+  /**
+   * CS2_SOURCE=server: the dedicated-server install the game files link into. The recorder
+   * restarts when it updates past the Windows binaries, so the bootstrap fetches matching ones.
+   */
+  CS2_SERVER_DIR: z.string().optional(),
   /** Wine prefix with .NET, DXVK and HLAE (apps/recorder/docker/bootstrap.sh sets it up). */
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),

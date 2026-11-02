@@ -74,7 +74,7 @@ Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins se
 
 - **`download`**: steamcmd installs the Windows build into `CS2_DIR` anonymously (no login needed) and updates it on every start. Simplest; costs ~75 GB.
 - **`path`**: `CS2_DIR` already holds a Windows CS2 install, e.g. a mounted Steam library folder. Nothing is downloaded or updated.
-- **`server`**: you already run a CS2 dedicated server (e.g. from a game panel). Mount its install read-only at `CS2_SERVER_DIR`; the recorder downloads only the Windows binaries (~5 GB) and builds `CS2_DIR` as symlinks into the server install plus those binaries. The server is never written to. Both must be on the same CS2 build: when CS2 updates, update the server and restart the recorder.
+- **`server`**: you already run a CS2 dedicated server (e.g. from a game panel). Mount its install read-only at `CS2_SERVER_DIR`; the recorder downloads only the Windows binaries (~5 GB) and builds `CS2_DIR` as symlinks into the server install plus those binaries. The server is never written to. Both must be on the same CS2 build. When the server updates, the recorder notices before its next job, puts the job back and exits; the container's restart policy reruns the bootstrap, which downloads the matching binaries (until the server has updated to CS2's current build, the bootstrap exits and Docker retries). With `scripts/deploy.sh`, set `RECORDER_CS2_SERVER` to the server's install to mount it read-only.
 
 ### Steam: emulated
 

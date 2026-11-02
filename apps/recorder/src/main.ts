@@ -1,7 +1,9 @@
 import { cp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { and, eq, inArray, schema } from '@subtick/db'
+import { DelayedError } from 'bullmq'
 import { closeOnSignal, createWorker } from '@subtick/queue'
+import { staleWindowsBinaries } from './cs2/build'
 import { createContext } from './context'
 import { failureReason } from './failure'
 import { RECORDER_VERSION, recordMatch } from './record'
@@ -17,7 +19,17 @@ await cp(new URL('../cfg', import.meta.url).pathname, join(ctx.configDir, 'cfg')
 const worker = createWorker(
   'clip.record',
   env.REDIS_URL,
-  async (job) => {
+  async (job, token) => {
+    const stale =
+      env.CS2_SERVER_DIR && (await staleWindowsBinaries(env.CS2_DIR, env.CS2_SERVER_DIR))
+    if (stale) {
+      // Back in the queue without using up an attempt; the container's restart policy reruns the
+      // bootstrap, which downloads the Windows binaries for the server's new build.
+      log.warn(stale, 'the CS2 server updated past the Windows binaries; restarting to fetch them')
+      void worker.close().then(() => process.exit(1))
+      await job.moveToDelayed(Date.now() + 60_000, token)
+      throw new DelayedError()
+    }
     status.currentMatchId = job.data.matchId
     status.state = 'recording'
     try {
