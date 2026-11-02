@@ -90,6 +90,9 @@ export const Route = createFileRoute('/_app/matches/$id')({
 
     return { preview: cachedHead(context.queryClient, params.id) }
   },
+  // Another match is a new page: its clips and queue don't animate in as a change, and the scope
+  // resets. Search params (the open clip) keep it mounted.
+  remountDeps: ({ params }) => params.id,
   validateSearch: clipViewerSearch,
   component: MatchPage,
 })
