@@ -54,7 +54,7 @@ function UserRow({ user }: { user: AdminUser }) {
           {admin && <Badge tone="accent">Admin</Badge>}
           {isMe && <span className="text-[12px] font-normal text-muted">you</span>}
         </p>
-        <p className="truncate text-[13px] text-muted">
+        <p className="truncate text-[13px] text-muted select-text">
           {user.email.endsWith('@steam.invalid') ? 'Steam sign-in' : user.email} · joined{' '}
           {timeAgo(user.createdAt)}
         </p>
@@ -69,7 +69,9 @@ function UserRow({ user }: { user: AdminUser }) {
           {admin ? 'Remove admin' : 'Make admin'}
         </Button>
       )}
-      {setRole.error && <p className="w-full text-sm text-danger">{setRole.error.message}</p>}
+      {setRole.error && (
+        <p className="w-full text-sm text-danger select-text">{setRole.error.message}</p>
+      )}
     </div>
   )
 }

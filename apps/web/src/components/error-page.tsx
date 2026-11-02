@@ -59,7 +59,7 @@ export const ErrorPage = ({
         <p className="mt-2 max-w-sm text-sm text-balance text-muted">{description}</p>
         {/* The message is for whoever is developing: users get the sentence above. */}
         {import.meta.env.DEV && error instanceof Error && kind === 'failed' && (
-          <p className="mt-3 max-w-md font-mono text-[12px] break-words text-danger">
+          <p className="mt-3 max-w-md font-mono text-[12px] break-words text-danger select-text">
             {error.message}
           </p>
         )}

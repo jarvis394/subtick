@@ -98,7 +98,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                       // no focus ring appears on the logo.
                       initialFocus={(type) => (type === 'keyboard' ? true : drawerRef.current)}
                       className={cn(
-                        'group/drawer h-full w-full overflow-hidden bg-background outline-none touch-auto',
+                        'group/drawer h-full w-full overflow-hidden bg-background outline-none touch-auto select-none',
                         // Base UI drags the popup with an inline transform; it stays centred here
                         // and only scales and fades, while the page is what moves.
                         'transform-none!',

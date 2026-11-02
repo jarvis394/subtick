@@ -138,7 +138,7 @@ function StoragePage() {
       {storage.isPending ? (
         <Skeleton className="h-72" />
       ) : storage.error ? (
-        <Card className="p-6 text-sm text-danger">{storage.error.message}</Card>
+        <Card className="p-6 text-sm text-danger select-text">{storage.error.message}</Card>
       ) : (
         <StorageCard report={storage.data} />
       )}
@@ -358,7 +358,7 @@ function ItemsCard<T extends { id: string; bytes: number }>({
       {query.isPending ? (
         <Skeleton className="h-32" />
       ) : query.error ? (
-        <p className="text-sm text-danger">{query.error.message}</p>
+        <p className="text-sm text-danger select-text">{query.error.message}</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-muted">{empty}</p>
       ) : (

@@ -85,7 +85,7 @@ function SetupPage() {
               <SteamIcon />
               Connect Steam
             </Button>
-            {error && <p className="text-sm text-danger">{describeAuthError(error)}</p>}
+            {error && <p className="text-sm text-danger select-text">{describeAuthError(error)}</p>}
           </div>
         )}
       </Step>

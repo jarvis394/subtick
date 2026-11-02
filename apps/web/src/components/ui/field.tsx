@@ -63,7 +63,7 @@ export const Field = ({
         {description}
       </BaseField.Description>
     )}
-    {error && <p className="text-[13px] text-danger">{error}</p>}
+    {error && <p className="text-[13px] text-danger select-text">{error}</p>}
   </BaseField.Root>
 )
 

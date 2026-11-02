@@ -90,7 +90,7 @@ export const EmailForm = ({ adding }: { adding: boolean }) => {
           />
         </Field>
       )}
-      {send.error && <p className="text-sm text-danger">{send.error.message}</p>}
+      {send.error && <p className="text-sm text-danger select-text">{send.error.message}</p>}
       <div>
         <Button type="submit" variant="secondary" loading={send.isPending}>
           Send confirmation link

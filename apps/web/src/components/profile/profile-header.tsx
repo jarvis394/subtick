@@ -5,6 +5,7 @@ import { EditableImage } from '@/components/settings/editable-image'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { FadeImage } from '@/components/ui/fade-image'
+import { GeneratedBanner } from '@/components/profile/generated-banner'
 import type { Player } from '@/lib/queries'
 
 export const ProfileBanner = ({ player }: { player: Player }) => (
@@ -14,8 +15,10 @@ export const ProfileBanner = ({ player }: { player: Player }) => (
     enabled={player.isMe}
     className="-mx-4 -mt-6 aspect-[3/1] max-h-64 overflow-hidden bg-linear-to-br from-surface-2 to-surface-3 md:mx-0 md:mt-0 md:rounded-2xl"
   >
-    {player.bannerUrl && (
+    {player.bannerUrl ? (
       <FadeImage src={player.bannerUrl} alt="" className="size-full object-cover" />
+    ) : (
+      <GeneratedBanner seed={player.steamId} className="size-full" />
     )}
   </EditableImage>
 )

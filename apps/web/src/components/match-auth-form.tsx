@@ -77,7 +77,7 @@ export const MatchAuthForm = ({ steamId, onDone }: { steamId: string; onDone?: (
           className="font-mono"
         />
       </Field>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-danger select-text">{error}</p>}
       <div>
         <Button type="submit" variant="secondary" loading={save.isPending}>
           Save and start syncing

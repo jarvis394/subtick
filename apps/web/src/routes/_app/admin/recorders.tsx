@@ -115,7 +115,7 @@ function AddRecorderForm({
           </Button>
         </div>
       </form>
-      {add.error && <p className="text-sm text-danger">{add.error.message}</p>}
+      {add.error && <p className="text-sm text-danger select-text">{add.error.message}</p>}
     </Card>
   )
 }
@@ -223,7 +223,7 @@ function RecorderCard({
 
       {token && <TokenNotice token={token} onDismiss={onDismissToken} />}
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 select-text sm:grid-cols-4">
         <Detail label="Recording">
           {recorder.currentMatchId ? (
             <Link
@@ -247,7 +247,9 @@ function RecorderCard({
       </dl>
 
       {recorder.lastError && (
-        <p className="rounded-lg bg-danger/8 px-3 py-2 text-sm text-danger">{recorder.lastError}</p>
+        <p className="rounded-lg bg-danger/8 px-3 py-2 text-sm text-danger select-text">
+          {recorder.lastError}
+        </p>
       )}
 
       <div className="flex flex-wrap gap-2 border-t pt-4">
@@ -282,7 +284,7 @@ function RecorderCard({
           Remove
         </Button>
       </div>
-      {update.error && <p className="text-sm text-danger">{update.error.message}</p>}
+      {update.error && <p className="text-sm text-danger select-text">{update.error.message}</p>}
     </Card>
   )
 }

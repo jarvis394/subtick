@@ -10,7 +10,7 @@
     {
       "name": "web",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--filter", "@subtick/web", "dev"],
+      "runtimeArgs": ["--bun", "run", "--filter", "@subtick/web", "dev"],
       "port": 5173
     }
   ]

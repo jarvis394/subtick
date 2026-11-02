@@ -53,7 +53,9 @@ function SettingsPage() {
           {emailStatus === 'confirmed' && (
             <p className="text-sm text-accent">Email confirmed. You can sign in with it now</p>
           )}
-          {emailError && <p className="text-sm text-danger">{describeAuthError(emailError)}</p>}
+          {emailError && (
+            <p className="text-sm text-danger select-text">{describeAuthError(emailError)}</p>
+          )}
           <Group>
             <Row
               // Same picture as the sidebar; the initial stands in when there is none.
@@ -113,7 +115,9 @@ function SettingsPage() {
             )
           }
         >
-          {steamError && <p className="text-sm text-danger">{describeAuthError(steamError)}</p>}
+          {steamError && (
+            <p className="text-sm text-danger select-text">{describeAuthError(steamError)}</p>
+          )}
           {me.steamLinks.length === 0 && (
             <Group>
               <Row
@@ -266,7 +270,9 @@ function SteamLinkGroup({
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Badge tone={syncTone}>{SYNC_LABEL[link.syncState]}</Badge>
                 {link.lastSyncedAt && `checked ${timeAgo(link.lastSyncedAt)}`}
-                {link.lastError && <span className="text-danger">{link.lastError}</span>}
+                {link.lastError && (
+                  <span className="text-danger select-text">{link.lastError}</span>
+                )}
               </span>
             ) : (
               'Not connected. Add an authentication code to pick up your matches.'
@@ -370,7 +376,7 @@ function DeleteAccountDialog() {
                 onChange={(event) => setConfirmed(event.currentTarget.validity.valid)}
               />
             </Field>
-            {message && <p className="text-[13px] text-danger">{message}</p>}
+            {message && <p className="text-[13px] text-danger select-text">{message}</p>}
             <div className="flex justify-end gap-2">
               <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
               <Button

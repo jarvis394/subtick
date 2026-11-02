@@ -25,7 +25,7 @@ export const FailureNote = ({
   return (
     <div className={cn('flex gap-3 bg-danger/5 px-5 py-3.5', className)}>
       <CircleAlert className="mt-px size-4 shrink-0 text-danger" />
-      <div className="min-w-0">
+      <div className="min-w-0 select-text">
         <p className="text-[13px] font-medium">Recording failed</p>
         <p className="mt-0.5 text-[13px] text-muted">{lead}.</p>
         {detail && (

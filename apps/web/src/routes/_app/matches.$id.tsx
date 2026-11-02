@@ -219,7 +219,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                   )}
                 </p>
                 {error && (
-                  <p className="mt-1.5 text-sm text-danger">
+                  <p className="mt-1.5 text-sm text-danger select-text">
                     {error.message === 'forbidden'
                       ? 'Only players who imported this match can change its processing.'
                       : 'Something went wrong. Try again in a moment.'}
