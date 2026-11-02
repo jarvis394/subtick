@@ -46,7 +46,9 @@ services:
   # Published on all interfaces: the reverse proxy serves it as S3_PUBLIC_ENDPOINT for clip URLs.
   seaweedfs:
     image: chrislusf/seaweedfs:4.12
-    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    # On two networks it would advertise whichever IP it finds first (dokploy-network's, which the
+    # rest of the stack can't reach); its service name resolves on both.
+    command: server -ip=seaweedfs -ip.bind=0.0.0.0 -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
     ports: ['127.0.0.1:${S3_PORT:-8333}:8333']
     volumes:
       - '${DATA_DIR}/seaweedfs:/data'
