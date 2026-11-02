@@ -1,6 +1,12 @@
 import { schema, sql } from '@subtick/db'
 import type { Context } from '../context'
 
+/** A match's play time, falling back to when subtick first saw it. */
+export const playedAt =
+  sql<Date>`coalesce(${schema.match.playedAt}, ${schema.match.createdAt})`.mapWith(
+    schema.match.createdAt,
+  )
+
 /**
  * Hides single-kill moments that analysis before parser v4 still stored; they are never shown,
  * however special the kill, unless they won a 1v2 or harder.

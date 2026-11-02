@@ -1,14 +1,12 @@
 import type { HighlightKind } from '@subtick/domain'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { type Clip, clipsQuery, matchQuery } from '@/lib/queries'
+import { type Clip, type ClipFilters, clipsQuery, matchQuery } from '@/lib/queries'
 
 /**
  * What the reel beside the player lists: one match's clips (best first), or the highlights feed
  * under the filters the page has. Either way it shares its cache with the page underneath.
  */
-export type ReelSource =
-  | { match: string }
-  | { kinds: HighlightKind[]; map?: string; mine?: boolean; steamId?: string }
+export type ReelSource = { match: string } | (ClipFilters & { kinds: HighlightKind[] })
 
 /** A clip that has its recording, as the viewer and its reel show it. */
 export type ReelClip = Clip & { clip: NonNullable<Clip['clip']> }

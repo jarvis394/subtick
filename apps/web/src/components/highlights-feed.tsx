@@ -1,26 +1,17 @@
-import { Select } from '@base-ui/react/select'
-import { mapName } from '@subtick/domain'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { Check, ChevronDown, Clapperboard, SearchX } from 'lucide-react'
-import type { z } from 'zod'
+import { Clapperboard, SearchX } from 'lucide-react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
-import { KindTabs } from '@/components/kind-tabs'
-import { MapIcon } from '@/components/map-icon'
+import { HighlightFilters } from '@/components/highlight-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
-import { Switch } from '@/components/ui/switch'
 import { useDelayed } from '@/hooks/use-delayed'
 import { dayLabel } from '@/lib/format'
-import { KIND_FILTERS, type clipListSearch, clipMask } from '@/lib/highlights'
-import { type Clip, clipFacetsQuery, clipsQuery } from '@/lib/queries'
-
-type ClipListSearch = z.infer<typeof clipListSearch>
-
-const ALL_MAPS = '__all'
+import { type ClipListSearch, NO_FILTERS, clipMask, feedFilters } from '@/lib/highlights'
+import { type Clip, clipsQuery } from '@/lib/queries'
 
 /** How long a load runs before skeletons show: most loads finish sooner and never show them. */
 const SKELETON_DELAY_MS = 400
@@ -68,22 +59,18 @@ const groupByDay = (clips: Clip[]) => {
 
 /**
  * The clip feed with its filters and viewer, driven by the page's search params (`clipListSearch`).
- * The highlights page shows everyone's; a profile passes `steamId` for one player's, where "Only
- * mine" means nothing and is left out.
+ * The highlights page shows everyone's; a profile passes `steamId` for one player's.
  */
 export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const search: ClipListSearch = useSearch({ strict: false })
   const navigate = useNavigate()
 
-  const kind = search.kind ?? 'all'
-  const kinds = [...KIND_FILTERS.find((f) => f.id === kind)!.kinds]
-  const mine = steamId ? undefined : search.mine
-  const filters = { kinds, map: search.map, mine, steamId }
+  const filters = feedFilters(search, steamId)
   const clips = useInfiniteQuery(clipsQuery(filters))
-  const facets = useQuery(clipFacetsQuery)
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
   const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
-  const filtered = kind !== 'all' || Boolean(search.map) || Boolean(mine)
+  const filterKey = JSON.stringify(filters)
+  const filtered = filterKey !== JSON.stringify(feedFilters({}, steamId))
   // One view per filter, so switching between cached filters crossfades too. Loading stays a
   // single view: skeletons don't refade when the filter changes again mid-load.
   // Before the delay a load shows nothing ('idle'): the old view fades out and the page waits.
@@ -91,73 +78,14 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
     ? showSkeleton
       ? 'loading'
       : 'idle'
-    : `${items.length === 0 ? 'empty' : 'results'}:${kind}:${search.map ?? ''}:${mine ? 'mine' : ''}`
-  const mapItems = [
-    { value: ALL_MAPS, label: 'All maps' },
-    ...(facets.data?.maps ?? []).map((m) => ({ value: m, label: mapName(m) })),
-  ]
+    : `${items.length === 0 ? 'empty' : 'results'}:${filterKey}`
 
   const update = (patch: Partial<ClipListSearch>) =>
     navigate({ to: '.', search: (s) => ({ ...s, ...patch }) })
 
   return (
     <>
-      <div className="mb-8 flex flex-wrap items-center gap-2">
-        <KindTabs
-          value={kind}
-          onChange={(value) => update({ kind: value === 'all' ? undefined : value })}
-        />
-
-        <Select.Root
-          items={mapItems}
-          value={search.map ?? ALL_MAPS}
-          onValueChange={(value) =>
-            update({ map: value === ALL_MAPS || !value ? undefined : String(value) })
-          }
-        >
-          <Select.Trigger className="flex h-9 min-w-36 cursor-pointer items-center gap-2 rounded-control border border-border-strong px-3 text-body outline-none select-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-surface-2">
-            <Select.Value className="flex-1 text-left" />
-            <Select.Icon>
-              <ChevronDown className="size-4 text-muted" />
-            </Select.Icon>
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Positioner sideOffset={6} className="z-50">
-              <Select.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
-                <Select.List>
-                  {mapItems.map((item) => (
-                    <Select.Item
-                      key={item.value}
-                      value={item.value}
-                      className="flex h-9 cursor-pointer items-center gap-2.5 rounded-md pr-8 pl-2 text-body outline-none select-none data-highlighted:bg-surface-2"
-                    >
-                      {item.value === ALL_MAPS ? (
-                        <span className="size-5" />
-                      ) : (
-                        <MapIcon map={item.value} className="size-5 rounded-sm text-micro" />
-                      )}
-                      <Select.ItemText>{item.label}</Select.ItemText>
-                      <Select.ItemIndicator className="ml-auto">
-                        <Check className="size-4 text-accent" />
-                      </Select.ItemIndicator>
-                    </Select.Item>
-                  ))}
-                </Select.List>
-              </Select.Popup>
-            </Select.Positioner>
-          </Select.Portal>
-        </Select.Root>
-
-        {!steamId && (
-          <Switch
-            checked={Boolean(search.mine)}
-            onCheckedChange={(next) => update({ mine: next || undefined })}
-            className="ml-auto"
-          >
-            Only mine
-          </Switch>
-        )}
-      </div>
+      <HighlightFilters search={search} steamId={steamId} onChange={update} />
 
       <FadeSwap swapKey={view} appear={false}>
         {clips.isPending ? (
@@ -168,15 +96,12 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
             title={filtered ? 'Nothing matches these filters' : 'No clips yet'}
             description={
               filtered
-                ? `Try another kind or map${mine ? ', or turn off Only mine' : ''}.`
+                ? 'Try removing a filter or two.'
                 : 'The best moments of every match are clipped automatically. They show up here once recorded.'
             }
             action={
               filtered && (
-                <Button
-                  size="sm"
-                  onClick={() => update({ kind: undefined, map: undefined, mine: undefined })}
-                >
+                <Button size="sm" onClick={() => update(NO_FILTERS)}>
                   Clear filters
                 </Button>
               )

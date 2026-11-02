@@ -7,7 +7,7 @@ import { RoundMoment } from '@/components/round-moment'
 import { FadeImage } from '@/components/ui/fade-image'
 import { Badge } from '@/components/ui/surface'
 import { clipSeconds, clock } from '@/lib/format'
-import { KIND_LABEL, clipMask, tagSummary } from '@/lib/highlights'
+import { KIND_LABEL, KIND_TONE, clipMask, tagSummary } from '@/lib/highlights'
 import type { Clip } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -33,9 +33,6 @@ export interface HighlightPlayer {
   avatarUrl: string | null
   vanity?: string | null
 }
-
-/** Kinds rare enough to stand out in the feed: their badge is black on white. */
-const RARE = new Set<ClipCardData['kind']>(['ace', 'clutch'])
 
 const shallowEqual = <T extends object>(a: T, b: T) => {
   const keys = Object.keys(a) as (keyof T)[]
@@ -150,12 +147,12 @@ export const HighlightCard = memo(
           {/* Along the bottom: the top corners are where CS2 draws its radar and killfeed. */}
           <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between">
             <Badge
-              tone={RARE.has(highlight.kind) ? 'overlay-inverse' : 'overlay'}
+              tone={KIND_TONE[highlight.kind] ?? 'overlay'}
               className="tracking-normal normal-case"
             >
               {KIND_LABEL[highlight.kind]}
             </Badge>
-            <span className="rounded-md bg-black/55 px-1.5 py-0.5 font-mono text-caption text-white backdrop-blur">
+            <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-caption font-medium text-white tabular-nums backdrop-blur">
               {clock(Math.max(0, Math.min(total, Math.ceil(total - elapsed))))}
             </span>
           </div>
@@ -222,7 +219,7 @@ export const HighlightCard = memo(
                   </button>
                 )}
               />
-              {tags.length > 0 && <span> · {tags.join(' · ')}</span>}
+              {tags.length > 0 && <span> · {tags.map((t) => t.label).join(' · ')}</span>}
             </p>
           </div>
         </div>

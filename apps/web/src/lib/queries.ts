@@ -1,4 +1,4 @@
-import type { HighlightKind } from '@subtick/domain'
+import type { HighlightKind, KillTag, MomentTag } from '@subtick/domain'
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 import { ApiError, api, unwrap } from './api'
 import { observeMatches } from './new-matches'
@@ -6,12 +6,19 @@ import { clearStoredMe, readStoredMe, writeStoredMe } from './stored-me'
 
 export interface ClipFilters {
   kinds?: HighlightKind[]
-  map?: string
-  /** Only the signed-in user's own plays. */
-  mine?: boolean
+  maps?: string[]
   /** One player's plays. */
   steamId?: string
+  /** Any of these players, the signed-in user's own plays or those of people they played with. */
+  players?: string[]
+  me?: boolean
+  playedWith?: boolean
+  tags?: KillTag[]
+  moments?: MomentTag[]
+  clutch?: number[]
 }
+
+const joined = (list?: (string | number)[]) => list?.join(',') || undefined
 
 const fetchMe = async () => {
   const me = await unwrap(api.me.get()).catch((error: unknown) => {
@@ -37,16 +44,21 @@ const fetchClips = (offset: number, filters: ClipFilters) =>
     api.highlights.get({
       query: {
         offset,
-        kinds: filters.kinds?.join(',') || undefined,
-        map: filters.map,
-        mine: filters.mine || undefined,
+        kinds: joined(filters.kinds),
+        maps: joined(filters.maps),
         steamId: filters.steamId,
+        players: joined(filters.players),
+        me: filters.me || undefined,
+        playedWith: filters.playedWith || undefined,
+        tags: joined(filters.tags),
+        moments: joined(filters.moments),
+        clutch: joined(filters.clutch),
       },
     }),
   )
 
 const fetchClip = (id: string) => unwrap(api.highlights({ id }).get())
-const fetchFacets = () => unwrap(api.highlights.facets.get())
+const fetchFacets = (steamId?: string) => unwrap(api.highlights.facets.get({ query: { steamId } }))
 const fetchQueue = () => unwrap(api.queue.get())
 const fetchPlayer = (steamId: string) => unwrap(api.players({ steamId }).get())
 
@@ -57,6 +69,7 @@ export type Me = Awaited<ReturnType<typeof fetchMe>>
 export type MatchListItem = Awaited<ReturnType<typeof fetchMatches>>['items'][number]
 export type MatchDetail = Awaited<ReturnType<typeof fetchMatch>>
 export type Clip = Awaited<ReturnType<typeof fetchClips>>['items'][number]
+export type ClipFacets = Awaited<ReturnType<typeof fetchFacets>>
 export type QueueItem = Awaited<ReturnType<typeof fetchQueue>>['items'][number]
 export type Player = Awaited<ReturnType<typeof fetchPlayer>>
 
@@ -105,10 +118,12 @@ export const clipQuery = (id: string) =>
     queryFn: () => fetchClip(id),
   })
 
-export const clipFacetsQuery = queryOptions({
-  queryKey: ['highlights', 'facets'],
-  queryFn: fetchFacets,
-})
+/** What the feed's filters can offer, for everyone's clips or one player's. */
+export const clipFacetsQuery = (steamId?: string) =>
+  queryOptions({
+    queryKey: ['highlights', 'facets', steamId ?? null],
+    queryFn: () => fetchFacets(steamId),
+  })
 
 /**
  * The instance's pipeline work. Status changes refetch it over SSE; meanwhile it polls, faster

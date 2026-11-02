@@ -45,7 +45,7 @@ export const ClipViewerDialog = ({
 }: {
   clipId: string | undefined
   source: ReelSource
-  /** Switch to another clip (from the reel, autoplay or the keyboard). */
+  /** Switch to another clip (from the reel, the up-next card or the keyboard). */
   onSelect: (id: string) => void
   onClose: () => void
 }) => {
@@ -193,6 +193,9 @@ export const ClipViewer = ({
       position={position}
       isMatch={'match' in source}
       modal={modal}
+      autoplay={autoplay}
+      onAutoplayChange={setAutoplay}
+      upNextId={autoplay ? next?.id : undefined}
       onSelect={onSelect}
       onPrev={prev && (() => go(prev))}
       onNext={next && (() => go(next))}
@@ -227,12 +230,12 @@ export const ClipViewer = ({
         ) : current ? (
           <Player
             clip={current}
-            next={autoplay ? next : undefined}
-            onEnded={() => go(next)}
-            modal={modal}
-            onClose={onClose}
+            next={next}
             autoplay={autoplay}
             onAutoplayChange={setAutoplay}
+            onNext={() => go(next)}
+            modal={modal}
+            onClose={onClose}
           />
         ) : (
           <div>

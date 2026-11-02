@@ -1,26 +1,16 @@
-import { and, desc, eq, exists, inArray, or, schema, sql } from '@subtick/db'
-import { HIGHLIGHT_KINDS, type HighlightKind } from '@subtick/domain'
+import { and, desc, eq, or, schema } from '@subtick/db'
 import { requeue } from '@subtick/queue'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
-import { notOneKill, withClipUrls } from '../services/highlights'
+import { clipFacets, clipFilterQuery, clipFilterWhere } from '../services/clip-filters'
+import { notOneKill, playedAt, withClipUrls } from '../services/highlights'
 import { actorOf, cancelHighlight } from '../services/matches'
 import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
 const PAGE_SIZE = 24
-const { highlight, clip, match, matchPlayer, userMatch } = schema
-
-/** A match's play time, falling back to when subtick first saw it. */
-const playedAt = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`.mapWith(match.createdAt)
-
-const isHighlightKind = (value: string): value is HighlightKind =>
-  HIGHLIGHT_KINDS.includes(value as HighlightKind)
-
-/** Elysia may already have split a comma-separated query value into an array. */
-const listParam = (value: string | string[] | undefined) =>
-  typeof value === 'string' ? value.split(',') : (value ?? [])
+const { highlight, clip, match, matchPlayer } = schema
 
 /** Every user's recorded clips are shared with everyone signed in. */
 export const highlightRoutes = (ctx: Context) => {
@@ -63,30 +53,9 @@ export const highlightRoutes = (ctx: Context) => {
     .get(
       '/',
       async ({ user, query }) => {
-        const kinds = listParam(query.kinds).filter(isHighlightKind)
         const rows = await selectClips()
           .where(
-            and(
-              eq(highlight.status, 'recorded'),
-              notOneKill,
-              kinds.length ? inArray(highlight.kind, kinds) : undefined,
-              query.map ? eq(match.map, query.map) : undefined,
-              query.steamId ? eq(highlight.steamId, query.steamId) : undefined,
-              query.mine === true || query.mine === 'true'
-                ? exists(
-                    db
-                      .select({ one: sql`1` })
-                      .from(userMatch)
-                      .where(
-                        and(
-                          eq(userMatch.userId, user.id),
-                          eq(userMatch.matchId, highlight.matchId),
-                          eq(userMatch.steamId, highlight.steamId),
-                        ),
-                      ),
-                  )
-                : undefined,
-            ),
+            and(eq(highlight.status, 'recorded'), notOneKill, clipFilterWhere(db, user.id, query)),
           )
           // Newest match first; within a match, best moment first.
           .orderBy(desc(playedAt), desc(highlight.score))
@@ -100,32 +69,15 @@ export const highlightRoutes = (ctx: Context) => {
       },
       {
         auth: true,
-        query: z.object({
+        query: clipFilterQuery.extend({
           offset: z.coerce.number().int().min(0).default(0),
-          /** Comma-separated highlight kinds. */
-          kinds: z.union([z.string(), z.array(z.string())]).optional(),
-          map: z.string().optional(),
-          /** One player's plays, for their profile. */
-          steamId: z.string().optional(),
-          /** Only the signed-in user's own plays. */
-          mine: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
         }),
       },
     )
-    .get(
-      '/facets',
-      async () => {
-        // Maps with clips, for the filter bar.
-        const maps = await db
-          .selectDistinct({ map: match.map })
-          .from(highlight)
-          .innerJoin(match, eq(match.id, highlight.matchId))
-          .where(and(eq(highlight.status, 'recorded'), notOneKill))
-
-        return { maps: maps.flatMap((m) => (m.map ? [m.map] : [])).toSorted() }
-      },
-      { auth: true },
-    )
+    .get('/facets', ({ query }) => clipFacets(ctx, query.steamId), {
+      auth: true,
+      query: z.object({ steamId: z.string().optional() }),
+    })
     .get(
       '/:id',
       async ({ params, status }) => {

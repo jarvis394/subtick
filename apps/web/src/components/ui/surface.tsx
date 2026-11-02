@@ -7,10 +7,12 @@ export const Card = ({ className, ...props }: ComponentProps<'div'>) => (
 
 export const Badge = ({
   tone = 'neutral',
+  interactive,
+  outlined,
   className,
   ...props
 }: ComponentProps<'span'> & {
-  /** `overlay` and `overlay-inverse` sit on video or images. */
+  /** `overlay*` tones sit on video or images; `tint-*` (dark glass with a hue) reads on both. */
   tone?:
     | 'neutral'
     | 'accent'
@@ -21,6 +23,14 @@ export const Badge = ({
     | 't'
     | 'overlay'
     | 'overlay-inverse'
+    | 'tint-orange'
+    | 'tint-violet'
+    | 'tint-sky'
+    | 'tint-teal'
+  /** Links somewhere: an offset outline in its own color on hover. */
+  interactive?: boolean
+  /** A faint border in its own color. */
+  outlined?: boolean
 }) => (
   <span
     className={cn(
@@ -35,7 +45,19 @@ export const Badge = ({
         t: 'bg-side-t/16 text-side-t-text',
         overlay: 'bg-black/55 text-white backdrop-blur',
         'overlay-inverse': 'bg-white text-black backdrop-blur',
+        'tint-orange':
+          'bg-[color-mix(in_oklab,var(--color-orange-500)_20%,rgb(0_0_0/0.7))] text-orange-300 backdrop-blur',
+        'tint-violet':
+          'bg-[color-mix(in_oklab,var(--color-violet-500)_20%,rgb(0_0_0/0.7))] text-violet-300 backdrop-blur',
+        'tint-sky':
+          'bg-[color-mix(in_oklab,var(--color-sky-500)_20%,rgb(0_0_0/0.7))] text-sky-400 backdrop-blur',
+        'tint-teal':
+          'bg-[color-mix(in_oklab,var(--color-teal-500)_20%,rgb(0_0_0/0.7))] text-teal-300 backdrop-blur',
       }[tone],
+      outlined && 'ring-1 ring-current/7 ring-inset',
+      // An outline offset from the badge: the gap shows whatever is behind it.
+      interactive &&
+        'cursor-pointer outline-1 outline-offset-2 outline-transparent transition-[outline-color] duration-150 hover:outline-current/60',
       className,
     )}
     {...props}

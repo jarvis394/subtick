@@ -54,6 +54,9 @@ const router = createRouter({
   defaultNotFoundComponent: () => <ErrorPage />,
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
+  // Another match or player is a new page: remount it, so its first content doesn't animate in as
+  // a change. Search params (filters, the open clip) keep the page mounted.
+  defaultRemountDeps: ({ params }) => params,
   scrollRestoration: true,
   // Page changes only: not the first load or its redirects, and not filters (search params) or
   // the clip dialog, which keep the page in place. Switching between highlights stays on the same

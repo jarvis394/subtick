@@ -44,7 +44,11 @@ export const requestedLabel = (moment: Moment) =>
 
 /** The moment's line under its title: round, length and its standout kill tags. */
 export const momentDetails = (moment: Moment) =>
-  [`Round ${moment.round}`, clipLength(moment), ...tagSummary(moment.kills)].join(' · ')
+  [
+    `Round ${moment.round}`,
+    clipLength(moment),
+    ...tagSummary(moment.kills).map((t) => t.label),
+  ].join(' · ')
 
 /** A queued or failed moment's dialog footer: what it waits on, with Retry or Cancel. */
 export const MomentDialogFooter = ({ moment, matchId }: { moment: Moment; matchId: string }) => {

@@ -13,10 +13,11 @@ import { useCancelMoment } from '@/hooks/use-match-actions'
 import { useRecordMoment } from '@/hooks/use-record-moment'
 import { KIND_FILTERS, clipListSearch } from '@/lib/highlights'
 import { type MatchDetail, matchQuery } from '@/lib/queries'
+import { z } from 'zod'
 
 export const Route = createFileRoute('/_app/matches_/$id/create')({
   head: () => ({ meta: [{ title: 'Create highlights · subtick' }] }),
-  validateSearch: clipListSearch.pick({ kind: true, mine: true }),
+  validateSearch: clipListSearch.pick({ kind: true }).extend({ mine: z.boolean().optional() }),
   loader: ({ context, params }) => void context.queryClient.prefetchQuery(matchQuery(params.id)),
   component: CreateHighlightsPage,
 })

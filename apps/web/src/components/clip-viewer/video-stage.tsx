@@ -1,31 +1,47 @@
+import { AnimatePresence } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import { useStableCallback } from '@/hooks/use-stable-callback'
 import { cn } from '@/lib/utils'
+import { UpNext } from './up-next'
 import type { ReelClip } from './use-reel'
-
-/** Pause after a clip ends before autoplay moves on, so the switch doesn't feel like a cut. */
-const AUTOPLAY_DELAY_MS = 1000
 
 /**
  * The video, crossfading between clips: a new clip's video stacks over the old one and fades in
- * once it has a frame to show, and only then is the old one dropped.
+ * once it has a frame to show, and only then is the old one dropped. Once a clip ends, the next
+ * one is offered over it.
  */
 export const VideoStage = ({
   clip,
   next,
-  onEnded,
+  autoplay,
+  onAutoplayChange,
+  onNext,
   className,
 }: {
   clip: ReelClip
   next?: ReelClip
-  onEnded: () => void
+  /** Count down to `next` once this clip ends, and preload it. */
+  autoplay: boolean
+  onAutoplayChange: (on: boolean) => void
+  onNext: () => void
   className?: string
 }) => {
   // The first clip shows at once (its poster stands in); later ones wait for a frame.
   const [layers, setLayers] = useState([{ clip, ready: true }])
+  const [ended, setEnded] = useState(false)
   const top = layers.at(-1)!
   // Switching again before the new clip showed replaces it, so the last visible frame stays put.
-  if (top.clip.id !== clip.id) setLayers([top.ready ? top : layers[0]!, { clip, ready: false }])
+  if (top.clip.id !== clip.id) {
+    setLayers([top.ready ? top : layers[0]!, { clip, ready: false }])
+    setEnded(false)
+  }
+
+  const upNext = ended ? next : undefined
+
+  // Cancelling the countdown means "stop playing on", so it turns autoplay off as well.
+  const cancel = () => {
+    setEnded(false)
+    if (autoplay) onAutoplayChange(false)
+  }
 
   const dropBelow = (id: string) =>
     setLayers((ls) => ls.slice(ls.findIndex((l) => l.clip.id === id)))
@@ -45,13 +61,27 @@ export const VideoStage = ({
           ready={layer.ready}
           onReady={() => markReady(layer.clip.id)}
           onShown={() => dropBelow(layer.clip.id)}
-          onEnded={next ? onEnded : undefined}
+          onEnded={() => setEnded(true)}
+          // Seeking back or pressing play again takes the card down.
+          onResumed={() => setEnded(false)}
         />
       ))}
       {/* Warm the next clip so autoplay's switch has a frame to fade to straight away. */}
-      {next && top.ready && (
+      {autoplay && next && top.ready && (
         <video key={next.id} src={next.clip.videoUrl} preload="auto" muted hidden />
       )}
+      <AnimatePresence>
+        {upNext && (
+          <UpNext
+            key="up-next"
+            next={upNext}
+            autoplay={autoplay}
+            onPlay={onNext}
+            onCancel={cancel}
+            onDismiss={() => setEnded(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -63,16 +93,17 @@ const VideoLayer = ({
   onReady,
   onShown,
   onEnded,
+  onResumed,
 }: {
   clip: ReelClip
   active: boolean
   ready: boolean
   onReady: () => void
   onShown: () => void
-  onEnded?: () => void
+  onEnded: () => void
+  onResumed: () => void
 }) => {
   const video = useRef<HTMLVideoElement>(null)
-  const [ended, setEnded] = useState(false)
 
   // Arriving by click allows sound; a fresh tab may not, so fall back to muted playback.
   // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- plays and pauses the <video> element with the active layer
@@ -87,17 +118,6 @@ const VideoLayer = ({
     return () => el.pause()
   }, [active])
 
-  // Seeking back or pressing play again during the pause cancels the move on.
-  const advance = useStableCallback(() => onEnded?.())
-  const canAdvance = Boolean(onEnded)
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- autoplay timer that moves on after a clip ends
-  useEffect(() => {
-    if (!ended || !active || !canAdvance) return
-    const timer = setTimeout(advance, AUTOPLAY_DELAY_MS)
-
-    return () => clearTimeout(timer)
-  }, [ended, active, canAdvance, advance])
-
   return (
     <video
       ref={video}
@@ -108,9 +128,9 @@ const VideoLayer = ({
       preload="auto"
       onLoadedData={ready ? undefined : onReady}
       onTransitionEnd={(e) => e.propertyName === 'opacity' && ready && onShown()}
-      onEnded={() => setEnded(true)}
-      onPlay={() => setEnded(false)}
-      onSeeking={() => setEnded(false)}
+      onEnded={active ? onEnded : undefined}
+      onPlay={onResumed}
+      onSeeking={onResumed}
       className={cn(
         'absolute inset-0 size-full transition-opacity duration-300 ease-out-quart motion-reduce:transition-none',
         ready ? 'opacity-100' : 'opacity-0',

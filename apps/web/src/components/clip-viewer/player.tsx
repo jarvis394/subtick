@@ -8,9 +8,8 @@ import { ShareActions } from '@/components/share-actions'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/surface'
-import { Switch } from '@/components/ui/switch'
 import { formatDate } from '@/lib/format'
-import { KIND_LABEL, tagSummary } from '@/lib/highlights'
+import { KIND_LABEL, KIND_TONE, kindFilterOf, tagSummary } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
 import type { ReelClip } from './use-reel'
 import { VideoStage } from './video-stage'
@@ -25,19 +24,18 @@ export const CONTENT_INSET = 'px-4 md:px-6'
 export const Player = ({
   clip,
   next,
-  onEnded,
-  modal,
-  onClose,
   autoplay,
   onAutoplayChange,
+  onNext,
+  modal,
+  onClose,
 }: {
   clip: ReelClip
+  /** Offered over the video once this clip ends. */
+  next?: ReelClip
   autoplay: boolean
   onAutoplayChange: (on: boolean) => void
-  /** The clip autoplay moves to, preloaded once this one is showing. */
-  next?: ReelClip
-  /** Autoplay's cue; only called while `next` is set. */
-  onEnded: () => void
+  onNext: () => void
   modal: boolean
   onClose?: () => void
 }) => {
@@ -50,7 +48,9 @@ export const Player = ({
       <VideoStage
         clip={clip}
         next={next}
-        onEnded={onEnded}
+        autoplay={autoplay}
+        onAutoplayChange={onAutoplayChange}
+        onNext={onNext}
         className={cn(
           // Under the phone header (the dialog's or the app's), at the very top from md.
           'z-10 max-lg:sticky max-lg:top-14 md:max-lg:top-0',
@@ -139,22 +139,31 @@ export const Player = ({
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <Badge tone="brand" className={TAG_CASE}>
-            {KIND_LABEL[clip.kind]}
-          </Badge>
-          {tags.map((tag) => (
-            <Badge key={tag} className={TAG_CASE}>
-              {tag}
+          <Link to="/" search={{ kind: kindFilterOf(clip.kind) }} className={TAG_LINK}>
+            <Badge
+              tone={KIND_TONE[clip.kind] ?? 'neutral'}
+              outlined={Boolean(KIND_TONE[clip.kind])}
+              interactive
+              className={TAG_CASE}
+            >
+              {KIND_LABEL[clip.kind]}
             </Badge>
+          </Link>
+          {tags.map(({ tag, label }) => (
+            <Link key={tag} to="/" search={{ tags: [tag] }} className={TAG_LINK}>
+              <Badge interactive className={TAG_CASE}>
+                {label}
+              </Badge>
+            </Link>
           ))}
-          <Switch checked={autoplay} onCheckedChange={onAutoplayChange} className="ml-auto">
-            Autoplay next
-          </Switch>
         </div>
       </div>
     </div>
   )
 }
 
-/** Kinds and tags read as written ("Ace", "Low HP"), the same as on the cards and in the reel. */
-const TAG_CASE = 'normal-case tracking-normal'
+/** Kinds and tags read as written ("Ace", "Low HP"), at the size of the controls around them. */
+const TAG_CASE = 'h-7 rounded-lg px-2.5 text-small tracking-normal normal-case'
+
+/** Each badge opens the highlights feed filtered to it. */
+const TAG_LINK = 'rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring'

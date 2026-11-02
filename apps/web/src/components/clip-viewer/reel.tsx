@@ -4,9 +4,10 @@ import { useEffect, useRef } from 'react'
 import { Avatar } from '@/components/ui/avatar'
 import { IconButton } from '@/components/ui/button'
 import { FadeImage } from '@/components/ui/fade-image'
-import { Skeleton, Spinner } from '@/components/ui/surface'
+import { Badge, Skeleton, Spinner } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
 import { clipLength, timeAgo } from '@/lib/format'
-import { KIND_LABEL } from '@/lib/highlights'
+import { KIND_LABEL, KIND_TONE } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
 import type { ReelClip, useReel } from './use-reel'
 
@@ -19,6 +20,9 @@ export const Reel = ({
   position,
   isMatch,
   modal,
+  autoplay,
+  onAutoplayChange,
+  upNextId,
   onSelect,
   onPrev,
   onNext,
@@ -32,6 +36,10 @@ export const Reel = ({
   position?: string
   isMatch: boolean
   modal: boolean
+  autoplay: boolean
+  onAutoplayChange: (on: boolean) => void
+  /** The clip autoplay plays next, marked in the list. */
+  upNextId?: string
   onSelect: (id: string) => void
 }) => {
   const list = useRef<HTMLDivElement>(null)
@@ -80,10 +88,17 @@ export const Reel = ({
           modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
       >
-        <h2 className="flex-1 font-medium text-muted">
-          {isMatch ? 'From this match' : 'More highlights'}
-        </h2>
-        {position && <span className="text-muted tabular-nums">{position}</span>}
+        {/* The position sits under the heading, so the row has room for the autoplay switch. A
+          blank line holds its place until the clip is found, so the list doesn't jump. */}
+        <div className="min-w-0 flex-1">
+          <h2 className="font-medium text-muted">
+            {isMatch ? 'From this match' : 'More highlights'}
+          </h2>
+          <p className="text-label text-muted tabular-nums">{position ?? '\u00a0'}</p>
+        </div>
+        <Switch checked={autoplay} onCheckedChange={onAutoplayChange}>
+          Autoplay
+        </Switch>
         <div className="flex">
           <IconButton size="sm" label="Previous (K)" disabled={!onPrev} onClick={onPrev}>
             <ChevronUp />
@@ -127,6 +142,7 @@ export const Reel = ({
                 key={clip.id}
                 clip={clip}
                 active={clip.id === activeId}
+                upNext={clip.id === upNextId}
                 onSelect={() => onSelect(clip.id)}
               />
             ))}
@@ -154,10 +170,12 @@ export const Reel = ({
 const ReelItem = ({
   clip,
   active,
+  upNext,
   onSelect,
 }: {
   clip: ReelClip
   active: boolean
+  upNext: boolean
   onSelect: () => void
 }) => (
   <li data-clip={clip.id}>
@@ -190,9 +208,20 @@ const ReelItem = ({
           loading="lazy"
           className="size-full object-cover"
         />
-        <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px font-mono text-micro text-white">
+        <Badge
+          tone={KIND_TONE[clip.kind] ?? 'overlay'}
+          className="absolute bottom-1 left-1 h-4 px-1 text-micro tracking-normal normal-case"
+        >
+          {KIND_LABEL[clip.kind]}
+        </Badge>
+        <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px text-micro font-medium text-white tabular-nums">
           {clipLength(clip)}
         </span>
+        {upNext && (
+          <Badge tone="overlay" className="absolute top-1 left-1">
+            Up next
+          </Badge>
+        )}
         <span
           aria-hidden
           className={cn(
@@ -212,7 +241,7 @@ const ReelItem = ({
           <span className="truncate">{clip.player.name}</span>
         </p>
         <p className="truncate text-label text-muted">
-          {KIND_LABEL[clip.kind]} · R{clip.round}
+          Round {clip.round}
           {clip.playedAt && ` · ${timeAgo(clip.playedAt)}`}
         </p>
       </div>
