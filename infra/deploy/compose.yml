@@ -56,7 +56,7 @@ services:
     networks: [default, dokploy-network]
     labels:
       - traefik.enable=true
-      - traefik.http.routers.subtick-s3.rule=Host(`${S3_HOST:-subtick-s3.yekushev.dev}`)
+      - traefik.http.routers.subtick-s3.rule=Host(`${S3_HOST:?}`)
       - traefik.http.routers.subtick-s3.entrypoints=websecure
       - traefik.http.routers.subtick-s3.tls.certresolver=letsencrypt
       - traefik.http.services.subtick-s3.loadbalancer.server.port=8333
@@ -101,7 +101,7 @@ services:
     networks: [default, dokploy-network]
     labels:
       - traefik.enable=true
-      - traefik.http.routers.subtick-api.rule=Host(`${PUBLIC_HOST:-subtick.yekushev.dev}`) && PathPrefix(`/api`)
+      - traefik.http.routers.subtick-api.rule=Host(`${PUBLIC_HOST:?}`) && PathPrefix(`/api`)
       - traefik.http.routers.subtick-api.entrypoints=websecure
       - traefik.http.routers.subtick-api.tls.certresolver=letsencrypt
       - traefik.http.services.subtick-api.loadbalancer.server.port=3000
@@ -129,7 +129,7 @@ services:
     networks: [default, dokploy-network]
     labels:
       - traefik.enable=true
-      - traefik.http.routers.subtick-web.rule=Host(`${PUBLIC_HOST:-subtick.yekushev.dev}`) && !PathPrefix(`/api`)
+      - traefik.http.routers.subtick-web.rule=Host(`${PUBLIC_HOST:?}`) && !PathPrefix(`/api`)
       - traefik.http.routers.subtick-web.entrypoints=websecure
       - traefik.http.routers.subtick-web.tls.certresolver=letsencrypt
       - traefik.http.services.subtick-web.loadbalancer.server.port=80
