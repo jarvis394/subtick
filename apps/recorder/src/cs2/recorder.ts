@@ -20,11 +20,11 @@ const PLAYDEMO_ATTEMPTS = 3
 const SEEK_TIMEOUT_MS = 60_000
 const FFMPEG_EXIT_POLLS = 120
 /**
- * CS2 renders slower the longer one session records (on a 1 GB GPU, ~6× real time fresh, 15–30×
- * after five clips). A restart costs about half a minute, so the game is restarted after a slow
- * clip and, regardless, every few clips.
+ * CS2 renders slower the longer one session records (on a 1 GB GPU, 4–6× real time fresh; one
+ * session went 4× → 11× → 60× over four clips). A restart costs about half a minute, so the game
+ * is restarted after a slow clip and, regardless, every few clips.
  */
-const SLOW_RENDER_RATIO = 12
+const SLOW_RENDER_RATIO = 8
 const CLIPS_PER_SESSION = 4
 
 /**

@@ -20,6 +20,9 @@ type Highlight = typeof highlight.$inferSelect
 /** Of a clip's time in the batch, the share spent capturing frames rather than encoding them. */
 const CAPTURE_SHARE = 0.85
 
+/** Tries per clip, each in a fresh game after the first fails. */
+const CAPTURE_ATTEMPTS = 2
+
 /**
  * One job per match batch: load the demo once, then record its highlights in demo order, so each
  * seek is short. A clip that fails is marked failed and the game restarted; the batch goes on.
@@ -98,14 +101,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
       for (const [index, { highlight: h, playerName }] of pending.entries()) {
         // Cancelled while earlier clips recorded: it went back to being a candidate.
         if (!(await stillQueued(ctx, h.id))) continue
-        // The game keeps the previous job's demo loaded; never record this match's ticks from it.
-        if (recorder.loadedMatchId !== matchId) {
-          await report(index, h.id, 'loading')
-          await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
-        }
-        await report(index, h.id, 'recording', 0)
-
-        let raw: RecordedFile
+        let raw: RecordedFile | undefined
 
         const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
@@ -115,20 +111,39 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
             .where(eq(highlight.id, h.id))
         }
 
-        try {
-          raw = await recorder.record({
+        const capture = async () => {
+          // The game keeps the previous job's demo loaded; never record this match's ticks from it.
+          if (recorder.loadedMatchId !== matchId) {
+            await report(index, h.id, 'loading')
+            await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
+          }
+          await report(index, h.id, 'recording', 0)
+
+          return recorder.record({
             highlightId: h.id,
             playerName: playerName ?? '',
             segments: clipSegments(h),
             onProgress: (progress) =>
               void report(index, h.id, 'recording', progress).catch(() => {}),
           })
-        } catch (error) {
-          await fail('capture', error)
-          // The game's state is unknown after a failed capture: start it fresh.
-          await recorder.reset()
-          continue
         }
+
+        for (let attempt = 1; !raw; attempt++) {
+          try {
+            raw = await capture()
+          } catch (error) {
+            // The game's state is unknown after a failed capture: start it fresh. A session that
+            // slowed down mid-clip times out, so the clip gets one more try in a new game.
+            await recorder.reset()
+            if (attempt >= CAPTURE_ATTEMPTS) {
+              await fail('capture', error)
+              break
+            }
+            log.warn({ matchId, highlightId: h.id, attempt }, 'capture failed, retrying', error)
+            if (!(await stillQueued(ctx, h.id))) break
+          }
+        }
+        if (!raw) continue
         await report(index, h.id, 'rendering')
         await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
         // The takes are not needed either way.
