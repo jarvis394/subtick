@@ -17,12 +17,10 @@ const ownScroll = () => window.matchMedia('(min-width: 64rem)').matches
 export const Reel = ({
   reel,
   activeId,
-  position,
   isMatch,
   modal,
   autoplay,
   onAutoplayChange,
-  upNextId,
   onSelect,
   onPrev,
   onNext,
@@ -83,19 +81,14 @@ export const Reel = ({
     >
       <div
         className={cn(
-          'mb-2 pb-1 flex items-center gap-2 text-body',
+          'mb-2 pb-0.5 -mt-1.5 flex items-center gap-2 text-body',
           // Item padding (p-2) lines the heading up with the thumbnails.
           modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
         )}
       >
-        {/* The position sits under the heading, so the row has room for the autoplay switch. A
-          blank line holds its place until the clip is found, so the list doesn't jump. */}
-        <div className="min-w-0 flex-1">
-          <h2 className="font-medium text-muted">
-            {isMatch ? 'From this match' : 'More highlights'}
-          </h2>
-          <p className="text-label text-muted tabular-nums">{position ?? '\u00a0'}</p>
-        </div>
+        <h2 className="font-medium text-muted flex-1">
+          {isMatch ? 'From this match' : 'More highlights'}
+        </h2>
         <Switch checked={autoplay} onCheckedChange={onAutoplayChange}>
           Autoplay
         </Switch>
@@ -142,7 +135,6 @@ export const Reel = ({
                 key={clip.id}
                 clip={clip}
                 active={clip.id === activeId}
-                upNext={clip.id === upNextId}
                 onSelect={() => onSelect(clip.id)}
               />
             ))}
@@ -170,12 +162,10 @@ export const Reel = ({
 const ReelItem = ({
   clip,
   active,
-  upNext,
   onSelect,
 }: {
   clip: ReelClip
   active: boolean
-  upNext: boolean
   onSelect: () => void
 }) => (
   <li data-clip={clip.id}>
@@ -217,11 +207,6 @@ const ReelItem = ({
         <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px text-micro font-medium text-white tabular-nums">
           {clipLength(clip)}
         </span>
-        {upNext && (
-          <Badge tone="overlay" className="absolute top-1 left-1">
-            Up next
-          </Badge>
-        )}
         <span
           aria-hidden
           className={cn(

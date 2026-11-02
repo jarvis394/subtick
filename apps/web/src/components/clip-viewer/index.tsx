@@ -181,21 +181,14 @@ export const ClipViewer = ({
     return () => window.removeEventListener('keydown', onKey)
   }, [goNext, goPrev])
 
-  const position =
-    index === -1
-      ? undefined
-      : `${index + 1} / ${reel.items.length}${reel.isFetchingNextPage ? '+' : ''}`
-
   const reelPanel = (
     <Reel
       reel={reel}
       activeId={id}
-      position={position}
       isMatch={'match' in source}
       modal={modal}
       autoplay={autoplay}
       onAutoplayChange={setAutoplay}
-      upNextId={autoplay ? next?.id : undefined}
       onSelect={onSelect}
       onPrev={prev && (() => go(prev))}
       onNext={next && (() => go(next))}
