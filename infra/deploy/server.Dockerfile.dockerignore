@@ -1,0 +1,22 @@
+# Only what the api, parser and steam worker run, so a web-only change keeps this image cached
+# (and its containers running). Replaces the root .dockerignore for this build. Workspace
+# package.json files stay: bun's frozen install checks every workspace against bun.lock.
+**/node_modules
+**/.turbo
+**/dist
+.git
+.env
+.env.*
+*.dem
+*.dem.bz2
+**/*.md
+**/test
+**/*.test.ts
+docs
+infra
+apps/web/*
+!apps/web/package.json
+apps/recorder/*
+!apps/recorder/package.json
+packages/oxlint-plugin-subtick/*
+!packages/oxlint-plugin-subtick/package.json

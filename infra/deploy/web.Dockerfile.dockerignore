@@ -1,0 +1,26 @@
+# Only what the web build reads, so a server-only change keeps this image cached. Replaces the
+# root .dockerignore for this build. Workspace package.json files stay: bun's frozen install
+# checks every workspace against bun.lock.
+**/node_modules
+**/.turbo
+**/dist
+.git
+.env
+.env.*
+*.dem
+*.dem.bz2
+**/*.md
+**/test
+**/*.test.ts
+docs
+infra/*
+!infra/deploy
+infra/deploy/*
+!infra/deploy/nginx.conf
+apps/*/*
+!apps/*/package.json
+!apps/web/**
+packages/*/*
+!packages/*/package.json
+!packages/domain/**
+!packages/tsconfig/**
