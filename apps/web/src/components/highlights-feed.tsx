@@ -110,7 +110,12 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
         ) : (
           <div className="grid gap-12">
             {groupByDay(items).map((group) => (
-              <section key={group.label}>
+              // Days off screen skip layout and paint, so long feeds scroll and refilter cheaply. The
+              // containment clips paint at the box, so it's padded out to keep the focus rings.
+              <section
+                key={group.label}
+                className="-mx-1 px-1 [contain-intrinsic-size:auto_none_auto_40rem] [content-visibility:auto]"
+              >
                 <h2 className="mb-4 text-body font-medium">
                   {group.label}
                   <span className="text-muted">

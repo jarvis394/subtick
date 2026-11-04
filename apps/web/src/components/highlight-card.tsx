@@ -152,17 +152,15 @@ export const HighlightCard = memo(
             >
               {KIND_LABEL[highlight.kind]}
             </Badge>
-            <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-caption font-medium text-white tabular-nums backdrop-blur">
+            <span className="rounded-md bg-black/65 px-1.5 py-0.5 text-caption font-medium text-white tabular-nums">
               {clock(Math.max(0, Math.min(total, Math.ceil(total - elapsed))))}
             </span>
           </div>
           {/* Only where there's no hover preview to say "this plays": touch, or keyboard focus. */}
           <span className="pointer-events-none absolute inset-0 grid place-items-center opacity-0 group-focus-visible/thumb:opacity-100 pointer-coarse:opacity-100">
-            {/* Opacity lives on the blurred circle itself: on a parent it would become the
-              backdrop root and the blur would vanish mid-fade. */}
             <span
               className={cn(
-                'grid size-10 place-items-center rounded-full bg-black/45 backdrop-blur transition-[scale,opacity] ease-out-quart motion-reduce:scale-100',
+                'grid size-10 place-items-center rounded-full bg-black/55 transition-[scale,opacity] ease-out-quart motion-reduce:scale-100',
                 playing ? 'scale-90 opacity-0 duration-150' : 'scale-100 opacity-100 duration-200',
               )}
             >
