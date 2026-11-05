@@ -1,32 +1,47 @@
 import { Combobox } from '@base-ui/react/combobox'
-import { Check, ChevronDown, Clapperboard, Search, User, Users } from 'lucide-react'
+import { Check, ChevronDown, Clapperboard, Component, Search, User, Users } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
-import type { ClipListSearch } from '@/lib/highlights'
-import type { ClipFacets } from '@/lib/queries'
+import type { PlayerSearch } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
 import { itemClass, popupClass, triggerClass } from './styles'
+import { type SummaryToken, TriggerSummary } from './trigger-summary'
 
+/** Avatars the trigger shows for a multiple pick before folding the rest into "+n". */
+const STACKED = 2
 const ME = '__me'
 const PLAYED_WITH = '__played_with'
+const ALL = '__all'
 
-type PlayerSearch = Pick<ClipListSearch, 'players' | 'me' | 'playedWith'>
+interface PickerPlayer {
+  steamId: string
+  name: string
+  avatarUrl: string | null
+  clips: number
+}
 
-const labelOf = (id: string, byId: Map<string, { name: string }>) =>
-  id === ME
-    ? 'Me'
-    : id === PLAYED_WITH
-      ? 'People I played with'
-      : (byId.get(id)?.name ?? 'Unknown player')
-
-/** Who made the play: the viewer, people they played with, or anyone picked from the list. */
+/**
+ * Who made the play: the viewer, people they played with, or anyone picked from the list. The
+ * viewer's own accounts (`mySteamIds`) show under You as "Me" rather than among the players.
+ */
 export const PlayerPicker = ({
   players,
+  mySteamIds,
+  playedWith = true,
+  countLabel = 'Clips',
+  align = 'start',
   search,
   onChange,
   className,
 }: {
-  players: ClipFacets['players']
+  players: PickerPlayer[]
+  mySteamIds: string[]
+  /** Offers "People I played with"; a match page has it only when the viewer queued with others. */
+  playedWith?: boolean
+  /** What the number beside each player counts, for screen readers. */
+  countLabel?: string
+  /** Which edge of the trigger the list lines up with: the side of the page it sits on. */
+  align?: 'start' | 'end'
   search: PlayerSearch
   onChange: (patch: PlayerSearch) => void
   /** Layout for the trigger, e.g. joining it to its neighbour. */
@@ -35,31 +50,67 @@ export const PlayerPicker = ({
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const byId = new Map(players.map((p) => [p.steamId, p]))
+  const mine = players.filter((p) => mySteamIds.includes(p.steamId))
+  const meRow = mine[0] && { ...mine[0], clips: mine.reduce((n, p) => n + p.clips, 0) }
+  // All players heads the list on its own, without a section label.
   const groups = [
-    { label: 'You', items: [ME, PLAYED_WITH] },
-    { label: 'Players', items: players.map((p) => p.steamId) },
-  ]
+    { label: '', items: [ALL] },
+    { label: 'You', items: [ME, ...(playedWith ? [PLAYED_WITH] : [])] },
+    {
+      label: 'Players',
+      items: players.filter((p) => !mySteamIds.includes(p.steamId)).map((p) => p.steamId),
+    },
+  ].filter((group) => group.items.length > 0)
   const value = [
     ...(search.me ? [ME] : []),
-    ...(search.playedWith ? [PLAYED_WITH] : []),
+    ...(search.playedWith && playedWith ? [PLAYED_WITH] : []),
     ...(search.players ?? []),
   ]
-  const summary =
-    value.length === 0
-      ? 'All players'
-      : value.length === 1
-        ? labelOf(value[0]!, byId)
-        : `${value.length} selected`
   const only = value.length === 1 ? value[0]! : undefined
-  const onlyPlayer = only ? byId.get(only) : undefined
+  // What the list checks: All players stands for an empty pick.
+  const checked = value.length ? value : [ALL]
+  const tokens: SummaryToken[] =
+    value.length === 0
+      ? [{ key: 'all', icon: 'users' }]
+      : only === PLAYED_WITH
+        ? [{ key: PLAYED_WITH, icon: 'group' }]
+        : only === ME && !meRow
+          ? [{ key: ME, icon: 'user' }]
+          : [
+              ...value.slice(0, STACKED).map((id): SummaryToken => {
+                const player = id === ME ? meRow : byId.get(id)
+
+                return player
+                  ? { key: id, avatar: { src: player.avatarUrl, name: player.name } }
+                  : { key: id, group: true }
+              }),
+              ...(value.length > STACKED ? [{ key: 'more', more: value.length - STACKED }] : []),
+            ]
+
+  const labelOf = (id: string) =>
+    id === ALL
+      ? 'All players'
+      : id === ME
+        ? (meRow?.name ?? 'Me')
+        : id === PLAYED_WITH
+          ? 'People I played with'
+          : (byId.get(id)?.name ?? 'Unknown player')
 
   return (
     <Combobox.Root
       multiple
       items={groups}
-      value={value}
-      itemToStringLabel={(id) => labelOf(id, byId)}
-      onValueChange={(next) => {
+      value={checked}
+      itemToStringLabel={labelOf}
+      onValueChange={(choice) => {
+        // All players clears the pick; a You pick stands alone, replacing everything else.
+        const added = choice.find((id) => !checked.includes(id))
+        const next =
+          added === ALL
+            ? []
+            : added === ME || added === PLAYED_WITH
+              ? [added]
+              : choice.filter((id) => id !== ALL)
         const picked = next.filter((id) => id !== ME && id !== PLAYED_WITH)
         onChange({
           me: next.includes(ME) || undefined,
@@ -71,25 +122,20 @@ export const PlayerPicker = ({
       open={open}
       onOpenChange={setOpen}
     >
-      <Combobox.Trigger className={cn(triggerClass, 'max-w-60 min-w-36', className)}>
-        {onlyPlayer ? (
-          <Avatar
-            src={onlyPlayer.avatarUrl}
-            name={onlyPlayer.name}
-            className="-ml-1 size-5 text-micro"
-          />
-        ) : only === ME ? (
-          <User className="size-4 shrink-0 text-muted" />
-        ) : (
-          <Users className="size-4 shrink-0 text-muted" />
-        )}
-        <span className="flex-1 truncate text-left">{summary}</span>
+      <Combobox.Trigger className={cn(triggerClass, 'group/trigger max-w-60 min-w-36', className)}>
+        <TriggerSummary
+          tokens={tokens}
+          label={
+            value.length === 0 ? 'All players' : only ? labelOf(only) : `${value.length} selected`
+          }
+          me={only === ME && Boolean(meRow)}
+        />
         <Combobox.Icon>
           <ChevronDown className="size-4 text-muted" />
         </Combobox.Icon>
       </Combobox.Trigger>
       <Combobox.Portal>
-        <Combobox.Positioner sideOffset={6} align="start" className="z-50">
+        <Combobox.Positioner sideOffset={6} align={align} className="z-50">
           <Combobox.Popup
             aria-label="Players"
             // Base UI focuses the input before the popup is positioned, scrolling the page to it.
@@ -113,13 +159,19 @@ export const PlayerPicker = ({
             </Combobox.Empty>
             <Combobox.List className="max-h-80 scroll-py-1 overflow-auto overscroll-contain p-1 empty:hidden">
               {(group: (typeof groups)[number]) => (
-                <Combobox.Group key={group.label} items={group.items} className="pb-1 last:pb-0">
-                  <Combobox.GroupLabel className="px-2 pt-2 pb-1 text-caption font-medium text-muted">
-                    {group.label}
-                  </Combobox.GroupLabel>
+                <Combobox.Group
+                  key={group.label || ALL}
+                  items={group.items}
+                  className="pb-1 last:pb-0"
+                >
+                  {group.label && (
+                    <Combobox.GroupLabel className="px-2 pt-2 pb-1 text-caption font-medium text-muted">
+                      {group.label}
+                    </Combobox.GroupLabel>
+                  )}
                   <Combobox.Collection>
                     {(id: string) => {
-                      const player = byId.get(id)
+                      const player = id === ME ? meRow : byId.get(id)
 
                       return (
                         <Combobox.Item key={id} value={id} className={itemClass}>
@@ -129,16 +181,18 @@ export const PlayerPicker = ({
                             <span className="grid size-6 place-items-center rounded-full bg-surface-3 text-muted">
                               {id === ME ? (
                                 <User className="size-3.5" />
+                              ) : id === PLAYED_WITH ? (
+                                <Component className="size-3.5" />
                               ) : (
                                 <Users className="size-3.5" />
                               )}
                             </span>
                           )}
-                          <span className="min-w-0 flex-1 truncate">{labelOf(id, byId)}</span>
+                          <span className="min-w-0 flex-1 truncate">{labelOf(id)}</span>
                           {player && (
                             <span className="inline-flex items-center gap-1 text-small text-muted tabular-nums">
                               <Clapperboard aria-hidden className="size-3.5" />
-                              <span className="sr-only">Clips:</span>
+                              <span className="sr-only">{countLabel}:</span>
                               {player.clips}
                             </span>
                           )}

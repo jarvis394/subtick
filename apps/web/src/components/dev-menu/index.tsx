@@ -59,7 +59,7 @@ export default function DevMenu() {
               variant="secondary"
               label="Developer tools"
               tooltip={false}
-              className="size-10 rounded-full shadow-lg shadow-black/30"
+              className="size-10 rounded-full border border-border-strong shadow-lg shadow-black/30 [--bg:var(--color-background)] [--bg-hover:var(--color-surface-2)]"
             />
           }
         >

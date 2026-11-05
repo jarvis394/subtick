@@ -1,5 +1,5 @@
 import { mapName } from '@subtick/domain'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { User, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { KindTabs } from '@/components/kind-tabs'
@@ -15,7 +15,7 @@ import {
   NO_FILTERS,
   toggled,
 } from '@/lib/highlights'
-import { clipFacetsQuery } from '@/lib/queries'
+import { clipFacetsQuery, meQuery } from '@/lib/queries'
 import { DetailFilters } from './detail-filters'
 import { PlayerPicker } from './player-picker'
 
@@ -35,6 +35,7 @@ export const HighlightFilters = ({
   onChange: (patch: Patch) => void
 }) => {
   const facets = useQuery(clipFacetsQuery(steamId))
+  const { data: me } = useSuspenseQuery(meQuery)
   const byId = new Map(facets.data?.players.map((p) => [p.steamId, p]))
   const picks: { key: string; label: string; icon?: ReactNode; patch: Patch }[] = [
     ...(steamId
@@ -101,6 +102,7 @@ export const HighlightFilters = ({
           {!steamId && (
             <PlayerPicker
               players={facets.data?.players ?? []}
+              mySteamIds={me.steamLinks.map((link) => link.steamId)}
               search={search}
               onChange={onChange}
               className="rounded-r-none"

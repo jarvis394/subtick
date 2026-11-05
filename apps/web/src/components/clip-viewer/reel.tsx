@@ -204,7 +204,7 @@ const ReelItem = ({
         >
           {KIND_LABEL[clip.kind]}
         </Badge>
-        <span className="absolute right-1 bottom-1 rounded bg-black/65 px-1 py-px text-micro font-medium text-white tabular-nums">
+        <span className="absolute right-1 bottom-1 rounded bg-black px-1 py-px text-micro font-medium text-white tabular-nums">
           {clipLength(clip)}
         </span>
         <span

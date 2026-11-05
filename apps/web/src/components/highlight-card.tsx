@@ -152,7 +152,7 @@ export const HighlightCard = memo(
             >
               {KIND_LABEL[highlight.kind]}
             </Badge>
-            <span className="rounded-md bg-black/65 px-1.5 py-0.5 text-caption font-medium text-white tabular-nums">
+            <span className="rounded-md bg-black px-1.5 py-0.5 text-caption font-medium text-white tabular-nums">
               {clock(Math.max(0, Math.min(total, Math.ceil(total - elapsed))))}
             </span>
           </div>

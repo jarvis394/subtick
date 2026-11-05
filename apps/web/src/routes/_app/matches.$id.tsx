@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
 import { HighlightCard } from '@/components/highlight-card'
+import { PlayerPicker } from '@/components/highlight-filters/player-picker'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
 import { MatchProgress } from '@/components/match-progress'
@@ -15,11 +16,11 @@ import { Scoreboard } from '@/components/scoreboard'
 import { Button } from '@/components/ui/button'
 import { AutoHeight, FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
-import { Tab, Tabs, TabsList } from '@/components/ui/tabs'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
 import { useMatchProgress } from '@/hooks/use-match-events'
 import { formatDate } from '@/lib/format'
-import { clipMask, clipViewerSearch } from '@/lib/highlights'
+import { type PlayerSearch, clipMask, clipViewerSearch } from '@/lib/highlights'
+import { matchPlayerScope } from '@/lib/match-players'
 import { type MatchDetail, type MatchListItem, matchQuery, meQuery } from '@/lib/queries'
 import { markSeen } from '@/lib/new-matches'
 import { cn } from '@/lib/utils'
@@ -274,11 +275,15 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
 }
 
 function MatchBody({ data }: { data: MatchDetail }) {
-  const mySteamIds = new Set(data.viewerSteamId ? [data.viewerSteamId] : [])
-  const myPlayer = data.players.find((p) => mySteamIds.has(p.steamId))
-  const [scope, setScope] = useState<'mine' | 'all'>(myPlayer ? 'mine' : 'all')
+  const myPlayer = data.players.find((p) => p.steamId === data.viewerSteamId)
+  const [shown, setShown] = useState<PlayerSearch>({ me: myPlayer ? true : undefined })
+  const scope = matchPlayerScope(
+    data,
+    data.highlights.filter((h) => h.clip),
+    shown,
+  )
 
-  const highlights = data.highlights.filter((h) => scope === 'all' || mySteamIds.has(h.steamId))
+  const highlights = data.highlights.filter((h) => scope.includes(h.steamId))
   const clips = highlights.filter((h) => h.clip)
   // Asked for and not out yet; candidates are picked on the Create highlights page.
   // In the order the recorder works through them (demo order).
@@ -313,13 +318,15 @@ function MatchBody({ data }: { data: MatchDetail }) {
                 </span>
               </Button>
             )}
-            {myPlayer && (
-              <Tabs value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
-                <TabsList aria-label="Highlights">
-                  <Tab value="mine">Yours</Tab>
-                  <Tab value="all">Everyone</Tab>
-                </TabsList>
-              </Tabs>
+            {data.highlights.length > 0 && (
+              <PlayerPicker
+                players={scope.players}
+                mySteamIds={scope.mySteamIds}
+                playedWith={scope.hasParty}
+                align="end"
+                search={shown}
+                onChange={setShown}
+              />
             )}
           </div>
         </div>
@@ -363,7 +370,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
                       <MomentRow
                         moment={m}
                         match={data}
-                        player={scope === 'all' ? playerOf(m.steamId) : undefined}
+                        player={scope.single ? undefined : playerOf(m.steamId)}
                         owner={playerOf(m.steamId)}
                       />
                     </FadeItem>

@@ -1,3 +1,4 @@
+import { useDeferredValue } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Clapperboard, SearchX } from 'lucide-react'
@@ -65,7 +66,10 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const search: ClipListSearch = useSearch({ strict: false })
   const navigate = useNavigate()
 
-  const filters = feedFilters(search, steamId)
+  // The bar answers each click at once; the feed re-renders behind it, interruptibly, so a
+  // run of toggles in the Filters popover doesn't wait on every card.
+  const feedSearch = useDeferredValue(search)
+  const filters = feedFilters(feedSearch, steamId)
   const clips = useInfiniteQuery(clipsQuery(filters))
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
   const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)

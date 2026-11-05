@@ -16,29 +16,48 @@ export const MorphLabel = ({
   align?: 'center' | 'start'
 }) => {
   const box = useRef<HTMLSpanElement>(null)
-  const measured = useRef(false)
+  const mounted = useRef(false)
+  const change = useRef(0)
   const reduce = useReducedMotion()
   // Each change is a new element, never an exiting one brought back: flipping A -> B -> A faster
   // than the exit leaves AnimatePresence holding the old A mid-exit, and the label sticks.
   const [shown, setShown] = useState({ text: children, id: 0 })
   if (shown.text !== children) setShown({ text: children, id: shown.id + 1 })
 
-  // Each change mounts a new incoming text, so its ref measures it. The first width is set
-  // outright, so the first change has a width to ease from; later ones ease (taking over any
-  // still running).
+  // Each change mounts a new incoming text, so its ref measures it. At rest the box sizes to its
+  // text on its own: a width pinned on mount goes stale if the font or layout settles later. A
+  // change pins the box at the old width, eases it to the new one, and lets go once there.
   const measure = (incoming: HTMLSpanElement | null) => {
-    if (!box.current || !incoming) return
-    const next = incoming.offsetWidth
-    if (!measured.current) {
-      measured.current = true
-      box.current.style.width = `${next}px`
-    } else {
-      animate(
-        box.current,
-        { width: next },
-        reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG },
-      )
+    const el = box.current
+    if (!el || !incoming) return
+    if (!mounted.current) {
+      mounted.current = true
+
+      return
     }
+    const outgoing = [...el.children].filter((child) => child !== incoming)
+    // Mid-change the box is already pinned, so it eases on from where it is.
+    const from = el.style.width
+      ? el.getBoundingClientRect().width
+      : Math.max(
+          0,
+          ...outgoing.map((child) => (child instanceof HTMLElement ? child.offsetWidth : 0)),
+        )
+    const to = incoming.offsetWidth
+    const run = ++change.current
+    if (!from || from === to) return
+    el.style.width = `${from}px`
+    animate(
+      el,
+      { width: to },
+      {
+        ...(reduce ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_STRONG }),
+        // Only the latest change lets go; an earlier one finishing early would snap the box.
+        onComplete: () => {
+          if (run === change.current) el.style.width = ''
+        },
+      },
+    )
   }
 
   return (

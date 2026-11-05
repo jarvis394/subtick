@@ -5,19 +5,19 @@ import { LayoutGroup, motion } from 'motion/react'
 import type { ReactNode, Ref } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { KindTabs } from '@/components/kind-tabs'
+import { PlayerPicker } from '@/components/highlight-filters/player-picker'
 import { MomentCard } from '@/components/moment-card'
 import { FadeItem, FadeList, fade } from '@/components/ui/presence'
 import { Skeleton } from '@/components/ui/surface'
-import { Switch } from '@/components/ui/switch'
 import { useCancelMoment } from '@/hooks/use-match-actions'
 import { useRecordMoment } from '@/hooks/use-record-moment'
 import { KIND_FILTERS, clipListSearch } from '@/lib/highlights'
+import { matchPlayerScope } from '@/lib/match-players'
 import { type MatchDetail, matchQuery } from '@/lib/queries'
-import { z } from 'zod'
 
 export const Route = createFileRoute('/_app/matches_/$id/create')({
   head: () => ({ meta: [{ title: 'Create highlights · subtick' }] }),
-  validateSearch: clipListSearch.pick({ kind: true }).extend({ mine: z.boolean().optional() }),
+  validateSearch: clipListSearch.pick({ kind: true, players: true, me: true, playedWith: true }),
   loader: ({ context, params }) => void context.queryClient.prefetchQuery(matchQuery(params.id)),
   component: CreateHighlightsPage,
 })
@@ -61,13 +61,11 @@ function CreateHighlightsPage() {
 
   const kind = search.kind ?? 'all'
   const kinds: readonly string[] = KIND_FILTERS.find((f) => f.id === kind)!.kinds
-  const viewer = data?.viewerSteamId
-  const shown = (data?.highlights ?? []).filter(
-    (h) =>
-      !h.clip &&
-      (kinds.length === 0 || kinds.includes(h.kind)) &&
-      (!search.mine || h.steamId === viewer),
+  const recordable = (data?.highlights ?? []).filter(
+    (h) => !h.clip && (kinds.length === 0 || kinds.includes(h.kind)),
   )
+  const scope = data && matchPlayerScope(data, recordable, search)
+  const shown = recordable.filter((h) => !scope || scope.includes(h.steamId))
   // In the order the recorder works through them (demo order), so a newly queued moment lands
   // where it will actually be recorded.
   const queue = shown
@@ -114,16 +112,15 @@ function CreateHighlightsPage() {
             navigate({ search: (s) => ({ ...s, kind: value === 'all' ? undefined : value }) })
           }
         />
-        {viewer && (
-          <Switch
-            checked={Boolean(search.mine)}
-            onCheckedChange={(mine) =>
-              navigate({ search: (s) => ({ ...s, mine: mine || undefined }) })
-            }
-            className="ml-auto"
-          >
-            Only mine
-          </Switch>
+        {scope && data.players.length > 0 && (
+          <PlayerPicker
+            players={scope.players}
+            mySteamIds={scope.mySteamIds}
+            playedWith={scope.hasParty}
+            countLabel="Moments"
+            search={search}
+            onChange={(patch) => navigate({ search: (s) => ({ ...s, ...patch }) })}
+          />
         )}
       </div>
 
@@ -144,8 +141,8 @@ function CreateHighlightsPage() {
                     icon={<SearchX />}
                     title="No moments to record here"
                     description={
-                      kind !== 'all' || search.mine
-                        ? 'Try another kind, or turn off Only mine'
+                      kind !== 'all' || search.me || search.playedWith || search.players
+                        ? 'Try another kind or player'
                         : 'Every moment in this match is recorded or queued'
                     }
                   />

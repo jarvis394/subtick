@@ -196,7 +196,7 @@ const Row = ({
     {leading}
     <div className="min-w-0 flex-1">
       <p className="truncate text-body font-medium">{label}</p>
-      {description && <div className="mt-0.5 text-small text-muted">{description}</div>}
+      {description && <div className="text-small text-muted">{description}</div>}
     </div>
     {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
   </div>
@@ -209,15 +209,18 @@ const SYNC_LABEL = {
   error: 'Sync error',
 } as const
 
-/** Clock time the worker tries again, e.g. "14:30" (or "Mon 14:30" past today). */
-const retryTime = (date: Date | string) => {
+/** Clock time the worker tries again, e.g. "14:30" (or "Mon 14:30" past today); null once it's due. */
+const retryTime = (date: Date | string | null) => {
+  if (!date) return null
   const at = new Date(date)
+  if (at.getTime() <= Date.now()) return null
   const today = at.toDateString() === new Date().toDateString()
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('en', {
     ...(today ? {} : { weekday: 'short' }),
-    hour: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   }).format(at)
 }
 
@@ -237,7 +240,9 @@ function SteamLinkGroup({
   })
 
   // Steam throttling the API is temporary and nothing the user can fix: shown as a wait, not an error.
-  const rateLimited = link.lastError === 'rate_limited'
+  // Older rows stored Steam's raw 429 rather than `rate_limited`.
+  const rateLimited =
+    link.lastError === 'rate_limited' || Boolean(link.lastError?.includes('HTTP 429'))
   const syncTone =
     !rateLimited && (link.syncState === 'needs_auth' || link.syncState === 'error')
       ? 'danger'
@@ -288,28 +293,9 @@ function SteamLinkGroup({
         <Row
           label="Match history"
           description={
-            link.hasMatchAuth ? (
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <Badge tone={syncTone}>
-                  {rateLimited ? 'Waiting on Steam' : SYNC_LABEL[link.syncState]}
-                </Badge>
-                {link.lastSyncedAt && `checked ${timeAgo(link.lastSyncedAt)}`}
-                {rateLimited ? (
-                  <span>
-                    Steam is limiting requests.{' '}
-                    {link.nextSyncAt
-                      ? `Trying again at ${retryTime(link.nextSyncAt)}`
-                      : 'Trying again soon'}
-                  </span>
-                ) : (
-                  link.lastError && (
-                    <span className="text-danger select-text">{link.lastError}</span>
-                  )
-                )}
-              </span>
-            ) : (
-              'Not connected. Add an authentication code to pick up your matches.'
-            )
+            link.hasMatchAuth
+              ? link.lastSyncedAt && `Checked ${timeAgo(link.lastSyncedAt)}`
+              : 'Not connected. Add an authentication code to pick up your matches.'
           }
         >
           <Collapsible.Trigger render={<Button size="sm" variant="secondary" />}>
@@ -318,6 +304,27 @@ function SteamLinkGroup({
             </MorphLabel>
           </Collapsible.Trigger>
         </Row>
+        {/* Under the row at full width rather than squeezed beside the button: raw errors carry
+          long unbroken API paths. */}
+        {link.hasMatchAuth && (
+          <div className="-mt-1 grid justify-items-start gap-1.5 pb-3 text-small text-pretty">
+            <Badge tone={syncTone}>
+              {rateLimited ? 'Waiting on Steam' : SYNC_LABEL[link.syncState]}
+            </Badge>
+            {rateLimited ? (
+              <p className="text-muted">
+                Steam is limiting requests.{' '}
+                {retryTime(link.nextSyncAt)
+                  ? `Trying again at ${retryTime(link.nextSyncAt)}.`
+                  : 'Trying again soon.'}
+              </p>
+            ) : (
+              link.lastError && (
+                <p className="text-danger select-text [overflow-wrap:anywhere]">{link.lastError}</p>
+              )
+            )}
+          </div>
+        )}
         <Collapsible.Panel className="-mx-1 h-(--collapsible-panel-height) overflow-hidden px-1 transition-[height] duration-200 ease-out-quart data-ending-style:h-0 data-starting-style:h-0">
           <div className="pb-4">
             <MatchAuthForm steamId={link.steamId} onDone={() => setEditing(false)} />

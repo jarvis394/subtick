@@ -1,9 +1,9 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Clapperboard, PanelLeft, Swords } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
-import { meQuery } from '@/lib/queries'
+import { meQuery, queueQuery } from '@/lib/queries'
 import { isSetUp } from '@/lib/setup'
 import { cn } from '@/lib/utils'
 import { AccountMenu } from './account-menu'
@@ -38,6 +38,9 @@ export const SidebarContent = ({
 }) => {
   const { data: me } = useSuspenseQuery(meQuery)
   const setUp = isSetUp(me)
+  // Same query as the queue button, which hides itself while the queue is empty.
+  const { data: queue } = useQuery(queueQuery)
+  const queueShown = Boolean(queue?.items.length)
 
   return (
     <div className="flex h-full w-full min-w-64 flex-col">
@@ -108,12 +111,13 @@ export const SidebarContent = ({
       {/*
        * The rail has no room beside the account, so the queue goes above it. It slides there on
        * the sidebar's own curve (and the footer grows to fit) instead of the row reflowing at once.
+       * No queue, no room kept for it.
        */}
       <div
         className={cn(
           'relative flex shrink-0 items-center border-t p-2',
           '[transition:padding_200ms_var(--ease-out-quart)] motion-reduce:transition-none',
-          collapsed && 'pt-13',
+          collapsed && queueShown && 'pt-13',
         )}
       >
         <AccountMenu

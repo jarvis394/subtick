@@ -56,7 +56,7 @@ const styles = {
 
 const sizes = {
   xs: 'h-7 gap-1 rounded-md px-2 text-label [&_svg]:size-3.5',
-  sm: 'h-8 gap-1.5 rounded-lg px-2.5 text-small',
+  sm: 'h-9 gap-1.5 rounded-control px-3 text-small',
   md: 'h-9 gap-2 rounded-control px-3.5 text-body',
   lg: 'h-11 gap-2 rounded-xl px-5 text-lead',
 }

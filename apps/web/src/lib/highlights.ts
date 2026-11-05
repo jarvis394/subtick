@@ -106,6 +106,9 @@ export const clipListSearch = clipViewerSearch.extend({
 
 export type ClipListSearch = z.infer<typeof clipListSearch>
 
+/** Who the player picker keeps: the viewer, people they played with, and picked players. */
+export type PlayerSearch = Pick<ClipListSearch, 'players' | 'me' | 'playedWith'>
+
 /** Every filter param, cleared: patched over the search to reset the feed. */
 export const NO_FILTERS = {
   kind: undefined,

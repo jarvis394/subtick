@@ -43,15 +43,12 @@ export const Badge = ({
         danger: 'bg-danger/12 text-danger',
         ct: 'bg-side-ct/14 text-side-ct',
         t: 'bg-side-t/16 text-side-t-text',
-        overlay: 'bg-black/65 text-white',
+        overlay: 'bg-black text-white',
         'overlay-inverse': 'bg-white text-black',
-        'tint-orange':
-          'bg-[color-mix(in_oklab,var(--color-orange-500)_20%,rgb(0_0_0/0.7))] text-orange-300',
-        'tint-violet':
-          'bg-[color-mix(in_oklab,var(--color-violet-500)_20%,rgb(0_0_0/0.7))] text-violet-300',
-        'tint-sky': 'bg-[color-mix(in_oklab,var(--color-sky-500)_20%,rgb(0_0_0/0.7))] text-sky-400',
-        'tint-teal':
-          'bg-[color-mix(in_oklab,var(--color-teal-500)_20%,rgb(0_0_0/0.7))] text-teal-300',
+        'tint-orange': 'bg-[color-mix(in_oklab,var(--color-orange-500)_20%,black)] text-orange-300',
+        'tint-violet': 'bg-[color-mix(in_oklab,var(--color-violet-500)_20%,black)] text-violet-300',
+        'tint-sky': 'bg-[color-mix(in_oklab,var(--color-sky-500)_20%,black)] text-sky-400',
+        'tint-teal': 'bg-[color-mix(in_oklab,var(--color-teal-500)_20%,black)] text-teal-300',
       }[tone],
       outlined && 'ring-1 ring-current/7 ring-inset',
       // An outline offset from the badge: the gap shows whatever is behind it.
