@@ -60,6 +60,10 @@ export const Tab = ({ className, ...props }: ComponentProps<typeof BaseTabs.Tab>
         // Inset, so the scrolling row doesn't clip the ring.
         'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset data-active:text-foreground',
         size === 'sm' ? 'h-7 px-2.5 text-small' : 'h-8 px-3 text-body',
+        // Reaches halfway across the gap (and the track's padding), so no spot between tabs is dead.
+        variant === 'segmented'
+          ? 'after:absolute after:-inset-x-px after:-inset-y-0.5'
+          : 'after:absolute after:-inset-x-0.5 after:inset-y-0',
         radius(variant, size),
         className,
       )}

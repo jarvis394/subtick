@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils'
 export const rowClass = (collapsed: boolean) =>
   cn(
     'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-2.75 text-body whitespace-nowrap text-muted outline-none select-none',
+    // Rows sit flush; a clear 1px border clips the fill, so the gap between them stays clickable.
+    'border-y border-transparent bg-clip-padding',
     // The rail's width, and the text/icon color as a row becomes active; backgrounds switch
     // instantly.
     '[transition:width_200ms_var(--ease-out-quart),color_150ms_ease-out]',

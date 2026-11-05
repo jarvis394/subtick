@@ -81,7 +81,7 @@ export const SidebarContent = ({
 
       {/* Header and footer hold still; everything between them scrolls as one. */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-2">
-        <nav className="grid gap-0.5 px-2">
+        <nav className="grid px-2">
           <NavItem
             to="/"
             icon={<Clapperboard />}

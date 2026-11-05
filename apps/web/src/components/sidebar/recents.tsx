@@ -76,7 +76,7 @@ export const Recents = ({
                 </p>
               </div>
             )}
-            <div className="grid gap-0.5">
+            <div className="grid">
               {recent.items.map((match) => (
                 <RecentRow
                   key={match.id}
@@ -111,7 +111,7 @@ export const Recents = ({
         ) : (
           showSkeleton && (
             // Laid out like RecentRow: map icon, name and age, score on the right.
-            <div className="grid gap-0.5" aria-hidden>
+            <div className="grid" aria-hidden>
               {SKELETON_WIDTHS.map((width, i) => (
                 // oxlint-disable-next-line react/no-array-index-key -- fixed placeholder rows that never reorder
                 <div key={i} className="flex h-10 items-center gap-2.5 px-2">
