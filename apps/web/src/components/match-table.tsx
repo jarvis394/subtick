@@ -41,31 +41,37 @@ export const perspectiveScore = (
   } as const
 }
 
-// One grid for header and rows. Narrow screens keep map, score and rating only.
-const GRID =
-  'grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-3 px-4 md:grid-cols-[minmax(8rem,1.3fr)_7rem_4rem_minmax(7.5rem,auto)_3.5rem_2.5rem_2.5rem_2.5rem_3rem_3rem_3rem_minmax(6rem,auto)] md:px-5'
+// One grid for header and rows, stepped by the table's own width so a column never clips:
+// map, score and rating; then date, rank, K/D and clips; then the full stat line.
+const GRID = cn(
+  'grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-3 px-4 md:px-5',
+  '@3xl:grid-cols-[minmax(8rem,1.3fr)_7rem_4rem_minmax(7.5rem,auto)_3.5rem_3rem_minmax(6rem,auto)]',
+  '@5xl:grid-cols-[minmax(8rem,1.3fr)_7rem_4rem_minmax(7.5rem,auto)_3.5rem_2.5rem_2.5rem_2.5rem_3rem_3rem_3rem_minmax(6rem,auto)]',
+)
 
-const WIDE = 'hidden md:block'
+const MID = 'hidden @3xl:block'
+
+const FULL = 'hidden @5xl:block'
 
 const ratingTone = (rating: number) =>
   rating >= 1.5 ? 'text-success' : rating < 0.85 ? 'text-danger' : 'text-foreground'
 
 export const MatchTable = ({ matches }: { matches: MatchRowData[] }) => (
   // Edge to edge on phones (cancels the page's px-4), a card from md up.
-  <div className="-mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
+  <div className="@container -mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">
     <div className={cn(GRID, 'h-10 border-b text-label font-medium text-muted')}>
       <span>Map</span>
-      <span className={WIDE}>Date</span>
-      <span className="text-right md:text-left">Score</span>
-      <span className={WIDE}>Rank</span>
+      <span className={MID}>Date</span>
+      <span className="text-right @3xl:text-left">Score</span>
+      <span className={MID}>Rank</span>
       <span className="text-right">Rating</span>
-      <span className={cn(WIDE, 'text-right')}>K</span>
-      <span className={cn(WIDE, 'text-right')}>D</span>
-      <span className={cn(WIDE, 'text-right')}>A</span>
-      <span className={cn(WIDE, 'text-right')}>K/D</span>
-      <span className={cn(WIDE, 'text-right')}>ADR</span>
-      <span className={cn(WIDE, 'text-right')}>HS%</span>
-      <span className={cn(WIDE, 'text-right')}>Clips</span>
+      <span className={cn(FULL, 'text-right')}>K</span>
+      <span className={cn(FULL, 'text-right')}>D</span>
+      <span className={cn(FULL, 'text-right')}>A</span>
+      <span className={cn(MID, 'text-right')}>K/D</span>
+      <span className={cn(FULL, 'text-right')}>ADR</span>
+      <span className={cn(FULL, 'text-right')}>HS%</span>
+      <span className={cn(MID, 'text-right')}>Clips</span>
     </div>
 
     {matches.map((match) => (
@@ -100,7 +106,7 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
             <span className="truncate font-medium">{matchName(match.map, match.status)}</span>
             <NewDot matchId={match.id} />
           </span>
-          <span className="flex items-center gap-1 text-label whitespace-nowrap text-muted md:hidden">
+          <span className="flex items-center gap-1 text-label whitespace-nowrap text-muted @3xl:hidden">
             <span className="truncate">
               {formatDate(match.playedAt ?? match.discoveredAt)}
               {s && ` · ${s.kills}/${s.deaths}/${s.assists}`}
@@ -116,10 +122,10 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
           </span>
         </span>
       </span>
-      <span className={cn(WIDE, 'text-muted')}>
+      <span className={cn(MID, 'text-muted')}>
         {formatDate(match.playedAt ?? match.discoveredAt)}
       </span>
-      <span className="text-right font-mono md:text-left">
+      <span className="text-right font-mono @3xl:text-left">
         {score ? (
           <>
             <span
@@ -136,21 +142,21 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
           <MatchStatusBadge status={match.status} />
         )}
       </span>
-      <span className={cn(WIDE, 'min-w-0')}>
+      <span className={cn(MID, 'min-w-0')}>
         <RankBadge rank={match.player?.rank} />
       </span>
       <span className={cn('text-right font-medium', s ? ratingTone(s.rating) : 'text-muted')}>
         {s ? s.rating.toFixed(2) : '–'}
       </span>
-      <span className={cn(WIDE, 'text-right')}>{s?.kills ?? '–'}</span>
-      <span className={cn(WIDE, 'text-right text-muted')}>{s?.deaths ?? '–'}</span>
-      <span className={cn(WIDE, 'text-right text-muted')}>{s?.assists ?? '–'}</span>
-      <span className={cn(WIDE, 'text-right')}>{kd !== null ? kd.toFixed(2) : '–'}</span>
-      <span className={cn(WIDE, 'text-right')}>{s ? Math.round(s.adr) : '–'}</span>
-      <span className={cn(WIDE, 'text-right text-muted')}>
+      <span className={cn(FULL, 'text-right')}>{s?.kills ?? '–'}</span>
+      <span className={cn(FULL, 'text-right text-muted')}>{s?.deaths ?? '–'}</span>
+      <span className={cn(FULL, 'text-right text-muted')}>{s?.assists ?? '–'}</span>
+      <span className={cn(MID, 'text-right')}>{kd !== null ? kd.toFixed(2) : '–'}</span>
+      <span className={cn(FULL, 'text-right')}>{s ? Math.round(s.adr) : '–'}</span>
+      <span className={cn(FULL, 'text-right text-muted')}>
         {s ? `${Math.round(s.hsPercent)}%` : '–'}
       </span>
-      <span className={cn(WIDE, 'text-right')}>
+      <span className={cn(MID, 'text-right')}>
         {score && match.status !== 'ready' ? (
           <MatchStatusBadge status={match.status} />
         ) : match.highlightCount > 0 ? (

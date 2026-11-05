@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Swords } from 'lucide-react'
+import { LoadFailed } from '@/components/load-failed'
 import { MatchTable } from '@/components/match-table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
@@ -10,6 +11,14 @@ export const MatchesTab = ({ steamId }: { steamId: string }) => {
   const items = matches.data?.pages.flatMap((p) => p.items) ?? []
 
   if (matches.isPending) return <Skeleton className="h-64" />
+  if (matches.isError && !items.length)
+    return (
+      <LoadFailed
+        title="Couldn’t load matches"
+        onRetry={() => void matches.refetch()}
+        retrying={matches.isRefetching}
+      />
+    )
   if (!items.length)
     return (
       <p className="rounded-xl border border-dashed px-4 py-10 text-center text-body text-muted">
