@@ -1,7 +1,8 @@
-import { useDeferredValue } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Clapperboard, SearchX } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
+import { useDeferredValue, useLayoutEffect, useRef } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
@@ -12,6 +13,7 @@ import { Skeleton } from '@/components/ui/surface'
 import { useDelayed } from '@/hooks/use-delayed'
 import { dayLabel } from '@/lib/format'
 import { type ClipListSearch, NO_FILTERS, clipMask, feedFilters } from '@/lib/highlights'
+import { EASE_OUT_QUART } from '@/lib/motion'
 import { type Clip, clipsQuery } from '@/lib/queries'
 
 /** How long a load runs before skeletons show: most loads finish sooner and never show them. */
@@ -75,14 +77,34 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
   const filterKey = JSON.stringify(filters)
   const filtered = filterKey !== JSON.stringify(feedFilters({}, steamId))
-  // One view per filter, so switching between cached filters crossfades too. Loading stays a
-  // single view: skeletons don't refade when the filter changes again mid-load.
-  // Before the delay a load shows nothing ('idle'): the old view fades out and the page waits.
+  // Crossfades only between kinds of view. Results stay one view across filters, so cards both
+  // filters share stay mounted rather than rebuilt. Before the skeleton delay a load shows
+  // nothing ('idle'): the old view fades out and the page waits.
   const view = clips.isPending
     ? showSkeleton
       ? 'loading'
       : 'idle'
-    : `${items.length === 0 ? 'empty' : 'results'}:${filterKey}`
+    : items.length === 0
+      ? 'empty'
+      : 'results'
+
+  const results = useRef<HTMLDivElement>(null)
+  const shownKey = useRef<string>(undefined)
+  const reduce = useReducedMotion()
+
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- replays a DOM fade on the results when the filter changes
+  useLayoutEffect(() => {
+    // Results arriving after a load already fade in with the view, so only a swap between two
+    // shown filters replays it.
+    const prev = clips.isPending ? undefined : shownKey.current
+    shownKey.current = clips.isPending ? undefined : filterKey
+    if (!prev || prev === filterKey || reduce) return
+    // Cards stay mounted across filters; the whole block fades in once, on the compositor.
+    results.current?.animate(
+      { opacity: [0, 1] },
+      { duration: 250, easing: `cubic-bezier(${EASE_OUT_QUART.join(',')})` },
+    )
+  }, [filterKey, clips.isPending, reduce])
 
   const update = (patch: Partial<ClipListSearch>) =>
     navigate({ to: '.', search: (s) => ({ ...s, ...patch }) })
@@ -112,7 +134,7 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
             }
           />
         ) : (
-          <div className="grid gap-12">
+          <div ref={results} className="grid gap-12">
             {groupByDay(items).map((group) => (
               // Days off screen skip layout and paint, so long feeds scroll and refilter cheaply. The
               // containment clips paint at the box, so it's padded out to keep the focus rings.
