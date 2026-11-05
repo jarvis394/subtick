@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { Tab, Tabs, TabsList } from './tabs'
 
@@ -13,7 +14,8 @@ export const Segmented = <T extends string>({
   /** Accessible name for the group. */
   label: string
   value: T
-  options: readonly { id: T; label: string }[]
+  /** With an `icon`, the option shows only the icon and `label` becomes its accessible name. */
+  options: readonly { id: T; label: string; icon?: ReactNode }[]
   onChange: (value: T) => void
   size?: 'sm' | 'md'
   className?: string
@@ -26,8 +28,14 @@ export const Segmented = <T extends string>({
   >
     <TabsList variant="segmented" size={size} aria-label={label}>
       {options.map((o) => (
-        <Tab key={o.id} value={o.id}>
-          {o.label}
+        <Tab
+          key={o.id}
+          value={o.id}
+          aria-label={o.icon ? o.label : undefined}
+          title={o.icon ? o.label : undefined}
+          className={o.icon ? 'px-1.5 [&_svg]:size-4' : undefined}
+        >
+          {o.icon ?? o.label}
         </Tab>
       ))}
     </TabsList>

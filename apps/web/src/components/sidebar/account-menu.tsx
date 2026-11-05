@@ -1,18 +1,44 @@
 import { Menu } from '@base-ui/react/menu'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ChevronDown, LogOut, Server, Settings, UserRound } from 'lucide-react'
+import { ChevronDown, LogOut, Monitor, Moon, Server, Settings, Sun, UserRound } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
 import { playerSlug } from '@/components/player-link'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Segmented } from '@/components/ui/segmented'
 import { authClient } from '@/lib/auth'
 import { meQuery } from '@/lib/queries'
 import { clearStoredMe } from '@/lib/stored-me'
+import { type Theme, applyTheme, storedTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { fade } from './rows'
 
 const menuItemClass =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body outline-none select-none data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted'
+
+const THEME_OPTIONS = [
+  { id: 'system', label: 'System', icon: <Monitor /> },
+  { id: 'light', label: 'Light', icon: <Sun /> },
+  { id: 'dark', label: 'Dark', icon: <Moon /> },
+] as const satisfies { id: Theme; label: string; icon: ReactNode }[]
+
+/** The same segmented switch as the highlight filters, as icons; picking one keeps the menu open. */
+const ThemePicker = () => {
+  const [theme, setTheme] = useState(storedTheme)
+
+  const pick = (next: Theme) => {
+    applyTheme(next)
+    setTheme(next)
+  }
+
+  return (
+    <div className="flex h-9 items-center justify-between gap-2 pr-1 pl-2">
+      <span className="text-body">Theme</span>
+      <Segmented label="Theme" value={theme} options={THEME_OPTIONS} onChange={pick} />
+    </div>
+  )
+}
 
 export const AccountMenu = ({
   collapsed,
@@ -99,6 +125,8 @@ export const AccountMenu = ({
             >
               <Settings /> Settings
             </Menu.Item>
+            <Menu.Separator className="mx-1 my-1 h-px bg-border" />
+            <ThemePicker />
             <Menu.Separator className="mx-1 my-1 h-px bg-border" />
             <Menu.Item className={menuItemClass} onClick={signOut}>
               <LogOut /> Sign out

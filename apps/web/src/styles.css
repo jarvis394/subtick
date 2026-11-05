@@ -59,6 +59,15 @@
   }
 }
 
+/* A picked theme also sets the browser's own controls and scrollbars. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
 /* `.theme-dark` gives one subtree the dark tokens in either theme (the dev menu is always black). */
 :root[data-theme='dark'],
 .theme-dark {
