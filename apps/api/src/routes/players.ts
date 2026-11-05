@@ -1,26 +1,18 @@
 import { and, desc, eq, inArray, lt, ne, schema, sql } from '@subtick/db'
-import { isCancelled } from '@subtick/domain'
+import { isCancelled, lobbyTotals } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
 import { notOneKill } from '../services/highlights'
 import { imageUrl, subtickIdentities } from '../services/profile-images'
-import {
-  type PlayedMatch,
-  mapStats,
-  ranks,
-  resultOf,
-  summarize,
-  teammates,
-} from '../services/player-stats'
+import { type PlayedMatch, mapStats, ranks, resultOf, teammates } from '../services/player-stats'
 import { getProfiles, resolvePlayer } from '../services/profiles'
 import { authGuard } from './guard'
 
 const { match, matchPlayer, highlight, steamLink } = schema
 
-/** How far back the profile looks: the summary uses the newest 30, maps and teammates all of it. */
+/** How far back the profile looks, for its stats, maps and teammates. */
 const HISTORY = 100
-const SUMMARY = 30
 const PAGE_SIZE = 20
 
 const playedAt = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`.mapWith(match.createdAt)
@@ -95,6 +87,7 @@ export const playerRoutes = (ctx: Context) => {
               )
           : []
         const team = teammates(matches, others)
+        const lobbies = Map.groupBy(others, (o) => o.matchId)
         const shown = team.teammates.slice(0, 20)
 
         const ids = [steamId, ...shown.map((t) => t.steamId)]
@@ -128,17 +121,15 @@ export const playerRoutes = (ctx: Context) => {
           memberSince: identity?.memberSince ?? null,
           lastMatchAt: rows[0]?.playedAt ?? null,
           clipCount: clips?.count ?? 0,
-          summary: summarize(matches.slice(0, SUMMARY)),
-          /** Oldest first, for the form chart. */
-          form: matches
-            .slice(0, SUMMARY)
-            .map((m) => ({
-              matchId: m.matchId,
-              map: m.map,
-              rating: m.stats.rating,
-              result: resultOf(m),
-            }))
-            .toReversed(),
+          /** Newest first; the profile summarizes any window of it against the same lobbies. */
+          history: matches.map((m) => ({
+            matchId: m.matchId,
+            map: m.map,
+            playedAt: m.playedAt,
+            result: resultOf(m),
+            stats: m.stats,
+            lobby: lobbyTotals((lobbies.get(m.matchId) ?? []).map((o) => o.stats)),
+          })),
           ranks: ranks(matches),
           maps: mapStats(matches),
           party: team.party,

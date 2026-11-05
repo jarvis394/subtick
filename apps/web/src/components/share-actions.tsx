@@ -41,7 +41,8 @@ export const ShareActions = ({
       </Button>
       <IconButton
         variant={quiet ? 'quiet' : 'secondary'}
-        size="sm"
+        // Icon sizes run a step smaller: md (36px) matches the sm Share button beside it.
+        size="md"
         label={linkCopy.copied ? 'Link copied' : 'Copy link'}
         onClick={() => linkCopy.copy(url)}
       >
