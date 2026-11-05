@@ -144,9 +144,12 @@ export const PlayerPicker = ({
 
               return false
             }}
-            className={cn(popupClass, 'w-72')}
+            className={cn(
+              popupClass,
+              'flex max-h-(--available-height) w-[min(18rem,var(--available-width))] flex-col',
+            )}
           >
-            <div className="flex items-center gap-2 border-b px-3">
+            <div className="flex shrink-0 items-center gap-2 border-b px-3">
               <Search className="size-4 shrink-0 text-muted" />
               <Combobox.Input
                 ref={input}
@@ -157,7 +160,7 @@ export const PlayerPicker = ({
             <Combobox.Empty className="px-3 py-4 text-body text-muted empty:hidden">
               No players found
             </Combobox.Empty>
-            <Combobox.List className="max-h-80 scroll-py-1 overflow-auto overscroll-contain p-1 empty:hidden">
+            <Combobox.List className="max-h-80 min-h-0 scroll-py-1 overflow-auto overscroll-contain p-1 empty:hidden">
               {(group: (typeof groups)[number]) => (
                 <Combobox.Group
                   key={group.label || ALL}
