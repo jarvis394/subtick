@@ -174,9 +174,11 @@ const Section = ({
   </section>
 )
 
-/** A card of rows, divided by hairlines inset to the card's padding. */
+/** A card of rows divided by hairlines: full width on phones, inset to the card's padding from md. */
 const Group = ({ children }: { children: ReactNode }) => (
-  <Card className="divide-y px-4">{children}</Card>
+  <Card bleed className="divide-y *:px-4 md:px-4 md:*:px-0">
+    {children}
+  </Card>
 )
 
 /** Label and description on the left, its control on the right. */

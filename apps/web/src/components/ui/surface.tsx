@@ -1,8 +1,22 @@
 import type { ComponentProps } from 'react'
 import { cn } from '@/lib/utils'
 
-export const Card = ({ className, ...props }: ComponentProps<'div'>) => (
-  <div className={cn('rounded-2xl border bg-surface', className)} {...props} />
+export const Card = ({
+  bleed,
+  className,
+  ...props
+}: ComponentProps<'div'> & {
+  /** Edge to edge on phones (cancels the page's px-4, top and bottom borders only), a card from md up. */
+  bleed?: boolean
+}) => (
+  <div
+    className={cn(
+      'rounded-2xl border bg-surface',
+      bleed && '-mx-4 rounded-none border-x-0 md:mx-0 md:rounded-2xl md:border-x',
+      className,
+    )}
+    {...props}
+  />
 )
 
 export const Badge = ({

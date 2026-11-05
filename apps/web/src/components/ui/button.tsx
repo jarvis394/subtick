@@ -232,7 +232,7 @@ export const Button = ({
 export interface IconButtonProps extends Omit<ButtonProps, 'variant' | 'children'> {
   /** What the button does: its accessible name and its tooltip. */
   label?: string
-  variant?: 'ghost' | 'secondary' | 'quiet'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'quiet'
   /** `false` when the trigger already has a richer tooltip of its own, or its label is obvious. */
   tooltip?: boolean
   children?: ReactNode

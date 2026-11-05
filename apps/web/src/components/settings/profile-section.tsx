@@ -1,12 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { type ReactNode, useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { Input } from '@/components/ui/field'
 import { Card } from '@/components/ui/surface'
 import { api, unwrap } from '@/lib/api'
 import type { Me } from '@/lib/queries'
+import { cn } from '@/lib/utils'
 import { EditableImage } from './editable-image'
 import { UPLOAD_LIMITS, invalidateProfile, useRemoveImage } from './use-image-upload'
 import { playerSlug } from '@/components/player-link'
@@ -20,8 +22,9 @@ const Row = ({
   description: ReactNode
   children: ReactNode
 }) => (
-  <div className="flex min-h-16 flex-wrap items-center gap-3 py-3">
-    <div className="min-w-0 flex-1">
+  <div className="@container flex min-h-16 flex-wrap items-center gap-3 py-3">
+    {/* Wide enough that the row wraps the control below before the text breaks word by word. */}
+    <div className="min-w-36 flex-1">
       <p className="text-body font-medium">{label}</p>
       <div className="mt-0.5 text-small text-muted">{description}</div>
     </div>
@@ -29,29 +32,25 @@ const Row = ({
   </div>
 )
 
-/** How long typing pauses before the name saves. */
-const SAVE_DELAY_MS = 600
-
-/** Saves as you type, once you pause; an empty name isn't saved, the last one stays. */
+/** Saves on the check button or Enter; Escape puts the saved name back. */
 const NameRow = ({ current }: { current: string }) => {
   const queryClient = useQueryClient()
   const [name, setName] = useState(current)
-  const { mutate, isError } = useMutation({
+  const { mutate, isError, isPending } = useMutation({
     meta: { inlineError: true },
     mutationFn: (value: string) => unwrap(api.me.profile.patch({ name: value })),
+    // Awaited, so the button stays busy until the new name is back and it can hide.
     onSuccess: () => invalidateProfile(queryClient),
   })
+  const value = name.trim()
+  const edited = value !== current
+  const dirty = edited && Boolean(value)
+  const error = !value ? 'Enter a name' : isError ? 'Couldn’t save your name' : null
 
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- debounce timer: saves once typing pauses, restarting on each keystroke
-  useEffect(() => {
-    const value = name.trim()
-    if (!value || value === current) return
-    const timer = setTimeout(() => mutate(value), SAVE_DELAY_MS)
-
-    return () => clearTimeout(timer)
-  }, [name, current, mutate])
-
-  const error = !name.trim() ? 'Enter a name' : isError ? 'Couldn’t save your name' : null
+  const save = (event: FormEvent) => {
+    event.preventDefault()
+    if (dirty) mutate(value)
+  }
 
   return (
     <Row
@@ -60,14 +59,34 @@ const NameRow = ({ current }: { current: string }) => {
         error ? <span className="text-danger">{error}</span> : 'Shown across the website'
       }
     >
-      <Input
-        aria-label="Display name"
-        value={name}
-        maxLength={32}
-        aria-invalid={Boolean(error)}
-        onChange={(event) => setName(event.currentTarget.value)}
-        className="w-56 sm:w-64"
-      />
+      <form onSubmit={save} className="relative">
+        <Input
+          aria-label="Display name"
+          value={name}
+          maxLength={32}
+          aria-invalid={Boolean(error)}
+          onChange={(event) => setName(event.currentTarget.value)}
+          onKeyDown={(event) => event.key === 'Escape' && setName(current)}
+          // Full size once the row fits it beside the label's 9rem minimum.
+          className={cn('w-44 @sm:w-56 @md:w-64', dirty && 'pr-10')}
+        />
+        {/* Always mounted, so it can scale and fade out; `inert` while hidden keeps it out of reach. */}
+        <IconButton
+          type="submit"
+          variant="primary"
+          size="sm"
+          label="Save name"
+          loading={isPending}
+          inert={!dirty}
+          aria-hidden={!dirty}
+          className={cn(
+            'absolute top-1 right-1 transition-[opacity,scale,visibility] duration-150 ease-out motion-reduce:transition-none',
+            !dirty && 'invisible scale-75 opacity-0',
+          )}
+        >
+          <Check />
+        </IconButton>
+      </form>
     </Row>
   )
 }
@@ -91,7 +110,7 @@ export const ProfileSection = ({ me }: { me: Me }) => {
           </Button>
         )}
       </div>
-      <Card className="divide-y px-4">
+      <Card bleed className="divide-y *:px-4 md:px-4 md:*:px-0">
         <NameRow current={me.user.name} />
 
         <Row
