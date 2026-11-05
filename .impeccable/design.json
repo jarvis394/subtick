@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: subtick",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "rgb(41 116 207)",
+        "tonalRamp": [
+          "oklch(25% 0.06 255)",
+          "oklch(35% 0.09 255)",
+          "oklch(45% 0.12 255)",
+          "oklch(55% 0.14 255)",
+          "oklch(65% 0.12 255)",
+          "oklch(75% 0.09 255)",
+          "oklch(85% 0.05 255)",
+          "oklch(95% 0.02 255)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Action Blue",
+        "canonical": "#2363b0"
+      },
+      "link": {
+        "role": "primary",
+        "displayName": "Deep Action Blue (link)",
+        "canonical": "#2363b0"
+      },
+      "brand": {
+        "role": "secondary",
+        "displayName": "CS2 Orange",
+        "canonical": "rgb(227 135 23)",
+        "tonalRamp": [
+          "oklch(28% 0.06 60)",
+          "oklch(38% 0.09 60)",
+          "oklch(50% 0.12 60)",
+          "oklch(62% 0.15 60)",
+          "oklch(72% 0.16 62)",
+          "oklch(80% 0.12 65)",
+          "oklch(88% 0.07 68)",
+          "oklch(95% 0.03 70)"
+        ]
+      },
+      "brand-text": { "role": "secondary", "displayName": "Burnt Orange", "canonical": "#9a5200" },
+      "side-ct": { "role": "tertiary", "displayName": "CT Blue", "canonical": "#3f78bd" },
+      "side-t": { "role": "tertiary", "displayName": "T Gold", "canonical": "#b9852a" },
+      "side-t-text": { "role": "tertiary", "displayName": "T Gold (text)", "canonical": "#8a6118" },
+      "danger": { "role": "tertiary", "displayName": "Signal Red", "canonical": "#c8442f" },
+      "danger-solid": {
+        "role": "tertiary",
+        "displayName": "Signal Red (solid fill)",
+        "canonical": "#bf2f1d"
+      },
+      "success": { "role": "tertiary", "displayName": "Field Green", "canonical": "#29703a" },
+      "background": {
+        "role": "neutral",
+        "displayName": "Desk Grey",
+        "canonical": "#f7f7f7",
+        "tonalRamp": [
+          "#111111",
+          "#181818",
+          "#212121",
+          "#2b2b2b",
+          "#6b6b6b",
+          "#8f8f8f",
+          "#e4e4e4",
+          "#f7f7f7"
+        ]
+      },
+      "surface": { "role": "neutral", "displayName": "Paper White", "canonical": "#ffffff" },
+      "surface-2": { "role": "neutral", "displayName": "Well Grey", "canonical": "#efefef" },
+      "surface-3": { "role": "neutral", "displayName": "Pressed Grey", "canonical": "#e4e4e4" },
+      "foreground": { "role": "neutral", "displayName": "Ink", "canonical": "#111111" },
+      "muted": { "role": "neutral", "displayName": "Pencil", "canonical": "#6b6b6b" },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgb(17 17 17 / 0.09)"
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Firm Hairline",
+        "canonical": "rgb(17 17 17 / 0.16)"
+      }
+    },
+    "typographyMeta": {
+      "hero": {
+        "displayName": "Hero",
+        "purpose": "Largest serif title: auth and empty/error moments."
+      },
+      "display": { "displayName": "Display", "purpose": "Serif page titles." },
+      "section": { "displayName": "Section", "purpose": "Section heads." },
+      "heading": {
+        "displayName": "Heading",
+        "purpose": "Card and dialog titles; the wordmark size."
+      },
+      "title": { "displayName": "Title", "purpose": "Smaller titles." },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Input text, highlight card titles, lg buttons."
+      },
+      "body": { "displayName": "Body", "purpose": "Default UI text and md buttons." },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Secondary lines, field labels, chips, sm buttons."
+      },
+      "label": { "displayName": "Label", "purpose": "xs buttons, tooltips." },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Badges (uppercase, wide tracking), meta."
+      },
+      "micro": { "displayName": "Micro", "purpose": "Smallest meta text." },
+      "mono": { "displayName": "Mono", "purpose": "Codes and tokens." }
+    },
+    "shadows": [
+      {
+        "name": "floating-menu",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2)",
+        "purpose": "Menus, tooltips, the up-next card."
+      },
+      {
+        "name": "modal",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        "purpose": "Dialogs and the desktop clip viewer."
+      },
+      {
+        "name": "skip-link",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Focused skip-to-content link."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "Button press, popups, tab indicator, auth morph."
+      },
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Long settles."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Edge drawers, iOS-style settle."
+      },
+      { "name": "color-fade", "value": "150ms ease", "purpose": "Hover and state color changes." },
+      {
+        "name": "page-transition",
+        "value": "125ms out + 125ms in",
+        "purpose": "View transitions between pages: lift-and-fade out, then settle in."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "40rem" },
+      { "name": "md", "value": "48rem" },
+      { "name": "lg", "value": "64rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action of a surface; ink fill.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><span class=\"ds-btn-bg\"></span>Create highlights</button>",
+      "css": ".ds-btn { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; font: 500 14px/20px ui-sans-serif, system-ui, sans-serif; background: none; cursor: pointer; transition: color 150ms ease-out; outline: none; } .ds-btn-bg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--bg); transition: inset 160ms cubic-bezier(0.25,1,0.5,1), background-color 150ms ease; } .ds-btn:hover .ds-btn-bg { background: var(--bg-hover); } .ds-btn:active .ds-btn-bg { inset: 1px; } .ds-btn:focus-visible { box-shadow: 0 0 0 2px var(--background, #f7f7f7), 0 0 0 4px var(--accent, rgb(41 116 207)); } .ds-btn-primary { color: var(--background, #f7f7f7); --bg: var(--foreground, #111); --bg-hover: color-mix(in oklab, var(--foreground, #111) 88%, var(--background, #f7f7f7)); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default for every other real action; well-grey fill.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\"><span class=\"ds-btn-bg\"></span>Share</button>",
+      "css": ".ds-btn { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; font: 500 14px/20px ui-sans-serif, system-ui, sans-serif; background: none; cursor: pointer; transition: color 150ms ease-out; outline: none; } .ds-btn-bg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--bg); transition: inset 160ms cubic-bezier(0.25,1,0.5,1), background-color 150ms ease; } .ds-btn:hover .ds-btn-bg { background: var(--bg-hover); } .ds-btn:active .ds-btn-bg { inset: 1px; } .ds-btn:focus-visible { box-shadow: 0 0 0 2px var(--background, #f7f7f7), 0 0 0 4px var(--accent, rgb(41 116 207)); } .ds-btn-secondary { color: var(--foreground, #111); --bg: var(--surface-2, #efefef); --bg-hover: var(--surface-3, #e4e4e4); }"
+    },
+    {
+      "name": "Brand Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Attention without alarm, e.g. retry a failed recording.",
+      "html": "<button class=\"ds-btn ds-btn-brand\"><span class=\"ds-btn-bg\"></span>Retry recording</button>",
+      "css": ".ds-btn { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; font: 500 14px/20px ui-sans-serif, system-ui, sans-serif; background: none; cursor: pointer; outline: none; } .ds-btn-bg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--bg); transition: inset 160ms cubic-bezier(0.25,1,0.5,1), background-color 150ms ease; } .ds-btn:hover .ds-btn-bg { background: var(--bg-hover); } .ds-btn:active .ds-btn-bg { inset: 1px; } .ds-btn:focus-visible { box-shadow: 0 0 0 2px var(--background, #f7f7f7), 0 0 0 4px var(--accent, rgb(41 116 207)); } .ds-btn-brand { color: var(--brand-text, #9a5200); --bg: color-mix(in oklab, var(--brand, rgb(227 135 23)) 14%, transparent); --bg-hover: color-mix(in oklab, var(--brand, rgb(227 135 23)) 22%, transparent); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Dismissing and low-key actions; muted at rest.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\"><span class=\"ds-btn-bg\"></span>Cancel</button>",
+      "css": ".ds-btn { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; font: 500 14px/20px ui-sans-serif, system-ui, sans-serif; background: none; cursor: pointer; transition: color 150ms ease-out; outline: none; } .ds-btn-bg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--bg); transition: inset 160ms cubic-bezier(0.25,1,0.5,1), background-color 150ms ease; } .ds-btn:hover .ds-btn-bg { background: var(--bg-hover); } .ds-btn:active .ds-btn-bg { inset: 1px; } .ds-btn:focus-visible { box-shadow: 0 0 0 2px var(--background, #f7f7f7), 0 0 0 4px var(--accent, rgb(41 116 207)); } .ds-btn-ghost { color: var(--muted, #6b6b6b); --bg: transparent; --bg-hover: var(--surface-2, #efefef); } .ds-btn-ghost:hover { color: var(--foreground, #111); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "40px field with blue focus border and soft ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Share code\" />",
+      "css": ".ds-input { height: 40px; width: 280px; padding: 0 12px; border: 1px solid var(--border-strong, rgb(17 17 17 / 0.16)); border-radius: 10px; background: var(--surface, #fff); color: var(--foreground, #111); font: 15px/22px ui-sans-serif, system-ui, sans-serif; outline: none; transition: border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color: color-mix(in oklab, var(--muted, #6b6b6b) 70%, transparent); } .ds-input:focus { border-color: var(--accent, rgb(41 116 207)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent, rgb(41 116 207)) 20%, transparent); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "On/off pill for filter tags; inverts when pressed.",
+      "html": "<div style=\"display:flex;gap:6px\"><button class=\"ds-chip\">Wallbang</button><button class=\"ds-chip\" aria-pressed=\"true\">Clutch</button></div>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--border-strong, rgb(17 17 17 / 0.16)); border-radius: 9999px; background: transparent; color: var(--muted, #6b6b6b); font: 13px/20px ui-sans-serif, system-ui, sans-serif; cursor: pointer; outline: none; transition: background-color 150ms, color 150ms; } .ds-chip:hover { background: var(--surface-2, #efefef); color: var(--foreground, #111); } .ds-chip:focus-visible { box-shadow: 0 0 0 2px var(--accent, rgb(41 116 207)); } .ds-chip[aria-pressed=true] { border-color: transparent; background: var(--foreground, #111); color: var(--background, #f7f7f7); }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Uppercase tinted label for kinds, sides, status.",
+      "html": "<div style=\"display:flex;gap:6px\"><span class=\"ds-badge ds-badge-brand\">Ace</span><span class=\"ds-badge ds-badge-ct\">CT</span><span class=\"ds-badge ds-badge-t\">T</span><span class=\"ds-badge\">Queued</span></div>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 6px; font: 500 12px/16px ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.025em; text-transform: uppercase; background: var(--surface-2, #efefef); color: var(--muted, #6b6b6b); } .ds-badge-brand { background: color-mix(in oklab, var(--brand, rgb(227 135 23)) 12%, transparent); color: var(--brand-text, #9a5200); } .ds-badge-ct { background: color-mix(in oklab, var(--ct, #3f78bd) 14%, transparent); color: var(--ct, #3f78bd); } .ds-badge-t { background: color-mix(in oklab, var(--t, #b9852a) 16%, transparent); color: var(--t-text, #8a6118); }"
+    },
+    {
+      "name": "Segmented Tabs",
+      "kind": "nav",
+      "refersTo": "tabs-segmented",
+      "description": "Recessed track with a raised, bordered indicator.",
+      "html": "<div class=\"ds-seg\"><button class=\"ds-seg-tab\" aria-selected=\"true\">All</button><button class=\"ds-seg-tab\">Aces</button><button class=\"ds-seg-tab\">Clutches</button></div>",
+      "css": ".ds-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: color-mix(in oklab, var(--surface-2, #efefef) 70%, transparent); } .ds-seg-tab { height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted, #6b6b6b); font: 14px/20px ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: color 150ms, background-color 200ms cubic-bezier(0.25,1,0.5,1); } .ds-seg-tab:hover { color: var(--foreground, #111); } .ds-seg-tab[aria-selected=true] { background: var(--surface-3, #e4e4e4); border-color: var(--border, rgb(17 17 17 / 0.09)); color: var(--foreground, #111); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat, bordered 16px container; no shadow in flow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Connect your Steam account</div><p class=\"ds-card-body\">Two steps, then new matches are picked up and clipped automatically.</p></div>",
+      "css": ".ds-card { width: 320px; padding: 20px; border: 1px solid var(--border, rgb(17 17 17 / 0.09)); border-radius: 16px; background: var(--surface, #fff); } .ds-card-title { font: 500 14px/20px ui-sans-serif, system-ui, sans-serif; color: var(--foreground, #111); } .ds-card-body { margin: 6px 0 0; font: 14px/20px ui-sans-serif, system-ui, sans-serif; color: var(--muted, #6b6b6b); }"
+    },
+    {
+      "name": "Highlight Card",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Feed unit: 16:9 thumbnail, duration pill, title and meta.",
+      "html": "<article class=\"ds-hl\"><div class=\"ds-hl-thumb\"><span class=\"ds-hl-badge\">Clutch</span><span class=\"ds-hl-dur\">0:14</span></div><div class=\"ds-hl-meta\"><span class=\"ds-hl-av\"></span><div><div class=\"ds-hl-title\">1v3 on B site</div><div class=\"ds-hl-sub\">jarvis · Mirage · round 17</div></div></div></article>",
+      "css": ".ds-hl { width: 300px; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-hl-thumb { position: relative; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: var(--surface-2, #efefef); } .ds-hl-badge { position: absolute; left: 8px; bottom: 8px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: 6px; background: #000; color: #fff; font: 500 12px/16px inherit; text-transform: uppercase; letter-spacing: 0.025em; } .ds-hl-dur { position: absolute; right: 8px; bottom: 8px; padding: 2px 6px; border-radius: 6px; background: #000; color: #fff; font: 500 12px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-hl-meta { display: flex; gap: 12px; margin-top: 12px; } .ds-hl-av { flex: none; width: 32px; height: 32px; margin-top: 2px; border-radius: 9999px; background: var(--surface-3, #e4e4e4); } .ds-hl-title { font: 500 15px/22px ui-sans-serif, system-ui, sans-serif; color: var(--foreground, #111); } .ds-hl-sub { margin-top: 2px; font: 13px/20px ui-sans-serif, system-ui, sans-serif; color: var(--muted, #6b6b6b); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Replay Desk",
+    "overview": "subtick is a precise tool for reviewing play. The chrome is neutral grey and stays out of the way so that the data (scoreboards, round timelines, killfeeds) reads at a glance, and every clip is one tap from wherever you are. Density is that of a working desk, not a gallery. Tables, rows and small labels are packed and exact, and tabular numerals keep the columns steady.\n\nColor is functional before it is expressive. Blue means \"you can act here\". CS2 orange belongs to the game's own moments (aces, MVPs, highlights, the dot in the wordmark). CT blue and T gold mark sides wherever teams appear. Everything else is greyscale, in matched light and dark themes that follow the system.\n\nControls are soft and tactile. They have rounded corners, a background layer that gives a pixel when pressed, and colors that fade instead of snapping. Depth is mostly flat, but it runs both ways. Tracks and wells sit below the surface, and only things that genuinely float (menus, tooltips, dialogs, the clip viewer) rise above it on a shadow.",
+    "keyCharacteristics": [
+      "Neutral greyscale chrome. Color only carries meaning: action, the game's moments, team sides, status.",
+      "A serif voice for the wordmark and page titles; system sans for everything you operate.",
+      "One theme-driven type scale and theme-driven radii. No raw sizes.",
+      "Flat surfaces with hairline borders. Recessed tracks below, floating shadows above.",
+      "Tactile controls: a pressable background layer, 150 ms color fades, quart/expo ease-outs.",
+      "Page changes lift and fade out, then the new page settles in (view transitions, 125 ms + 125 ms)."
+    ],
+    "rules": [
+      {
+        "name": "The Meaning-Only Hue Rule",
+        "body": "A hue appears only when it says something: blue means you can act, orange marks a game moment, CT blue and T gold mark sides, red and green mark status. Decorative color is not allowed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orange Belongs to the Game Rule",
+        "body": "CS2 orange marks highlights, aces, MVPs and the wordmark. It is never used for generic UI emphasis; that is blue's job.",
+        "section": "colors"
+      },
+      {
+        "name": "The Derived Fill Rule",
+        "body": "Hover and soft fills are derived from the palette with `color-mix` (contrast-hover, brand-soft, danger-soft…), so both themes follow without separate values. Don't hand-pick a hover hex.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scale-Only Rule",
+        "body": "Every text size comes from the theme scale. `subtick/tailwind-scale` rejects raw font sizes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Serif Is a Voice Rule",
+        "body": "The serif is for the wordmark, page titles and display moments only. Controls, data and body text are always sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Steady Numbers Rule",
+        "body": "Numbers that sit in columns or update live (scores, counts, durations) use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Shadows Float Rule",
+        "body": "A shadow means \"this is above the page\". Cards, rows and anything else in the page's flow never get one. Borders are always fine.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two-Way Depth Rule",
+        "body": "A track or well recesses with a darker tonal fill, and whatever sits in it rises with a border and a lighter step. Never use a shadow to fake either.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do pick a kit component's `variant`, `tone`, `size` or state prop instead of restyling it. `className` on a kit component carries layout only, never color.",
+      "Do take every text size, radius and spacing value from the theme (`text-body`, `rounded-control`, the 4px grid).",
+      "Do keep hues meaningful: action blue for interaction, CS2 orange for game moments, CT blue and T gold for sides.",
+      "Do use `brand-text` and `side-t-text` when the color is text on a light surface.",
+      "Do give every interactive element the 2px action-blue focus ring.",
+      "Do respect `prefers-reduced-motion`: drop press movement and view transitions, keep the color fades."
+    ],
+    "donts": [
+      "Don't put shadows on cards, rows or anything else in the page's flow. Shadows are only for floating surfaces.",
+      "Don't use CS2 orange for generic emphasis or calls to action that aren't about a game moment.",
+      "Don't set controls, data or body text in the serif.",
+      "Don't hand-pick hover hexes. Derive them with `color-mix` from the palette.",
+      "Don't use raw font sizes or inline `style` for static values."
+    ]
+  }
+}

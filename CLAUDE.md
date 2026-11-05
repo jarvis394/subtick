@@ -24,6 +24,10 @@ Call Serena's `initial_instructions` once at the start of a coding task.
 - If a rule here fights the task in front of you, say so loudly and get a human sign-off before breaking it.
 - Keep files under 500 lines of code. If a file needs more, split it into additional files or a folder of focused modules.
 
+## Design context
+
+- Product and design context for UI work, Impeccable included, lives in `docs/`: [PRODUCT.md](docs/PRODUCT.md) (users, purpose, voice, principles) and [DESIGN.md](docs/DESIGN.md) (visual system; sidecar `.impeccable/design.json`). Read both before UI work and update them there; never create root copies.
+
 ## Additional tips
 
 - Don't verify with browsers or computer use unless the user explicitly agrees or requests it.
