@@ -33,8 +33,8 @@ export const Recents = ({
 
   return (
     <div className="mt-5 px-2">
-      <div className={cn('flex h-7 items-center pr-1 pl-2.75', fade(collapsed))}>
-        <FadeSwap className="flex-1" swapKey={notice ? 'notice' : 'title'}>
+      <div className="flex h-7 items-center pr-1 pl-2.75">
+        <FadeSwap className={cn('flex-1', fade(collapsed))} swapKey={notice ? 'notice' : 'title'}>
           {notice ? (
             <p className="text-label font-medium whitespace-nowrap text-link">{notice}</p>
           ) : (
@@ -47,7 +47,12 @@ export const Recents = ({
             label="Check for new matches"
             onClick={refresh.mutate}
             disabled={refresh.isPending}
-            tabIndex={collapsed ? -1 : undefined}
+            className={cn(
+              'transition-[color,translate] duration-200 ease-out-quart motion-reduce:transition-none',
+              // In the rail it slides over the map icons' column, centered in its 40px: the
+              // content stays w-64, so from 216px in (right edge, pr-1) to 14px is 202px.
+              collapsed && '-translate-x-50.5',
+            )}
           >
             <RefreshIcon spinning={refresh.isPending} />
           </IconButton>
