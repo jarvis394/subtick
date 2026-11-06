@@ -42,6 +42,7 @@ const emptyStats = (): PlayerStats => ({
   hsPercent: 0,
   kastPercent: 0,
   rating: 0,
+  impact: 0,
 })
 
 /** Credited enemy kill (no suicides, world deaths or team kills). */
@@ -60,7 +61,7 @@ const isTrade = (k: Kill, roundKills: Kill[]) =>
   )
 
 /** `death` was avenged by the victim's team shortly after. */
-const isTraded = (death: Kill, roundKills: Kill[]) =>
+export const isTraded = (death: Kill, roundKills: Kill[]) =>
   death.attacker !== null &&
   roundKills.some(
     (k) =>
@@ -73,6 +74,7 @@ const isTraded = (death: Kill, roundKills: Kill[]) =>
 export const computeStats = (
   timeline: MatchTimeline,
   clutches: Clutch[],
+  impact = new Map<string, number>(),
 ): Map<string, PlayerStats> => {
   const stats = new Map([...timeline.players.keys()].map((id) => [id, emptyStats()]))
 
@@ -146,12 +148,13 @@ export const computeStats = (
     if (c.won) s.clutchesWon++
   }
 
-  for (const s of stats.values()) {
+  for (const [id, s] of stats) {
     const rounds = Math.max(s.roundsPlayed, 1)
     s.adr = round1(s.damage / rounds)
     s.hsPercent = s.kills ? round1((s.headshotKills / s.kills) * 100) : 0
     s.kastPercent = round1((s.kastRounds / rounds) * 100)
     s.rating = round2(rating(s))
+    s.impact = impact.get(id) ?? 0
   }
 
   return stats

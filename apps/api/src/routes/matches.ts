@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, lt, schema, sql } from '@subtick/db'
-import { isCancelled, isShareCode } from '@subtick/domain'
+import { and, desc, eq, inArray, lt, ne, schema, sql } from '@subtick/db'
+import { BASELINE_MATCHES, comparePerformance, isCancelled, isShareCode } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
@@ -23,6 +23,8 @@ const {
   steamLink,
   user: account,
 } = schema
+
+const playedAtOf = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`
 
 export const matchRoutes = (ctx: Context) => {
   const { db, auth } = ctx
@@ -149,6 +151,22 @@ export const matchRoutes = (ctx: Context) => {
             : [],
         ])
         const requesterById = new Map(requesters.map((r) => [r.id, r]))
+        const own = viewer && players.find((p) => p.steamId === viewer.steamId)
+        const earlier = own
+          ? await db
+              .select({ stats: matchPlayer.stats })
+              .from(matchPlayer)
+              .innerJoin(match, eq(match.id, matchPlayer.matchId))
+              .where(
+                and(
+                  eq(matchPlayer.steamId, own.steamId),
+                  ne(match.id, row.id),
+                  lt(playedAtOf, row.playedAt ?? row.createdAt),
+                ),
+              )
+              .orderBy(desc(playedAtOf))
+              .limit(BASELINE_MATCHES)
+          : []
         const admin = user.role === 'admin'
         const owns = Boolean(viewer)
         const { shareCode: _, demoKey: __, error: ___, parties: ____, ...publicMatch } = row
@@ -157,6 +175,13 @@ export const matchRoutes = (ctx: Context) => {
           match: { ...publicMatch, cancelled: isCancelled(row) },
           /** The viewer's player in this match, if they played it. */
           viewerSteamId: viewer?.steamId ?? null,
+          /** The viewer's stats here against their usual level; empty without enough history. */
+          performance: own
+            ? comparePerformance(
+                own.stats,
+                earlier.map((e) => e.stats),
+              )
+            : [],
           players: partied.map((p) => ({
             ...p,
             avatarUrl: profiles.get(p.steamId)?.avatarUrl ?? null,

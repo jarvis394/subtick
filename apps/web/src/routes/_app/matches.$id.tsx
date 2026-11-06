@@ -8,6 +8,7 @@ import { HighlightCard } from '@/components/highlight-card'
 import { PlayerPicker } from '@/components/highlight-filters/player-picker'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
+import { MatchPerformance } from '@/components/match-performance'
 import { MatchProgress } from '@/components/match-progress'
 import { MatchStatusBadge, isProcessing } from '@/components/match-status'
 import { MomentRow } from '@/components/moment-row'
@@ -390,6 +391,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
         />
       )}
       {data.players.length > 0 && <Scoreboard data={data} viewerSteamId={data.viewerSteamId} />}
+      {data.performance.length > 0 && <MatchPerformance comparison={data.performance} />}
     </div>
   )
 }

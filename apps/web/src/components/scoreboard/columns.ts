@@ -17,7 +17,16 @@ export interface Column {
 const fixed = (digits: number) => (n: number) => n.toFixed(digits)
 const per = (a: number, b: number) => (b ? a / b : a)
 
+const signed = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}`
+
 export const COLUMNS: Column[] = [
+  {
+    id: 'impact',
+    label: 'Impact',
+    title: 'Share of round win chance swung by kills, deaths, plants and defuses',
+    value: (p) => p.stats.impact ?? 0,
+    format: signed,
+  },
   { id: 'kills', label: 'K', title: 'Kills', value: (p) => p.stats.kills },
   {
     id: 'deaths',
@@ -73,7 +82,7 @@ export const COLUMNS: Column[] = [
 ]
 
 /** Columns holding decimals or percentages. */
-export const WIDE_COLUMNS = new Set(['adr', 'kast', 'hsp', 'clutches'])
+export const WIDE_COLUMNS = new Set(['impact', 'adr', 'kast', 'hsp', 'clutches'])
 
 export const RATING: Column = {
   id: 'rating',

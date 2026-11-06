@@ -23,4 +23,12 @@ export interface PlayerStats {
   kastPercent: number
   /** HLTV 1.0 rating formula. */
   rating: number
+  /**
+   * Mean share of round win probability the player swung, × 100, in IMPACT_MIN..IMPACT_MAX.
+   * Missing on matches analyzed before parser v8.
+   */
+  impact?: number
 }
+
+export const IMPACT_MAX = 30
+export const IMPACT_MIN = -15

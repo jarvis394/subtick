@@ -1,5 +1,5 @@
 import type { PlayerSummary, summarizeLobby } from '@subtick/domain'
-import { Tooltip } from '@/components/ui/tooltip'
+import { GapBar } from '@/components/gap-bar'
 import { cn } from '@/lib/utils'
 
 type Lobby = ReturnType<typeof summarizeLobby>
@@ -38,7 +38,6 @@ export const LobbyCompare = ({ summary, lobby }: { summary: PlayerSummary; lobby
         const theirs = lobby[metric.key]
         if (own === null || theirs === null) return null
         const gap = theirs ? (own - theirs) / theirs : 0
-        const reach = Math.min(Math.abs(gap) / FULL_GAP, 1) * 50
         const better = gap >= 0
         const change = `${Math.round(Math.abs(gap) * 100)}% ${better ? 'above' : 'below'} the lobby average`
 
@@ -50,29 +49,7 @@ export const LobbyCompare = ({ summary, lobby }: { summary: PlayerSummary; lobby
             <dt className="truncate text-muted">{metric.label}</dt>
             <dd className="text-right text-lead font-medium">{metric.format(own)}</dd>
             <dd>
-              <Tooltip
-                content={change}
-                trigger={
-                  <span
-                    tabIndex={0}
-                    aria-label={change}
-                    className="relative block h-2 rounded-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute inset-y-[-3px] left-1/2 w-px bg-foreground/30"
-                    />
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'absolute inset-y-0 rounded-full',
-                        better ? 'left-1/2 bg-success/80' : 'right-1/2 bg-danger/70',
-                      )}
-                      style={{ width: `${Math.max(reach, 1)}%` }}
-                    />
-                  </span>
-                }
-              />
+              <GapBar share={Math.abs(gap) / FULL_GAP} better={better} label={change} />
             </dd>
             <dd className="text-right text-muted">{metric.format(theirs)}</dd>
           </div>
