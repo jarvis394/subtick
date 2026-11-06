@@ -28,6 +28,7 @@ export const HEADSHOT_ICON = tagUrl('headshot')
 export const DEFUSE_ICON = tagUrl('defuse')
 export const BOMB_ICON = tagUrl('bomb')
 export const BOMB_EXPLODED_ICON = tagUrl('bomb_exploded')
+export const SKULL_ICON = tagUrl('skull')
 
 /** Modifiers in the order CS2 draws them after the weapon. */
 const AFTER_WEAPON: KillTag[] = ['noscope', 'smoke', 'wallbang', 'headshot']
@@ -62,12 +63,46 @@ export interface BombEntry {
   player: FeedPlayer | null
 }
 
-export type FeedEntry = KillEntry | BombEntry
+export type RoundEntry =
+  | { type: 'start'; tick: number }
+  | { type: 'end'; tick: number; winner: Side; outcome: RoundOutcome }
 
-/** Every kill and bomb event of the round the moment's clip shows, oldest first. */
+export type FeedEntry = KillEntry | BombEntry | RoundEntry
+
+export interface RoundOutcome {
+  /** A killfeed icon; time running out has none. */
+  icon: string | null
+  label: string
+}
+
+// Bomb ticks first: they're exact, where the reason is demoparser's round_end string (t_killed, target_saved…).
+export const roundOutcome = (r: Round): RoundOutcome =>
+  r.bombExplodeTick !== null
+    ? { icon: BOMB_EXPLODED_ICON, label: 'bomb explosion' }
+    : r.bombDefuseTick !== null
+      ? { icon: DEFUSE_ICON, label: 'bomb defuse' }
+      : r.reason === 'target_saved'
+        ? { icon: null, label: 'time' }
+        : { icon: SKULL_ICON, label: 'elimination' }
+
+/** Same-tick events read cause first: the defuse, then the round it ends. */
+const ORDER: Record<FeedEntry['type'], number> = {
+  start: 0,
+  kill: 1,
+  planted: 1,
+  defused: 1,
+  exploded: 1,
+  end: 2,
+}
+
+/**
+ * Every kill and bomb event of the round the moment's clip shows, oldest first. With
+ * `roundEvents`, also the round's start (freeze time ending) and end when the clip covers them.
+ */
 export const momentFeed = (
   data: Pick<MatchDetail, 'kills' | 'players' | 'rounds'>,
   moment: { round: number; startTick: number; endTick: number; segments: ClipSegment[] },
+  roundEvents = false,
 ): FeedEntry[] => {
   const segments = clipSegments(moment)
 
@@ -113,5 +148,26 @@ export const momentFeed = (
     tick != null && inClip(tick) ? [{ type, tick, player: person(steamId ?? null) }] : [],
   )
 
-  return [...kills, ...bomb].toSorted((a, b) => a.tick - b.tick)
+  const bounds: RoundEntry[] =
+    roundEvents && round
+      ? [
+          ...(inClip(round.freezeEndTick)
+            ? [{ type: 'start' as const, tick: round.freezeEndTick }]
+            : []),
+          ...(inClip(round.endTick)
+            ? [
+                {
+                  type: 'end' as const,
+                  tick: round.endTick,
+                  winner: round.winner,
+                  outcome: roundOutcome(round),
+                },
+              ]
+            : []),
+        ]
+      : []
+
+  return [...bounds, ...kills, ...bomb].toSorted(
+    (a, b) => a.tick - b.tick || ORDER[a.type] - ORDER[b.type],
+  )
 }

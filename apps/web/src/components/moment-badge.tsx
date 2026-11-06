@@ -1,20 +1,9 @@
 import type { HighlightClutch, HighlightKind, KillTag } from '@subtick/domain'
 import { Crown, Sparkles } from 'lucide-react'
+import { KillfeedIcon } from '@/components/killfeed-icon'
 import { Badge } from '@/components/ui/surface'
 import { DEFUSE_ICON, HEADSHOT_ICON } from '@/lib/killfeed'
 import { cn } from '@/lib/utils'
-
-/** A killfeed icon, tinted with the current text color. */
-const Icon = ({ src, className }: { src: string; className?: string }) => (
-  <span
-    aria-hidden
-    className={cn('size-3 bg-current', className)}
-    style={{
-      WebkitMask: `url("${src}") center / contain no-repeat`,
-      mask: `url("${src}") center / contain no-repeat`,
-    }}
-  />
-)
 
 /**
  * What a moment is at a glance: a crown for an ace, "1vN" for a clutch, the defuse kit for a
@@ -52,10 +41,10 @@ export const MomentBadge = ({
       ) : moment.kind === 'clutch' ? (
         label
       ) : n === 0 ? (
-        <Icon src={DEFUSE_ICON} className="size-4" />
+        <KillfeedIcon src={DEFUSE_ICON} className="size-4" />
       ) : (
         Array.from({ length: n }, (_, i) => (
-          <Icon key={i} src={HEADSHOT_ICON} className="size-3.5" />
+          <KillfeedIcon key={i} src={HEADSHOT_ICON} className="size-3.5" />
         ))
       )}
       {knife && <Sparkles className="ml-0.5 size-3" />}

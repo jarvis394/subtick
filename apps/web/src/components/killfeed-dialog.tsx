@@ -18,6 +18,7 @@ import {
   type KillEntry,
   modifierIcons,
   momentFeed,
+  type RoundEntry,
   weaponIcon,
 } from '@/lib/killfeed'
 import type { MatchDetail } from '@/lib/queries'
@@ -71,6 +72,22 @@ const BombLine = ({ entry, own }: { entry: BombEntry; own: Own }) => {
   )
 }
 
+const SIDE_NAME: Record<Side, string> = { CT: 'Counter-Terrorists', T: 'Terrorists' }
+
+/** The round's bounds, set apart from the kills by having no box. */
+const RoundLine = ({ entry }: { entry: RoundEntry }) => (
+  <div className="flex h-8 min-w-0 items-center gap-1.5 text-small font-semibold whitespace-nowrap text-white/80">
+    {entry.type === 'start' ? (
+      'Round started'
+    ) : (
+      <>
+        <Name side={entry.winner}>{SIDE_NAME[entry.winner]}</Name> win
+        <span className="font-normal text-white/60">by {entry.outcome.label}</span>
+      </>
+    )}
+  </div>
+)
+
 const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
   const icon = weaponIcon(entry.weapon)
 
@@ -113,7 +130,8 @@ const KillLine = ({ entry, own }: { entry: KillEntry; own: Own }) => {
   )
 }
 
-const involves = (entry: FeedEntry, steamId: string): Own => {
+const involves = (entry: FeedEntry, steamId: string | undefined): Own => {
+  if (!steamId || entry.type === 'start' || entry.type === 'end') return null
   if (entry.type !== 'kill') return entry.player?.steamId === steamId ? 'action' : null
   if (entry.victim.steamId === steamId) return 'death'
 
@@ -124,11 +142,13 @@ const involves = (entry: FeedEntry, steamId: string): Own => {
 const Feed = ({
   match,
   moment,
+  roundEvents,
 }: {
   match: MatchDetail
-  moment: Parameters<typeof momentFeed>[1] & { steamId: string }
+  moment: Parameters<typeof momentFeed>[1] & { steamId?: string }
+  roundEvents: boolean
 }) => {
-  const feed = momentFeed(match, moment)
+  const feed = momentFeed(match, moment, roundEvents)
   const preview = mapPreviewUrl(match.match.map)
 
   return (
@@ -150,7 +170,9 @@ const Feed = ({
             <span className="w-8 shrink-0 font-mono text-caption text-white/60 tabular-nums">
               {clipTime(moment, entry.tick)}
             </span>
-            {entry.type === 'kill' ? (
+            {entry.type === 'start' || entry.type === 'end' ? (
+              <RoundLine entry={entry} />
+            ) : entry.type === 'kill' ? (
               <KillLine entry={entry} own={involves(entry, moment.steamId)} />
             ) : (
               <BombLine entry={entry} own={involves(entry, moment.steamId)} />
@@ -167,7 +189,10 @@ const Feed = ({
   )
 }
 
-/** A moment's killfeed as CS2 showed it: every kill and bomb event of the round inside the clip. */
+/**
+ * A moment's killfeed as CS2 showed it: every kill and bomb event of the round inside the clip.
+ * A whole round passes the round's ticks as the moment, and no player when nobody is followed.
+ */
 export const KillfeedDialog = ({
   match,
   moment,
@@ -176,6 +201,7 @@ export const KillfeedDialog = ({
   trigger,
   notice,
   footer,
+  roundEvents = false,
   open,
   onOpenChange,
   onClosed,
@@ -183,14 +209,14 @@ export const KillfeedDialog = ({
   match: MatchDetail
   moment: {
     title: string
-    steamId: string
+    steamId?: string
     round: number
     startTick: number
     endTick: number
     segments: ClipSegment[]
   }
-  /** Whose moment it is. */
-  player: HighlightPlayer
+  /** Whose moment it is: their lines are outlined and they head the dialog. */
+  player?: HighlightPlayer
   subtitle: string
   /** Opens it; left out when the dialog is controlled with `open`. */
   trigger?: ReactNode
@@ -198,6 +224,8 @@ export const KillfeedDialog = ({
   notice?: ReactNode
   /** Actions under the feed (cancel or retry a queued clip). */
   footer?: ReactNode
+  /** Adds the round's start and end to the feed (a whole round, not a clip). */
+  roundEvents?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Called once the dialog has finished closing (its exit animation done). */
@@ -218,26 +246,33 @@ export const KillfeedDialog = ({
         <Dialog.Popup className="vt-modal fixed top-1/2 left-1/2 z-70 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border bg-surface shadow-xl outline-none transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
           <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4">
             <div className="flex min-w-0 items-center gap-3">
-              <PlayerAvatarLink
-                steamId={moment.steamId}
-                vanity={player.vanity}
-                src={player.avatarUrl}
-                name={player.name}
-                className="size-10"
-              />
+              {player && moment.steamId && (
+                <PlayerAvatarLink
+                  steamId={moment.steamId}
+                  vanity={player.vanity}
+                  src={player.avatarUrl}
+                  name={player.name}
+                  className="size-10"
+                />
+              )}
               <div className="min-w-0">
                 <Dialog.Title className="truncate text-title font-semibold">
                   {moment.title}
                 </Dialog.Title>
                 <Dialog.Description className="mt-0.5 truncate text-small text-muted">
-                  <PlayerLink
-                    steamId={moment.steamId}
-                    vanity={player.vanity}
-                    className="text-foreground/80 hover:text-foreground"
-                  >
-                    {player.name}
-                  </PlayerLink>{' '}
-                  · {subtitle}
+                  {player && moment.steamId && (
+                    <>
+                      <PlayerLink
+                        steamId={moment.steamId}
+                        vanity={player.vanity}
+                        className="text-foreground/80 hover:text-foreground"
+                      >
+                        {player.name}
+                      </PlayerLink>
+                      {' · '}
+                    </>
+                  )}
+                  {subtitle}
                 </Dialog.Description>
               </div>
             </div>
@@ -249,7 +284,7 @@ export const KillfeedDialog = ({
               <X />
             </Dialog.Close>
           </div>
-          <Feed match={match} moment={moment} />
+          <Feed match={match} moment={moment} roundEvents={roundEvents} />
           {/* Retrying a failed clip takes its note away: the box collapses instead of snapping. */}
           <Presence show={Boolean(notice)} className="relative overflow-hidden">
             {notice}
