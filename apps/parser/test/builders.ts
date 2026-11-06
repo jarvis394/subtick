@@ -97,6 +97,7 @@ export const buildTestTimeline = (specs: RoundSpec[]): MatchTimeline => {
     kills,
     damages: [],
     blinds: [],
+    shots: [],
     plants: [],
     defuses: specs.flatMap((s, i) =>
       s.defuse

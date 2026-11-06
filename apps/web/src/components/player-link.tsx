@@ -50,7 +50,7 @@ export const PlayerAvatarLink = ({
     params={{ player: playerSlug({ steamId, vanity }) }}
     tabIndex={-1}
     aria-hidden
-    className="shrink-0 rounded-full transition-opacity hover:opacity-80"
+    className="flex shrink-0 rounded-full transition-opacity hover:opacity-80"
   >
     <Avatar src={src} name={name} className={className} />
   </Link>

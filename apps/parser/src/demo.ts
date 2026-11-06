@@ -1,9 +1,7 @@
 /**
- * The only module that talks to demoparser2. Everything it returns is plain, typed data, so the
- * rest of the parser is pure functions that can be tested without a demo file.
- *
- * Every demoparser2 call re-reads the whole demo, so we keep the number of calls small:
- * one pass for game events, one for round snapshots, one for view angles around kills.
+ * The only module that talks to demoparser2; the rest of the parser is pure functions over its
+ * plain data. Every call re-reads the whole demo, so there are few: game events, round
+ * snapshots, view angles around kills, and positions at the start of each burst of shots.
  */
 import { parseEvents, parseHeader, parsePlayerInfo, parseTicks } from '@laihoe/demoparser2'
 import { type Side, WORLD_WEAPON, isSide, sideFromTeamNum } from '@subtick/domain'
@@ -55,6 +53,15 @@ export interface DemoDamage {
   healthDamage: number
   /** Victim health after the hit. */
   healthAfter: number
+  /** `head`, `chest`, …; `generic` for grenades, fire and falls. */
+  hitgroup: string
+}
+
+export interface DemoShot {
+  tick: number
+  steamId: string | null
+  /** Event weapon id without the `weapon_` prefix. */
+  weapon: string
 }
 
 export interface DemoBlind {
@@ -89,6 +96,7 @@ export interface DemoEvents {
   kills: DemoKill[]
   damages: DemoDamage[]
   blinds: DemoBlind[]
+  shots: DemoShot[]
   bombPlants: DemoBombEvent[]
   bombDefuses: DemoBombEvent[]
   bombExplosions: DemoBombEvent[]
@@ -106,6 +114,13 @@ export interface PlayerSnapshot {
   crosshairCode: string | null
 }
 
+export interface PositionSample {
+  tick: number
+  steamId: string
+  x: number
+  y: number
+}
+
 export interface ViewAngleSample {
   tick: number
   steamId: string
@@ -120,6 +135,7 @@ export interface Demo {
   /** Player state at the given ticks (we ask for each round's freeze end and buy time end). */
   snapshots(ticks: number[]): PlayerSnapshot[]
   viewAngles(ticks: number[], steamIds: string[]): ViewAngleSample[]
+  positions(ticks: number[], steamIds: string[]): PositionSample[]
 }
 
 const EVENTS = [
@@ -131,6 +147,7 @@ const EVENTS = [
   'player_death',
   'player_hurt',
   'player_blind',
+  'weapon_fire',
   'bomb_planted',
   'bomb_defused',
   'bomb_exploded',
@@ -160,6 +177,7 @@ const groupEvents = (rows: Row[]): DemoEvents => {
     kills: [],
     damages: [],
     blinds: [],
+    shots: [],
     bombPlants: [],
     bombDefuses: [],
     bombExplosions: [],
@@ -216,6 +234,14 @@ const groupEvents = (rows: Row[]): DemoEvents => {
           weapon: String(row.weapon ?? WORLD_WEAPON),
           healthDamage: num(row.dmg_health) ?? 0,
           healthAfter: num(row.health) ?? 0,
+          hitgroup: String(row.hitgroup ?? 'generic'),
+        })
+        break
+      case 'weapon_fire':
+        events.shots.push({
+          tick,
+          steamId: str(row.user_steamid),
+          weapon: String(row.weapon ?? '').replace(/^weapon_/, ''),
         })
         break
       case 'player_blind':
@@ -307,6 +333,21 @@ export const openDemo = (data: Buffer): Demo => {
         if (!steamId || pitch === null || yaw === null) return []
 
         return [{ tick: r.tick as number, steamId, pitch, yaw }]
+      })
+    },
+
+    // `velocity_X/Y` is the move since the previous *requested* tick, so it is useless sparse.
+    positions(ticks, steamIds) {
+      if (ticks.length === 0 || steamIds.length === 0) return []
+      const positionRows = parseTicks(data, ['X', 'Y'], ticks, steamIds) as Row[]
+
+      return positionRows.flatMap((r) => {
+        const steamId = str(r.steamid)
+        const x = num(r.X)
+        const y = num(r.Y)
+        if (!steamId || x === null || y === null) return []
+
+        return [{ tick: r.tick as number, steamId, x, y }]
       })
     },
   }

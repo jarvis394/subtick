@@ -1,3 +1,17 @@
+/** Gun shots only (pistols, SMGs, rifles, snipers); shotguns and LMGs skew accuracy. */
+export interface AimStats {
+  shots: number
+  /** Bullet hits on enemies. */
+  hits: number
+  headHits: number
+  /** First shots after a pause, the ones a player has time to stop for. */
+  bursts: number
+  /** Bursts started slower than COUNTER_STRAFE_SPEED. */
+  counterStrafed: number
+  /** 0–100 from accuracy, head-hit rate, headshot kills and counter-strafing. */
+  rating: number
+}
+
 export interface PlayerStats {
   kills: number
   deaths: number
@@ -28,6 +42,8 @@ export interface PlayerStats {
    * Missing on matches analyzed before parser v8.
    */
   impact?: number
+  /** Missing on matches analyzed before parser v9. */
+  aim?: AimStats
 }
 
 export const IMPACT_MAX = 30

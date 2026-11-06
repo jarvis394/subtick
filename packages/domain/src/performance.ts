@@ -7,6 +7,7 @@ export const MIN_BASELINE_MATCHES = 5
 
 const METRICS = {
   impact: (s: PlayerStats) => s.impact ?? null,
+  aim: (s: PlayerStats) => s.aim?.rating ?? null,
   rating: (s: PlayerStats) => s.rating,
   adr: (s: PlayerStats) => s.adr,
   kast: (s: PlayerStats) => s.kastPercent,

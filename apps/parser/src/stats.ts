@@ -1,4 +1,10 @@
-import { type PlayerStats, TEAM_SIZE, secondsToTicks, weaponClass } from '@subtick/domain'
+import {
+  type AimStats,
+  type PlayerStats,
+  TEAM_SIZE,
+  secondsToTicks,
+  weaponClass,
+} from '@subtick/domain'
 import type { Clutch } from './clutches'
 import type { Kill, MatchTimeline } from './timeline'
 
@@ -74,7 +80,7 @@ export const isTraded = (death: Kill, roundKills: Kill[]) =>
 export const computeStats = (
   timeline: MatchTimeline,
   clutches: Clutch[],
-  impact = new Map<string, number>(),
+  derived: { impact?: Map<string, number>; aim?: Map<string, AimStats> } = {},
 ): Map<string, PlayerStats> => {
   const stats = new Map([...timeline.players.keys()].map((id) => [id, emptyStats()]))
 
@@ -154,7 +160,8 @@ export const computeStats = (
     s.hsPercent = s.kills ? round1((s.headshotKills / s.kills) * 100) : 0
     s.kastPercent = round1((s.kastRounds / rounds) * 100)
     s.rating = round2(rating(s))
-    s.impact = impact.get(id) ?? 0
+    s.impact = derived.impact?.get(id) ?? 0
+    s.aim = derived.aim?.get(id)
   }
 
   return stats

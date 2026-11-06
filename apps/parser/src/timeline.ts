@@ -65,6 +65,14 @@ export interface Damage {
   /** Health actually removed (capped at the victim's remaining health). */
   amount: number
   isTeamDamage: boolean
+  hitgroup: string
+}
+
+export interface Shot {
+  round: number
+  tick: number
+  steamId: string
+  weapon: string
 }
 
 export interface Blind {
@@ -96,6 +104,7 @@ export interface MatchTimeline {
   kills: Kill[]
   damages: Damage[]
   blinds: Blind[]
+  shots: Shot[]
   plants: BombEvent[]
   defuses: BombEvent[]
   /** `steamId` is the planter. */
@@ -285,6 +294,7 @@ export const buildTimeline = (input: {
       amount: Math.max(0, Math.min(d.healthDamage, before)),
       isTeamDamage:
         attackerSide !== null && attackerSide === sideAt(r, d.victim.steamId, d.victim.teamNum),
+      hitgroup: d.hitgroup,
     })
   }
 
@@ -304,6 +314,13 @@ export const buildTimeline = (input: {
     })
   }
 
+  const shots: Shot[] = []
+  for (const s of events.shots) {
+    const r = roundIndexAt(rounds, s.tick)
+    if (r !== -1 && s.steamId)
+      shots.push({ round: r + 1, tick: s.tick, steamId: s.steamId, weapon: s.weapon })
+  }
+
   const assignRound = (e: { tick: number; steamId: string | null }) => {
     const r = roundIndexAt(rounds, e.tick)
 
@@ -318,6 +335,7 @@ export const buildTimeline = (input: {
     kills,
     damages,
     blinds,
+    shots,
     plants: events.bombPlants.flatMap(assignRound),
     defuses: events.bombDefuses.flatMap(assignRound),
     explosions: events.bombExplosions.flatMap(assignRound),

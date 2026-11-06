@@ -76,6 +76,7 @@ describe('computeImpact', () => {
       weapon: 'ak47',
       amount: 0,
       isTeamDamage: false,
+      hitgroup: 'chest',
     })
 
     expect(Number.isFinite(computeImpact(timeline).get('ct1'))).toBe(true)

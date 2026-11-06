@@ -7,6 +7,7 @@ const FULL_Z = 2
 
 const METRICS: Record<PerformanceMetric, { label: string; format: (n: number) => string }> = {
   impact: { label: 'Impact', format: (n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}` },
+  aim: { label: 'Aim', format: (n) => String(Math.round(n)) },
   rating: { label: 'Rating', format: (n) => n.toFixed(2) },
   kd: { label: 'K/D', format: (n) => n.toFixed(2) },
   adr: { label: 'ADR', format: (n) => String(Math.round(n)) },

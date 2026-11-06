@@ -1,9 +1,9 @@
 import { ScrollArea } from '@base-ui/react/scroll-area'
-import { ChevronDown, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, Star } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { COLUMNS, type Column } from './columns'
+import { COLUMNS, type Column, toneOf } from './columns'
 
 const ratingTone = (rating: number) =>
   rating >= 1.3
@@ -105,6 +105,8 @@ export const NAME: Shape = {
 }
 
 export const RANK: Shape = { gap: true }
+/** Overview cells are islands of their own. */
+export const OVERVIEW_SHAPE: Shape = { gap: true }
 export const RATING_SHAPE: Shape = { gap: true }
 
 export const statShape = (index: number): Shape => ({
@@ -153,6 +155,57 @@ export const RatingCell = ({
   </td>
 )
 
+export interface Range {
+  min: number
+  max: number
+}
+
+/**
+ * Value on a faint fill scaled from the match's lowest (empty) to highest (full), colored by its
+ * column's tone, with a star on the match's best.
+ */
+export const OverviewCell = ({
+  column,
+  value,
+  range,
+}: {
+  column: Column
+  value: number | null
+  range: Range
+}) => {
+  const tone = toneOf(column, value)
+  const spread = range.max - range.min
+  const fill = value === null ? 0 : spread ? 0.06 + (0.94 * (value - range.min)) / spread : 1
+  const best = value !== null && spread > 0 && value === range.max
+
+  return (
+    <td className={shell(OVERVIEW_SHAPE)}>
+      <div className={block(OVERVIEW_SHAPE, false, 'relative overflow-hidden px-3')}>
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 bg-foreground/[0.05]"
+          style={{ width: `${fill * 100}%` }}
+        />
+        <span
+          className={cn(
+            'relative flex items-center gap-1.5 text-body',
+            value === null
+              ? 'text-muted/40'
+              : tone === 'good'
+                ? 'text-success'
+                : tone === 'bad'
+                  ? 'text-danger'
+                  : 'text-foreground',
+          )}
+        >
+          {value === null ? '–' : column.format ? column.format(value) : value}
+          {best && <Star className="size-3.5 fill-brand text-brand" aria-label="Best in match" />}
+        </span>
+      </div>
+    </td>
+  )
+}
+
 /**
  * Horizontal scroller whose Base UI scrollbar sits in padding below the table, so it never covers a row.
  * On md+ the table bleeds past the content width by `--bleed` (≤ 2rem, 16px clear of the edges); the scroller
@@ -196,31 +249,39 @@ export const ScrollTable = ({ children }: { children: ReactNode }) => (
 export const HeaderCell = ({
   column,
   shape,
-  sortKey,
+  sort,
   onSort,
   className,
 }: {
   column: Column
   shape: Shape
-  sortKey: string
-  onSort: (id: string) => void
+  sort: false | 'asc' | 'desc'
+  onSort: () => void
   className?: string
 }) => (
   <Tooltip
     content={column.title}
     trigger={
-      <th className={shell(shape)}>
-        <div className={block(shape, true, className)}>
+      <th
+        className={shell(shape)}
+        aria-sort={sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined}
+      >
+        <div className={block(shape, true)}>
           <button
             type="button"
-            onClick={() => onSort(column.id)}
+            onClick={onSort}
             className={cn(
-              'inline-flex cursor-pointer items-center gap-0.5 font-medium outline-none hover:text-foreground focus-visible:text-foreground',
-              sortKey === column.id && 'text-foreground',
+              'flex size-full cursor-pointer items-center gap-0.5 font-medium outline-none hover:text-foreground focus-visible:text-foreground',
+              sort && 'text-foreground',
+              className,
             )}
           >
             {column.label}
-            {sortKey === column.id && <ChevronDown className="size-3" />}
+            {/* Always takes its space, so the header keeps its width when the sort moves. */}
+            <span className="size-3 shrink-0" aria-hidden>
+              {sort === 'desc' && <ChevronDown className="size-3" />}
+              {sort === 'asc' && <ChevronUp className="size-3" />}
+            </span>
           </button>
         </div>
       </th>

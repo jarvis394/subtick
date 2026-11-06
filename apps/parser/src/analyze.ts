@@ -14,12 +14,13 @@ import {
   flickSampleRequest,
   highlightConfig,
 } from './highlights'
+import { computeAim, positionSampleRequest } from './aim'
 import { computeImpact } from './impact'
 import { computeStats } from './stats'
 import { type MatchTimeline, buildTimeline } from './timeline'
 
 /** Bump when analysis output changes, so stored matches can be re-analyzed. */
-export const PARSER_VERSION = 8
+export const PARSER_VERSION = 9
 
 export interface MatchAnalysis {
   timeline: MatchTimeline
@@ -60,7 +61,11 @@ export const analyzeDemo = (
     snapshots,
   })
   const clutches = detectClutches(timeline)
-  const stats = computeStats(timeline, clutches, computeImpact(timeline))
+  const positionRequest = positionSampleRequest(timeline.shots)
+  const stats = computeStats(timeline, clutches, {
+    impact: computeImpact(timeline),
+    aim: computeAim(timeline, demo.positions(positionRequest.ticks, positionRequest.steamIds)),
+  })
 
   const { ticks, steamIds } = flickSampleRequest(timeline.kills, config)
   const { highlights, killTags } = detectHighlights(
