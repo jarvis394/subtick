@@ -7,6 +7,7 @@ import { ScrollTable } from './cells'
 import { teamScore } from './columns'
 import { DetailedTable } from './detailed-table'
 import { OverviewTable, overviewRanges } from './overview-table'
+import { useDetailedByDefault } from './preference'
 import { type View, useScoreboardSorting } from './sorting'
 import { type Team, TeamSummary } from './team-header'
 
@@ -23,7 +24,8 @@ export const Scoreboard = memo(function Scoreboard({
   data: MatchDetail
   viewerSteamId: string | null
 }) {
-  const [view, setView] = useState<View>('overview')
+  const [detailedByDefault] = useDetailedByDefault()
+  const [view, setView] = useState<View>(detailedByDefault ? 'detailed' : 'overview')
   const { rows, sortOf, toggleSort } = useScoreboardSorting(data.players, view)
 
   const parties = partyMarkers(data.players)

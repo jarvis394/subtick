@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
 import { EmailForm } from '@/components/email-form'
 import { MatchAuthForm } from '@/components/match-auth-form'
+import { useDetailedByDefault } from '@/components/scoreboard/preference'
 import { ProfileSection } from '@/components/settings/profile-section'
 import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
@@ -14,6 +15,7 @@ import { Field, Input } from '@/components/ui/field'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Badge, Card } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { timeAgo } from '@/lib/format'
@@ -148,8 +150,37 @@ function SettingsPage() {
             ))}
           </FadeList>
         </Section>
+
+        <InterfaceSection />
       </div>
     </div>
+  )
+}
+
+/** Per-browser display preferences. */
+function InterfaceSection() {
+  const [detailedByDefault, setDetailedByDefault] = useDetailedByDefault()
+
+  return (
+    <Section title="Interface">
+      <Group>
+        {/* The whole row is the switch's label, laid out like a Row. */}
+        <Switch
+          checked={detailedByDefault}
+          onCheckedChange={setDetailedByDefault}
+          className="min-h-16 gap-3 py-3"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-body font-medium text-foreground">
+              Open scoreboards on Detailed
+            </span>
+            <span className="block text-small text-muted">
+              Show every stat when a match opens, instead of the overview
+            </span>
+          </span>
+        </Switch>
+      </Group>
+    </Section>
   )
 }
 
