@@ -1,4 +1,4 @@
-import { type Db, eq, inArray, schema } from '@subtick/db'
+import { type Db, and, eq, inArray, isNotNull, isNull, lt, or, schema } from '@subtick/db'
 import type { MatchAnalysis } from './analyze'
 import { shouldAutoRecord } from './highlights'
 
@@ -133,6 +133,48 @@ export const persistAnalysis = async (
 
     return rows.filter((r) => r.status === 'queued').map((r) => r.id)
   })
+}
+
+/**
+ * Re-analysis of a finished match: rewrites each player's stats, rank and crosshair and nothing
+ * else. Highlights are left alone because deleting them cascades to recorded clips.
+ */
+export const refreshPlayerStats = (
+  db: Db,
+  matchId: string,
+  { stats, ranks, crosshairs }: MatchAnalysis,
+  parserVersion: number,
+) =>
+  db.transaction(async (tx) => {
+    await Promise.all(
+      [...stats].map(([steamId, s]) =>
+        tx
+          .update(matchPlayer)
+          .set({
+            stats: s,
+            rank: ranks.get(steamId) ?? null,
+            crosshair: crosshairs.get(steamId) ?? null,
+          })
+          .where(and(eq(matchPlayer.matchId, matchId), eq(matchPlayer.steamId, steamId))),
+      ),
+    )
+    await tx.update(match).set({ parserVersion }).where(eq(match.id, matchId))
+  })
+
+/** Finished matches analyzed by an older parser whose demo is still stored. */
+export const staleMatchIds = async (db: Db, parserVersion: number) => {
+  const rows = await db
+    .select({ id: match.id })
+    .from(match)
+    .where(
+      and(
+        or(isNull(match.parserVersion), lt(match.parserVersion, parserVersion)),
+        inArray(match.status, ['ready', 'recording']),
+        isNotNull(match.demoKey),
+      ),
+    )
+
+  return rows.map((r) => r.id)
 }
 
 export const markMatchFailed = (db: Db, matchId: string, error: string) =>

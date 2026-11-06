@@ -8,10 +8,11 @@ import {
   createQueue,
   createWorker,
   enqueue,
+  enqueueBulk,
 } from '@subtick/queue'
 import { createS3Storage, keys } from '@subtick/storage'
 import { PARSER_VERSION, analyzeDemo } from './analyze'
-import { markMatchFailed, persistAnalysis } from './persist'
+import { markMatchFailed, persistAnalysis, refreshPlayerStats, staleMatchIds } from './persist'
 
 const env = loadEnv({ ...DatabaseEnv, ...RedisEnv, ...S3Env, ...WorkerEnv })
 const log = createLogger('parser')
@@ -27,6 +28,7 @@ const demos = createS3Storage({
 })
 
 const recordQueue = createQueue('clip.record', env.REDIS_URL)
+const reanalyzeQueue = createQueue('demo.reanalyze', env.REDIS_URL)
 const publish = createMatchEventPublisher(env.REDIS_URL)
 
 const loadDemo = async (matchId: string) =>
@@ -87,5 +89,37 @@ worker.on('failed', async (job, error) => {
   }
 })
 
-closeOnSignal(worker, recordQueue)
+// Matches from an older parser get fresh player stats, one at a time behind new parses.
+const reanalyzer = createWorker(
+  'demo.reanalyze',
+  env.REDIS_URL,
+  async (job) => {
+    const { matchId, parserVersion } = job.data
+    if (parserVersion !== PARSER_VERSION) return
+    const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
+    if (!row || (row.parserVersion ?? 0) >= PARSER_VERSION) return
+    if (row.status !== 'ready' && row.status !== 'recording') return
+
+    const started = performance.now()
+    await refreshPlayerStats(db, matchId, analyzeDemo(await loadDemo(matchId)), PARSER_VERSION)
+    log.info({ matchId, ms: Math.round(performance.now() - started) }, 'reanalyzed')
+  },
+  { concurrency: 1, lockDuration: 120_000 },
+)
+
+reanalyzer.on('failed', (job, error) =>
+  log.error({ matchId: job?.data.matchId, attempt: job?.attemptsMade }, 'reanalyze failed', error),
+)
+
+const stale = await staleMatchIds(db, PARSER_VERSION)
+
+if (stale.length) {
+  await enqueueBulk(
+    reanalyzeQueue,
+    stale.map((matchId) => ({ matchId, parserVersion: PARSER_VERSION })),
+  )
+  log.info({ matches: stale.length, version: PARSER_VERSION }, 'queued reanalysis')
+}
+
+closeOnSignal(worker, reanalyzer, recordQueue, reanalyzeQueue)
 log.info({ version: PARSER_VERSION, concurrency: env.WORKER_CONCURRENCY }, 'parser worker started')
