@@ -15,10 +15,10 @@ import type { ReelClip } from './use-reel'
 import { VideoStage } from './video-stage'
 
 /**
- * In the dialog the video runs nearly edge to edge: full-bleed below lg, like the match table on
- * phones, and with a narrower inset than the text below it from lg up.
+ * In the dialog the video runs nearly edge to edge: full-bleed in one column, like the match table on
+ * phones, and with a narrower inset than the text below it in two.
  */
-export const VIDEO_FRAME = 'lg:mx-3 lg:mt-3 lg:rounded-lg'
+export const VIDEO_FRAME = '@3xl:mx-3 @3xl:mt-3 @3xl:rounded-lg'
 export const CONTENT_INSET = 'px-4 md:px-6'
 
 export const Player = ({
@@ -44,7 +44,7 @@ export const Player = ({
   const tags = tagSummary(clip.kills)
 
   return (
-    <div className="max-lg:contents">
+    <div className="@max-3xl:contents">
       <VideoStage
         clip={clip}
         next={next}
@@ -53,16 +53,20 @@ export const Player = ({
         onNext={onNext}
         className={cn(
           // Under the phone header (the dialog's or the app's), at the very top from md.
-          'z-10 max-lg:sticky max-lg:top-14 md:max-lg:top-0',
+          'z-10 @max-3xl:sticky @max-3xl:top-14 md:@max-3xl:top-0',
           modal
             ? VIDEO_FRAME
-            : // The page's gutters: filled, so the reel doesn't show beside the stuck video.
-              // Sideways only, so nothing above it is covered.
-              'rounded-md max-lg:shadow-[-1rem_0_var(--color-surface),1rem_0_var(--color-surface)] md:max-lg:shadow-[-2rem_0_var(--color-surface),2rem_0_var(--color-surface)]',
+            : // Full-bleed in one column: out over the page's gutters (1rem, 2rem
+              // from md), square-cornered, so the reel never shows beside the stuck video.
+              '-mx-4 md:-mx-8 @3xl:mx-0 @3xl:rounded-md',
         )}
       />
 
-      <div className={cn(modal ? cn(CONTENT_INSET, 'max-lg:pb-4 md:max-lg:pb-6') : 'max-lg:pb-8')}>
+      <div
+        className={cn(
+          modal ? cn(CONTENT_INSET, '@max-3xl:pb-4 md:@max-3xl:pb-6') : '@max-3xl:pb-8',
+        )}
+      >
         {/* Buttons stay on the first line; a long title wraps beside them. */}
         <div className="mt-5 flex items-start gap-3">
           <Title className="min-w-0 flex-1 text-heading leading-8 font-semibold tracking-tight text-balance">

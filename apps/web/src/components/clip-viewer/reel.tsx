@@ -74,16 +74,16 @@ export const Reel = ({
         modal
           ? // In the dialog it takes the player column's height rather than adding its own: laid
             // over its grid cell (ClipViewer wraps it in a relative box), it never sets the row.
-            'px-4 pb-4 md:px-6 md:pb-6 lg:absolute lg:inset-0 lg:p-0'
+            'px-4 pb-4 md:px-6 md:pb-6 @3xl:absolute @3xl:inset-0 @3xl:p-0'
           : // Down to the bottom of the screen, through the page's bottom padding.
-            'lg:sticky lg:top-10 lg:-mb-10 lg:max-h-[calc(100dvh-2.5rem)] lg:self-start',
+            '@3xl:sticky @3xl:top-10 @3xl:-mb-10 @3xl:max-h-[calc(100dvh-2.5rem)] @3xl:self-start',
       )}
     >
       <div
         className={cn(
           'mb-2 pb-0.5 -mt-1.5 flex items-center gap-2 text-body',
           // Item padding (p-2) lines the heading up with the thumbnails.
-          modal && 'mb-2 lg:pb-2 lg:pt-4 lg:pr-5 lg:pl-2',
+          modal && 'mb-2 @3xl:pb-2 @3xl:pt-4 @3xl:pr-5 @3xl:pl-2',
         )}
       >
         <h2 className="font-medium text-muted flex-1">
@@ -101,11 +101,11 @@ export const Reel = ({
           </IconButton>
         </div>
       </div>
-      {/* Scrolls on its own from lg up; below that it is as tall as its clips. */}
+      {/* Scrolls on its own in two; below that it is as tall as its clips. */}
       <ScrollArea.Root
         className={cn(
-          'relative -mx-2 -mt-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
-          modal && 'lg:mx-0',
+          'relative -mx-2 -mt-2 @3xl:flex @3xl:min-h-0 @3xl:flex-1 @3xl:flex-col',
+          modal && '@3xl:mx-0',
         )}
       >
         {/* A flex child rather than h-full: on the clip page the reel only has a max-height,
@@ -115,11 +115,11 @@ export const Reel = ({
           // No overscroll containment: a scroll that starts on the reel carries on to the dialog
           // (or page) once the reel has nothing left to scroll, and below lg, where the reel
           // doesn't scroll at all, it goes straight through.
-          className="outline-none lg:min-h-0 lg:flex-1"
+          className="outline-none @3xl:min-h-0 @3xl:flex-1"
         >
           {/* One column that may shrink below its content, so long titles truncate instead of
             widening every row past the reel. */}
-          <ol className={cn('grid grid-cols-1 content-start', modal && 'lg:pr-3 lg:pb-3')}>
+          <ol className={cn('grid grid-cols-1 content-start', modal && '@3xl:pr-3 @3xl:pb-3')}>
             {reel.isPending &&
               Array.from({ length: 6 }, (_, i) => (
                 <li key={i} className="flex gap-3 p-2">

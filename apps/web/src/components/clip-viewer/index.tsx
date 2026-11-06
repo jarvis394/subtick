@@ -200,50 +200,53 @@ export const ClipViewer = ({
     (single.error instanceof ApiError ? single.error.status === 404 : single.isSuccess && !fetched)
 
   return (
-    <div className={cn('grid lg:grid-cols-[minmax(0,1fr)_22rem]', !modal && 'lg:gap-x-8')}>
-      {/* Below lg the column (and the player in it) dissolves into the grid, so the video is a
-        grid item of its own and can stay stuck at the top while the reel scrolls under it. */}
-      <div className={cn('min-w-0 max-lg:contents', modal && 'lg:pb-6')}>
-        {!modal && !missing && (
-          <Link
-            to="/"
-            className="mb-4 inline-flex items-center gap-1.5 rounded-md text-body text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="size-4" /> Highlights
-          </Link>
-        )}
+    // Two columns once the space it gets (the page's column or the dialog) fits both, not the screen.
+    <div className="@container">
+      <div className={cn('grid @3xl:grid-cols-[minmax(0,1fr)_22rem]', !modal && '@3xl:gap-x-8')}>
+        {/* In one column the column (and the player in it) dissolves into the grid, so the video is
+        a grid item of its own and can stay stuck at the top while the reel scrolls under it. */}
+        <div className={cn('min-w-0 @max-3xl:contents', modal && '@3xl:pb-6')}>
+          {!modal && !missing && (
+            <Link
+              to="/"
+              className="mb-4 inline-flex items-center gap-1.5 rounded-md text-body text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft className="size-4" /> Highlights
+            </Link>
+          )}
 
-        {missing ? (
-          <ErrorPage
-            title="Clip not found"
-            description="It may not have been recorded yet, or the link is wrong."
-            className="min-h-80"
-            onBack={onClose}
-          />
-        ) : current ? (
-          <Player
-            clip={current}
-            next={next}
-            autoplay={autoplay}
-            onAutoplayChange={setAutoplay}
-            onNext={() => go(next)}
-            modal={modal}
-            onClose={onClose}
-          />
-        ) : (
-          <div>
-            <Skeleton className={cn('aspect-video', modal && VIDEO_FRAME)} />
-            <div className={cn(modal && CONTENT_INSET)}>
-              <Skeleton className="mt-5 h-7 w-2/3 rounded-lg" />
-              <Skeleton className="mt-3 h-5 w-1/2 rounded-lg" />
+          {missing ? (
+            <ErrorPage
+              title="Clip not found"
+              description="It may not have been recorded yet, or the link is wrong."
+              className="min-h-80"
+              onBack={onClose}
+            />
+          ) : current ? (
+            <Player
+              clip={current}
+              next={next}
+              autoplay={autoplay}
+              onAutoplayChange={setAutoplay}
+              onNext={() => go(next)}
+              modal={modal}
+              onClose={onClose}
+            />
+          ) : (
+            <div>
+              <Skeleton className={cn('aspect-video', modal && VIDEO_FRAME)} />
+              <div className={cn(modal && CONTENT_INSET)}>
+                <Skeleton className="mt-5 h-7 w-2/3 rounded-lg" />
+                <Skeleton className="mt-3 h-5 w-1/2 rounded-lg" />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* In the dialog the reel is laid over this box, so the player column alone sets the
+        {/* In the dialog the reel is laid over this box, so the player column alone sets the
         height it scrolls in. (On the clip page it's sticky instead, which a wrapper would break.) */}
-      {modal ? <div className="relative min-w-0">{reelPanel}</div> : reelPanel}
+        {modal ? <div className="relative min-w-0">{reelPanel}</div> : reelPanel}
+      </div>
     </div>
   )
 }
