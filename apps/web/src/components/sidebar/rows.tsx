@@ -1,32 +1,33 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { type ReactNode, useState } from 'react'
+import { type PointerEvent, type ReactNode, useState } from 'react'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
 import { isProcessing } from '@/components/match-status'
 import { perspectiveScore } from '@/components/match-table'
 import { NewDot } from '@/components/new-dot'
 import { ProgressRing, liveProgress } from '@/components/queue-ring'
+import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
+import { useHandheld } from '@/hooks/use-handheld'
 import { percent, useMatchProgress, useProgressMap } from '@/hooks/use-match-events'
 import { shortAge } from '@/lib/format'
 import { justFound } from '@/lib/new-matches'
 import { type MatchListItem, type QueueItem, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
-export const rowClass = (collapsed: boolean) =>
+/**
+ * A sidebar row's shape; the kit button owns its colors, hover, press and current page. Handheld
+ * rows are the kit's large size, desktop ones a compact 34px. In the rail a row is a square whose
+ * padding centers its icon on x = 28px, so the icon never moves as the width animates.
+ */
+const rowClass = (collapsed: boolean, handheld: boolean) =>
   cn(
-    'flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-2.75 text-body whitespace-nowrap text-muted outline-none select-none',
-    // Rows sit flush; a clear 1px border clips the fill, so the gap between them stays clickable.
-    'border-y border-transparent bg-clip-padding',
-    // The rail's width, and the text/icon color as a row becomes active; backgrounds switch
-    // instantly.
-    '[transition:width_200ms_var(--ease-out-quart),color_150ms_ease-out]',
-    // Hover only tints the row; the text stays muted until the row is the active one.
-    'hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring',
-    'data-[status=active]:bg-surface-2 data-[status=active]:text-foreground',
-    '[&_svg]:size-4.5 [&_svg]:shrink-0',
-    collapsed ? 'w-10' : 'w-full',
+    // Rows sit flush in a grid; the 1px margins keep a clickable gap between their fills.
+    'my-px justify-start overflow-hidden font-normal',
+    'transition-[width,color] duration-200 ease-out-quart motion-reduce:transition-none',
+    !handheld && 'h-8.5 gap-2.5 rounded-lg',
+    collapsed ? (handheld ? 'w-11' : 'w-10') : 'w-full',
   )
 
 /** The path being navigated to while its route loads, so its row can shimmer. */
@@ -55,21 +56,32 @@ export const NavItem = ({
   viewTransition?: boolean
 }) => {
   const pending = usePendingPath() === to
+  const handheld = useHandheld()
 
   return (
-    <Link
-      to={to}
-      // Filters live in the query string; the section is active whatever they are.
-      activeOptions={{ exact: true, includeSearch: false }}
-      onClick={onNavigate}
-      viewTransition={viewTransition}
-      aria-label={collapsed ? label : undefined}
-      title={collapsed ? label : undefined}
-      className={cn(rowClass(collapsed), pending && 'shimmer')}
+    <Button
+      variant="ghost"
+      size={handheld ? 'lg' : 'md'}
+      render={
+        <Link
+          to={to}
+          // Filters live in the query string; the section is active whatever they are.
+          activeOptions={{ exact: true, includeSearch: false }}
+          onClick={onNavigate}
+          viewTransition={viewTransition}
+          aria-label={collapsed ? label : undefined}
+          title={collapsed ? label : undefined}
+        />
+      }
+      pending={pending}
+      className={cn(
+        rowClass(collapsed, handheld),
+        handheld ? 'px-3 [&_svg]:size-5' : 'px-2.75 [&_svg]:size-4.5',
+      )}
     >
       {icon}
       <span className={fade(collapsed)}>{label}</span>
-    </Link>
+    </Button>
   )
 }
 
@@ -114,29 +126,46 @@ export const RecentRow = ({
   const progress = streamed ?? polled
   // Only a row that just turned up grows in; one that was already there stays put.
   const [entering] = useState(() => justFound(match.id))
+  const handheld = useHandheld()
+  // The menu button sits over the link, so the link's own hover ends there; the row stays lit
+  // while the mouse is anywhere on it and while its menu is open.
+  const [hovered, setHovered] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const hover = (event: PointerEvent, next: boolean) => {
+    if (event.pointerType === 'mouse') setHovered(next)
+  }
 
   return (
     <div
+      onPointerEnter={(event) => hover(event, true)}
+      onPointerLeave={(event) => hover(event, false)}
       className={cn(
         'group/row relative',
+        entering && (handheld ? 'h-11.5' : 'h-10'),
         entering &&
-          'h-10 overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
+          'overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
       )}
     >
-      <Link
-        to="/matches/$id"
-        params={{ id: match.id }}
-        onClick={onNavigate}
-        viewTransition={viewTransition}
-        title={collapsed ? matchName(match.map, match.status) : undefined}
+      <Button
+        variant="ghost"
+        size={handheld ? 'lg' : 'md'}
+        highlighted={hovered || menuOpen}
+        pending={pending}
+        render={
+          <Link
+            to="/matches/$id"
+            params={{ id: match.id }}
+            onClick={onNavigate}
+            viewTransition={viewTransition}
+            title={collapsed ? matchName(match.map, match.status) : undefined}
+          />
+        }
         className={cn(
-          rowClass(collapsed),
-          'h-10 px-2',
+          rowClass(collapsed, handheld),
+          handheld ? 'px-2.5' : 'h-9.5 px-2',
+          '[&_svg]:size-4.5',
           !collapsed && 'pointer-coarse:pr-10',
-          // Lit while the pointer is anywhere on the row, its menu button included (the button
-          // sits over the link, so the link's own hover ends there), and while its menu is open.
-          'group-hover/row:bg-surface-2 group-has-data-popup-open/row:bg-surface-2',
-          pending && 'shimmer',
         )}
       >
         {/* In the rail the name (and its new-match dot) fades out, so a dot fades in on the map. */}
@@ -197,11 +226,12 @@ export const RecentRow = ({
             ) : null}
           </span>
         </span>
-      </Link>
+      </Button>
       {!collapsed && (
         <MatchMenu
           match={match}
           onNavigate={onNavigate}
+          onOpenChange={setMenuOpen}
           align="start"
           side="right"
           triggerClassName={cn(

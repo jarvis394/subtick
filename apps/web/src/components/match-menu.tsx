@@ -1,4 +1,3 @@
-import { Menu } from '@base-ui/react/menu'
 import type { MatchStatus } from '@subtick/domain'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -16,14 +15,9 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { isProcessing } from '@/components/match-status'
 import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
 import { IconButton } from '@/components/ui/button'
+import { Menu, MenuItem, MenuSeparator } from '@/components/ui/menu'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { cn } from '@/lib/utils'
-
-export const menuPopupClass =
-  'min-w-52 origin-(--transform-origin) rounded-xl border bg-surface p-1 shadow-xl shadow-black/20 outline-none transition-[scale,opacity] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100'
-
-export const menuItemClass =
-  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-body whitespace-nowrap outline-none select-none data-disabled:cursor-default data-disabled:opacity-50 data-highlighted:bg-surface-2 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted'
 
 /** Valve's replay-server link that makes CS2 download the demo and open it. */
 const watchUrl = (shareCode: string) =>
@@ -62,8 +56,7 @@ const CopyItem = ({
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
-    <Menu.Item
-      className={menuItemClass}
+    <MenuItem
       closeOnClick={false}
       onClick={() => {
         void navigator.clipboard.writeText(text)
@@ -71,7 +64,7 @@ const CopyItem = ({
         timer.current = setTimeout(onDone, COPIED_MS)
       }}
     >
-      <span className="grid size-4 place-items-center *:col-start-1 *:row-start-1">
+      <span className="grid shrink-0 place-items-center *:col-start-1 *:row-start-1">
         <span
           className={cn(
             'grid place-items-center transition-[opacity,scale] duration-150 ease-out',
@@ -88,7 +81,7 @@ const CopyItem = ({
         />
       </span>
       <MorphLabel align="start">{copied ? 'Copied' : label}</MorphLabel>
-    </Menu.Item>
+    </MenuItem>
   )
 }
 
@@ -100,6 +93,7 @@ export const MatchMenu = ({
   match,
   triggerClassName,
   onNavigate,
+  onOpenChange,
   side = 'bottom',
   align = 'end',
 }: {
@@ -107,6 +101,7 @@ export const MatchMenu = ({
   triggerClassName?: string
   /** Called before the menu navigates (the mobile drawer closes on it). */
   onNavigate?: () => void
+  onOpenChange?: (open: boolean) => void
   side?: 'bottom' | 'top' | 'left' | 'right'
   align?: 'start' | 'center' | 'end'
 }) => {
@@ -122,97 +117,80 @@ export const MatchMenu = ({
     match.demoUrl !== null &&
     (match.demoExpiresAt === null || new Date(match.demoExpiresAt).getTime() > openedAt)
 
-  const close = () => setOpen(false)
+  const changeOpen = (next: boolean) => {
+    if (next) setOpenedAt(Date.now())
+    setOpen(next)
+    onOpenChange?.(next)
+  }
+
+  const close = () => changeOpen(false)
 
   return (
-    <Menu.Root
+    <Menu
+      title="Match actions"
       open={open}
-      onOpenChange={(next) => {
-        if (next) setOpenedAt(Date.now())
-        setOpen(next)
-      }}
+      onOpenChange={changeOpen}
+      side={side}
+      align={align}
+      trigger={
+        <IconButton
+          size="xs"
+          label="Match actions"
+          tooltip={false}
+          className={cn('[--bg-hover:var(--color-surface-3)]', triggerClassName)}
+        >
+          <Ellipsis />
+        </IconButton>
+      }
     >
-      <Menu.Trigger
-        render={
-          <IconButton
-            size="xs"
-            label="Match actions"
-            tooltip={false}
-            className={cn('[--bg-hover:var(--color-surface-3)]', triggerClassName)}
-          />
-        }
-      >
-        <Ellipsis />
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner side={side} align={align} sideOffset={4} className="z-50">
-          <Menu.Popup className={menuPopupClass}>
-            <CopyItem
-              icon={<Link2 />}
-              label="Copy link"
-              text={`${window.location.origin}/matches/${match.id}`}
-              onDone={close}
-            />
-            {match.shareCode && (
-              <CopyItem
-                icon={<Copy />}
-                label="Copy share code"
-                text={match.shareCode}
-                onDone={close}
-              />
-            )}
-            {(match.shareCode || demoAvailable) && (
-              <Menu.Separator className="mx-1 my-1 h-px bg-border" />
-            )}
-            {match.shareCode && (
-              <Menu.Item className={menuItemClass} render={<a href={watchUrl(match.shareCode)} />}>
-                <Gamepad2 /> Watch in CS2
-              </Menu.Item>
-            )}
-            {demoAvailable && (
-              <Menu.Item
-                className={menuItemClass}
-                render={<a href={match.demoUrl!} target="_blank" rel="noreferrer" />}
-              >
-                <Download /> Download demo
-              </Menu.Item>
-            )}
-            {match.status === 'ready' && (
-              <Menu.Item
-                className={menuItemClass}
-                onClick={() => {
-                  onNavigate?.()
-                  void navigate({ to: '/matches/$id/create', params: { id: match.id } })
-                }}
-              >
-                <Plus /> Create highlights
-              </Menu.Item>
-            )}
-            {(processing || canRetry) && (
-              <>
-                <Menu.Separator className="mx-1 my-1 h-px bg-border" />
-                {processing ? (
-                  <Menu.Item
-                    className={cn(menuItemClass, 'text-danger [&_svg]:text-danger')}
-                    disabled={cancel.isPending}
-                    onClick={() => cancel.mutate(match.id)}
-                  >
-                    <CircleStop /> Cancel processing
-                  </Menu.Item>
-                ) : (
-                  <Menu.Item
-                    className={menuItemClass}
-                    disabled={retry.isPending}
-                    onClick={() => retry.mutate(match.id)}
-                  >
-                    <RotateCw /> {match.cancelled ? 'Resume processing' : 'Retry'}
-                  </Menu.Item>
-                )}
-              </>
-            )}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+      <CopyItem
+        icon={<Link2 />}
+        label="Copy link"
+        text={`${window.location.origin}/matches/${match.id}`}
+        onDone={close}
+      />
+      {match.shareCode && (
+        <CopyItem icon={<Copy />} label="Copy share code" text={match.shareCode} onDone={close} />
+      )}
+      {(match.shareCode || demoAvailable) && <MenuSeparator />}
+      {match.shareCode && (
+        <MenuItem render={<a href={watchUrl(match.shareCode)} />}>
+          <Gamepad2 /> Watch in CS2
+        </MenuItem>
+      )}
+      {demoAvailable && (
+        <MenuItem render={<a href={match.demoUrl!} target="_blank" rel="noreferrer" />}>
+          <Download /> Download demo
+        </MenuItem>
+      )}
+      {match.status === 'ready' && (
+        <MenuItem
+          onClick={() => {
+            onNavigate?.()
+            void navigate({ to: '/matches/$id/create', params: { id: match.id } })
+          }}
+        >
+          <Plus /> Create highlights
+        </MenuItem>
+      )}
+      {(processing || canRetry) && (
+        <>
+          <MenuSeparator />
+          {processing ? (
+            <MenuItem
+              tone="danger"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate(match.id)}
+            >
+              <CircleStop /> Cancel processing
+            </MenuItem>
+          ) : (
+            <MenuItem disabled={retry.isPending} onClick={() => retry.mutate(match.id)}>
+              <RotateCw /> {match.cancelled ? 'Resume processing' : 'Retry'}
+            </MenuItem>
+          )}
+        </>
+      )}
+    </Menu>
   )
 }

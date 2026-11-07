@@ -54,9 +54,9 @@ export const QueueButton = ({
           size="lg"
           label={label}
           tooltip={false}
+          pending={pending}
           render={<Link to="/queue" onClick={onNavigate} viewTransition={viewTransition} />}
           className={cn(
-            pending && 'shimmer',
             className,
             // Fades out with the last job; `invisible` lands after the fade and takes it out of
             // the tab order.

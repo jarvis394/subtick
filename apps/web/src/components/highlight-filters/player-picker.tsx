@@ -2,9 +2,11 @@ import { Combobox } from '@base-ui/react/combobox'
 import { Check, ChevronDown, Clapperboard, Component, Search, User, Users } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
+import { Sheet } from '@/components/ui/sheet'
+import { useHandheld } from '@/hooks/use-handheld'
 import type { PlayerSearch } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
-import { itemClass, popupClass, triggerClass } from './styles'
+import { itemClass, popupClass, sheetItemClass, triggerClass } from './styles'
 import { type SummaryToken, TriggerSummary } from './trigger-summary'
 
 /** Avatars the trigger shows for a multiple pick before folding the rest into "+n". */
@@ -47,6 +49,7 @@ export const PlayerPicker = ({
   /** Layout for the trigger, e.g. joining it to its neighbour. */
   className?: string
 }) => {
+  const sheet = useHandheld()
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const byId = new Map(players.map((p) => [p.steamId, p]))
@@ -87,6 +90,8 @@ export const PlayerPicker = ({
               ...(value.length > STACKED ? [{ key: 'more', more: value.length - STACKED }] : []),
             ]
 
+  const triggerClassName = cn(triggerClass, 'group/trigger max-w-60 min-w-36', className)
+
   const labelOf = (id: string) =>
     id === ALL
       ? 'All players'
@@ -96,33 +101,157 @@ export const PlayerPicker = ({
           ? 'People I played with'
           : (byId.get(id)?.name ?? 'Unknown player')
 
+  const pick = (choice: string[]) => {
+    // All players clears the pick; a You pick stands alone, replacing everything else.
+    const added = choice.find((id) => !checked.includes(id))
+    let next = choice.filter((id) => id !== ALL)
+    if (added === ALL) next = []
+    else if (added === ME || added === PLAYED_WITH) next = [added]
+    const picked = next.filter((id) => id !== ME && id !== PLAYED_WITH)
+    onChange({
+      me: next.includes(ME) || undefined,
+      playedWith: next.includes(PLAYED_WITH) || undefined,
+      players: picked.length ? picked : undefined,
+    })
+    setOpen(false)
+  }
+
+  const list = (
+    <>
+      <div
+        className={cn(
+          'flex shrink-0 items-center gap-2 border-b',
+          sheet ? 'sticky top-0 z-10 bg-surface px-5' : 'px-3',
+        )}
+      >
+        <Search className="size-4 shrink-0 text-muted" />
+        <Combobox.Input
+          ref={input}
+          placeholder="Search players"
+          className={cn(
+            'min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted',
+            sheet ? 'h-14 text-lead' : 'h-10 text-body',
+          )}
+        />
+      </div>
+      <Combobox.Empty
+        className={cn('py-4 text-body text-muted empty:hidden', sheet ? 'px-5' : 'px-3')}
+      >
+        No players found
+      </Combobox.Empty>
+      <Combobox.List
+        className={cn(
+          'min-h-0 empty:hidden',
+          sheet ? 'p-2' : 'max-h-80 scroll-py-1 overflow-auto overscroll-contain p-1',
+        )}
+      >
+        {(group: (typeof groups)[number]) => (
+          <Combobox.Group key={group.label || ALL} items={group.items} className="pb-1 last:pb-0">
+            {group.label && (
+              <Combobox.GroupLabel
+                className={cn(
+                  'pt-2 pb-1 text-caption font-medium text-muted',
+                  sheet ? 'px-3' : 'px-2',
+                )}
+              >
+                {group.label}
+              </Combobox.GroupLabel>
+            )}
+            <Combobox.Collection>
+              {(id: string) => {
+                const player = id === ME ? meRow : byId.get(id)
+
+                return (
+                  <Combobox.Item key={id} value={id} className={sheet ? sheetItemClass : itemClass}>
+                    {player ? (
+                      <Avatar src={player.avatarUrl} name={player.name} className="size-6" />
+                    ) : (
+                      <span className="grid size-6 place-items-center rounded-full bg-surface-3 text-muted">
+                        {id === ME ? (
+                          <User className="size-3.5" />
+                        ) : id === PLAYED_WITH ? (
+                          <Component className="size-3.5" />
+                        ) : (
+                          <Users className="size-3.5" />
+                        )}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate">{labelOf(id)}</span>
+                    {player && (
+                      <span className="inline-flex items-center gap-1 text-small text-muted tabular-nums">
+                        <Clapperboard aria-hidden className="size-3.5" />
+                        <span className="sr-only">{countLabel}:</span>
+                        {player.clips}
+                      </span>
+                    )}
+                    <span className="grid size-4 place-items-center">
+                      <Combobox.ItemIndicator>
+                        <Check className="size-4 text-accent" />
+                      </Combobox.ItemIndicator>
+                    </span>
+                  </Combobox.Item>
+                )
+              }}
+            </Combobox.Collection>
+          </Combobox.Group>
+        )}
+      </Combobox.List>
+    </>
+  )
+
+  if (sheet) {
+    return (
+      <Sheet
+        title="Players"
+        open={open}
+        onOpenChange={setOpen}
+        className="p-0"
+        trigger={
+          <button type="button" className={triggerClassName}>
+            <TriggerSummary
+              tokens={tokens}
+              label={
+                value.length === 0
+                  ? 'All players'
+                  : only
+                    ? labelOf(only)
+                    : `${value.length} selected`
+              }
+              me={only === ME && Boolean(meRow)}
+            />
+            <ChevronDown className="size-4 text-muted" />
+          </button>
+        }
+      >
+        <Combobox.Root
+          inline
+          multiple
+          items={groups}
+          value={checked}
+          itemToStringLabel={labelOf}
+          onValueChange={pick}
+          // Stays open while the sheet slides away, so the list doesn't collapse mid-close; the
+          // sheet unmounts it afterwards, which resets the search.
+          open
+          onOpenChange={(next) => !next && setOpen(false)}
+        >
+          {list}
+        </Combobox.Root>
+      </Sheet>
+    )
+  }
+
   return (
     <Combobox.Root
       multiple
       items={groups}
       value={checked}
       itemToStringLabel={labelOf}
-      onValueChange={(choice) => {
-        // All players clears the pick; a You pick stands alone, replacing everything else.
-        const added = choice.find((id) => !checked.includes(id))
-        const next =
-          added === ALL
-            ? []
-            : added === ME || added === PLAYED_WITH
-              ? [added]
-              : choice.filter((id) => id !== ALL)
-        const picked = next.filter((id) => id !== ME && id !== PLAYED_WITH)
-        onChange({
-          me: next.includes(ME) || undefined,
-          playedWith: next.includes(PLAYED_WITH) || undefined,
-          players: picked.length ? picked : undefined,
-        })
-        setOpen(false)
-      }}
+      onValueChange={pick}
       open={open}
       onOpenChange={setOpen}
     >
-      <Combobox.Trigger className={cn(triggerClass, 'group/trigger max-w-60 min-w-36', className)}>
+      <Combobox.Trigger className={triggerClassName}>
         <TriggerSummary
           tokens={tokens}
           label={
@@ -149,68 +278,7 @@ export const PlayerPicker = ({
               'flex max-h-(--available-height) w-[min(18rem,var(--available-width))] flex-col',
             )}
           >
-            <div className="flex shrink-0 items-center gap-2 border-b px-3">
-              <Search className="size-4 shrink-0 text-muted" />
-              <Combobox.Input
-                ref={input}
-                placeholder="Search players"
-                className="h-10 min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted"
-              />
-            </div>
-            <Combobox.Empty className="px-3 py-4 text-body text-muted empty:hidden">
-              No players found
-            </Combobox.Empty>
-            <Combobox.List className="max-h-80 min-h-0 scroll-py-1 overflow-auto overscroll-contain p-1 empty:hidden">
-              {(group: (typeof groups)[number]) => (
-                <Combobox.Group
-                  key={group.label || ALL}
-                  items={group.items}
-                  className="pb-1 last:pb-0"
-                >
-                  {group.label && (
-                    <Combobox.GroupLabel className="px-2 pt-2 pb-1 text-caption font-medium text-muted">
-                      {group.label}
-                    </Combobox.GroupLabel>
-                  )}
-                  <Combobox.Collection>
-                    {(id: string) => {
-                      const player = id === ME ? meRow : byId.get(id)
-
-                      return (
-                        <Combobox.Item key={id} value={id} className={itemClass}>
-                          {player ? (
-                            <Avatar src={player.avatarUrl} name={player.name} className="size-6" />
-                          ) : (
-                            <span className="grid size-6 place-items-center rounded-full bg-surface-3 text-muted">
-                              {id === ME ? (
-                                <User className="size-3.5" />
-                              ) : id === PLAYED_WITH ? (
-                                <Component className="size-3.5" />
-                              ) : (
-                                <Users className="size-3.5" />
-                              )}
-                            </span>
-                          )}
-                          <span className="min-w-0 flex-1 truncate">{labelOf(id)}</span>
-                          {player && (
-                            <span className="inline-flex items-center gap-1 text-small text-muted tabular-nums">
-                              <Clapperboard aria-hidden className="size-3.5" />
-                              <span className="sr-only">{countLabel}:</span>
-                              {player.clips}
-                            </span>
-                          )}
-                          <span className="grid size-4 place-items-center">
-                            <Combobox.ItemIndicator>
-                              <Check className="size-4 text-accent" />
-                            </Combobox.ItemIndicator>
-                          </span>
-                        </Combobox.Item>
-                      )
-                    }}
-                  </Combobox.Collection>
-                </Combobox.Group>
-              )}
-            </Combobox.List>
+            {list}
           </Combobox.Popup>
         </Combobox.Positioner>
       </Combobox.Portal>

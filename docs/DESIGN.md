@@ -292,7 +292,8 @@ Soft and tactile. Every button is one variant × one tone × one size (see `docs
 - **Ghost / Quiet / Plain:** ghost is transparent and muted at rest, and goes to full color on hover or when selected. Quiet is a receding secondary. Plain is a ghost whose label is content (a player's name).
 - **Press:** the background is its own layer and insets 1px a side on press (160 ms, quart ease-out). The label never moves.
 - **Hover / Focus:** 150 ms color fades. The focus ring is 2px of action blue, offset 2px.
-- **Selected / Loading:** a pressed toggle, an open menu or the current page lights up like hover. Loading keeps full color and swaps the label for a spinner without changing the width.
+- **Touch press** (`pointer: coarse`): buttons, sidebar rows, filter triggers and sheet rows light up instantly on touch and fade back over 150 ms on release. Hover highlights stay mouse-only, so a tapped row never stays lit.
+- **Selected / Loading:** a pressed toggle, an open menu or the current page lights up like hover. Loading keeps full color and swaps the label for a spinner without changing the width. Pending (`pending`, a page it leads to is loading) sweeps a faint light band across the button after 150 ms and stays clickable.
 
 ### Chips
 
@@ -327,6 +328,7 @@ Soft and tactile. Every button is one variant × one tone × one size (see `docs
 
 - **Sidebar:** collapsible rows with a fading label, map icons, recent matches with muted tabular meta, and a queue button. On mobile it becomes a drawer with the iOS-style settle ease.
 - **Mobile header:** sticky, 56px, surface at 85% with a medium backdrop blur and a bottom hairline. The chrome holds still during page transitions.
+- **Menus and popovers** (`components/ui/menu.tsx`, `popover.tsx`, `sheet.tsx`): on desktop, a floating panel next to its trigger. Below 64rem, or on any touch-first device, the same content rises as a bottom sheet: surface, 24px top corners, no grab handle, a 40% black backdrop (also over the nav drawer), 8px padding, and 44px rows with 12px corners and 20px icons, so row text sits 20px in; panels like Filters pad 20px to match. It uses the drawer settle ease and closes on a downward swipe. The highlight filters (players, filters) follow the same rule.
 
 ### Highlight Card (signature)
 
