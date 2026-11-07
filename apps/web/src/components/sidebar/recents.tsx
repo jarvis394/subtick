@@ -5,7 +5,6 @@ import { Button, IconButton } from '@/components/ui/button'
 import { RefreshIcon } from '@/components/ui/refresh-icon'
 import { Skeleton } from '@/components/ui/surface'
 import { useDelayed } from '@/hooks/use-delayed'
-import { useHandheld } from '@/hooks/use-handheld'
 import { useRefreshMatches } from '@/hooks/use-match-actions'
 import { useRefreshNotice } from '@/hooks/use-refresh-notice'
 import { recentMatchesQuery } from '@/lib/queries'
@@ -25,7 +24,6 @@ export const Recents = ({
   onNavigate?: () => void
   viewTransition?: boolean
 }) => {
-  const handheld = useHandheld()
   const { data: recent, isError: recentFailed, refetch, isFetching } = useQuery(recentMatchesQuery)
   const pendingPath = usePendingPath()
   // Nothing until a load has run a while: most finish sooner and never show the skeleton.
@@ -34,8 +32,8 @@ export const Recents = ({
   const notice = useRefreshNotice(refresh)
 
   return (
-    <div className={cn('mt-5', handheld ? 'px-1.5' : 'px-2')}>
-      <div className={cn('flex h-7 items-center', handheld ? 'pr-1.5 pl-3' : 'pr-1 pl-2.75')}>
+    <div className="mt-5 px-1.5 desktop:px-2">
+      <div className="flex h-7 items-center pr-1.5 pl-3 desktop:pr-1 desktop:pl-2.75">
         <FadeSwap className={cn('flex-1', fade(collapsed))} swapKey={notice ? 'notice' : 'title'}>
           {notice ? (
             <p className="text-label font-medium whitespace-nowrap text-link">{notice}</p>
@@ -123,10 +121,7 @@ export const Recents = ({
                 <div
                   // oxlint-disable-next-line react/no-array-index-key -- fixed placeholder rows that never reorder
                   key={i}
-                  className={cn(
-                    'flex items-center',
-                    handheld ? 'h-11.5 gap-2 px-2.5' : 'h-10 gap-2.5 px-2',
-                  )}
+                  className="flex h-11.5 items-center gap-2 px-2.5 desktop:h-10 desktop:gap-2.5 desktop:px-2"
                 >
                   <Skeleton className="size-6 shrink-0 rounded-full" />
                   <span className={cn('flex min-w-0 flex-1 items-center gap-2', fade(collapsed))}>

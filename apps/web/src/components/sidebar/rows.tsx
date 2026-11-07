@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { type PointerEvent, type ReactNode, useState } from 'react'
+import { type PointerEvent, type ReactNode, useRef, useState } from 'react'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchMenu } from '@/components/match-menu'
 import { isProcessing } from '@/components/match-status'
@@ -9,7 +9,6 @@ import { NewDot } from '@/components/new-dot'
 import { ProgressRing, liveProgress } from '@/components/queue-ring'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
-import { useHandheld } from '@/hooks/use-handheld'
 import { percent, useMatchProgress, useProgressMap } from '@/hooks/use-match-events'
 import { shortAge } from '@/lib/format'
 import { justFound } from '@/lib/new-matches'
@@ -17,17 +16,17 @@ import { type MatchListItem, type QueueItem, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 /**
- * A sidebar row's shape; the kit button owns its colors, hover, press and current page. Handheld
- * rows are the kit's large size, desktop ones a compact 34px. In the rail a row is a square whose
+ * A sidebar row's shape; the kit button owns its colors, hover, press and current page. Rows are
+ * the kit's large size, compacted to 34px on desktop. In the rail a row is a square whose
  * padding centers its icon on x = 28px, so the icon never moves as the width animates.
  */
-const rowClass = (collapsed: boolean, handheld: boolean) =>
+const rowClass = (collapsed: boolean) =>
   cn(
     // Rows sit flush in a grid; the 1px margins keep a clickable gap between their fills.
     'my-px justify-start overflow-hidden font-normal',
     'transition-[width,color] duration-200 ease-out-quart motion-reduce:transition-none',
-    !handheld && 'h-8.5 gap-2.5 rounded-lg',
-    collapsed ? (handheld ? 'w-11' : 'w-10') : 'w-full',
+    'desktop:h-8.5 desktop:gap-2.5 desktop:rounded-lg desktop:text-body',
+    collapsed ? 'w-11 desktop:w-10' : 'w-full',
   )
 
 /** The path being navigated to while its route loads, so its row can shimmer. */
@@ -56,12 +55,11 @@ export const NavItem = ({
   viewTransition?: boolean
 }) => {
   const pending = usePendingPath() === to
-  const handheld = useHandheld()
 
   return (
     <Button
       variant="ghost"
-      size={handheld ? 'lg' : 'md'}
+      size="lg"
       render={
         <Link
           to={to}
@@ -75,8 +73,8 @@ export const NavItem = ({
       }
       pending={pending}
       className={cn(
-        rowClass(collapsed, handheld),
-        handheld ? 'px-3 [&_svg]:size-5' : 'px-2.75 [&_svg]:size-4.5',
+        rowClass(collapsed),
+        'px-3 [&_svg]:size-5 desktop:px-2.75 desktop:[&_svg]:size-4.5',
       )}
     >
       {icon}
@@ -126,30 +124,39 @@ export const RecentRow = ({
   const progress = streamed ?? polled
   // Only a row that just turned up grows in; one that was already there stays put.
   const [entering] = useState(() => justFound(match.id))
-  const handheld = useHandheld()
   // The menu button sits over the link, so the link's own hover ends there; the row stays lit
   // while the mouse is anywhere on it and while its menu is open.
+  const row = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // The rail unmounts the menu without it reporting a close.
+  if (collapsed && menuOpen) setMenuOpen(false)
 
   const hover = (event: PointerEvent, next: boolean) => {
     if (event.pointerType === 'mouse') setHovered(next)
   }
 
+  const changeMenu = (open: boolean) => {
+    setMenuOpen(open)
+    // React counts the portaled menu as inside the row, so leaving through it fires no leave.
+    if (!open && hovered) setHovered(Boolean(row.current?.matches(':hover')))
+  }
+
   return (
     <div
+      ref={row}
       onPointerEnter={(event) => hover(event, true)}
       onPointerLeave={(event) => hover(event, false)}
       className={cn(
         'group/row relative',
-        entering && (handheld ? 'h-11.5' : 'h-10'),
+        entering && 'h-11.5 desktop:h-10',
         entering &&
           'overflow-hidden transition-[height,opacity] duration-300 ease-out-quart starting:h-0 starting:opacity-0',
       )}
     >
       <Button
         variant="ghost"
-        size={handheld ? 'lg' : 'md'}
+        size="lg"
         highlighted={hovered || menuOpen}
         pending={pending}
         render={
@@ -162,8 +169,8 @@ export const RecentRow = ({
           />
         }
         className={cn(
-          rowClass(collapsed, handheld),
-          handheld ? 'px-2.5' : 'h-9.5 px-2',
+          rowClass(collapsed),
+          'px-2.5 desktop:h-9.5 desktop:px-2',
           '[&_svg]:size-4.5',
           !collapsed && 'pointer-coarse:pr-10',
         )}
@@ -231,7 +238,7 @@ export const RecentRow = ({
         <MatchMenu
           match={match}
           onNavigate={onNavigate}
-          onOpenChange={setMenuOpen}
+          onOpenChange={changeMenu}
           align="start"
           side="right"
           triggerClassName={cn(

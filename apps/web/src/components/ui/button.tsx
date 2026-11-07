@@ -81,6 +81,7 @@ const boxClass = (
   tone: ButtonTone,
   size: string,
   showCurrent: boolean,
+  raised = false,
 ) =>
   cn(
     'group/button relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center font-medium whitespace-nowrap select-none',
@@ -98,6 +99,7 @@ const boxClass = (
       'aria-[current=page]:text-foreground',
     '[&_svg]:size-4 [&_svg]:shrink-0',
     styles[variant][tone],
+    raised && '[--bg-hover:var(--color-surface-3)]',
     size,
   )
 
@@ -186,6 +188,8 @@ export interface ButtonProps extends Omit<
   showCurrent?: boolean
   /** Lit like a hovered button, e.g. while a control laid over it is hovered or its menu is open. */
   highlighted?: boolean
+  /** Sits on an already lit fill, such as a hovered row, so its own hover steps a shade further. */
+  raised?: boolean
   className?: string
 }
 
@@ -199,7 +203,7 @@ const ButtonRoot = ({
   focusableWhenDisabled,
   children,
   ...props
-}: Omit<ButtonProps, 'tone' | 'size' | 'showCurrent' | 'highlighted'>) => {
+}: Omit<ButtonProps, 'tone' | 'size' | 'showCurrent' | 'highlighted' | 'raised'>) => {
   const content =
     variant === 'link' ? (
       children
@@ -232,6 +236,7 @@ export const Button = ({
   size = 'md',
   showCurrent = true,
   highlighted,
+  raised,
   className,
   ...props
 }: ButtonProps) => (
@@ -239,7 +244,9 @@ export const Button = ({
     variant={variant}
     data-lit={highlighted || undefined}
     className={cn(
-      variant === 'link' ? linkClass(tone) : boxClass(variant, tone, sizes[size], showCurrent),
+      variant === 'link'
+        ? linkClass(tone)
+        : boxClass(variant, tone, sizes[size], showCurrent, raised),
       className,
     )}
     {...props}
@@ -263,6 +270,7 @@ export const IconButton = ({
   tooltip = true,
   showCurrent = true,
   highlighted,
+  raised,
   className,
   ...props
 }: IconButtonProps) => {
@@ -271,7 +279,7 @@ export const IconButton = ({
       aria-label={label}
       data-lit={highlighted || undefined}
       variant={variant}
-      className={cn(boxClass(variant, tone, iconSizes[size], showCurrent), className)}
+      className={cn(boxClass(variant, tone, iconSizes[size], showCurrent, raised), className)}
       {...props}
     />
   )

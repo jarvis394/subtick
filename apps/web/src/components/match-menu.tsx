@@ -137,7 +137,8 @@ export const MatchMenu = ({
           size="xs"
           label="Match actions"
           tooltip={false}
-          className={cn('[--bg-hover:var(--color-surface-3)]', triggerClassName)}
+          raised
+          className={triggerClassName}
         >
           <Ellipsis />
         </IconButton>

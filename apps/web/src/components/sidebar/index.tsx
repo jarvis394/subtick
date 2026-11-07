@@ -3,7 +3,6 @@ import { Link } from '@tanstack/react-router'
 import { Clapperboard, PanelLeft, Swords } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
-import { useHandheld } from '@/hooks/use-handheld'
 import { meQuery, queueQuery } from '@/lib/queries'
 import { isSetUp } from '@/lib/setup'
 import { cn } from '@/lib/utils'
@@ -37,7 +36,6 @@ export const SidebarContent = ({
    */
   viewTransition?: boolean
 }) => {
-  const handheld = useHandheld()
   const { data: me } = useSuspenseQuery(meQuery)
   const setUp = isSetUp(me)
   // Same query as the queue button, which hides itself while the queue is empty.
@@ -83,7 +81,7 @@ export const SidebarContent = ({
 
       {/* Header and footer hold still; everything between them scrolls as one. */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-2">
-        <nav className={cn('grid', handheld ? 'px-1.5' : 'px-2')}>
+        <nav className="grid px-1.5 desktop:px-2">
           <NavItem
             to="/"
             icon={<Clapperboard />}

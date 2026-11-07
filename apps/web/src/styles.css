@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Phones and tablets, as useHandheld reads them, and everything else. */
+@custom-variant handheld (@media (width < 64rem), (pointer: coarse));
+@custom-variant desktop (@media (width >= 64rem) and (not (pointer: coarse)));
+
 /*
  * subtick design tokens. Neutral greys, a blue accent for interactive UI, CS2 orange as the brand
  * color (the wordmark and the game's own moments: aces, MVPs, highlights), team colors for CT/T.

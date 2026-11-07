@@ -2,11 +2,12 @@ import { Combobox } from '@base-ui/react/combobox'
 import { Check, ChevronDown, Clapperboard, Component, Search, User, Users } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Avatar } from '@/components/ui/avatar'
+import { popupClass } from '@/components/ui/popup-styles'
 import { Sheet } from '@/components/ui/sheet'
-import { useHandheld } from '@/hooks/use-handheld'
+import { useSheetMode } from '@/hooks/use-handheld'
 import type { PlayerSearch } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
-import { itemClass, popupClass, sheetItemClass, triggerClass } from './styles'
+import { itemClass, sheetItemClass, triggerClass } from './styles'
 import { type SummaryToken, TriggerSummary } from './trigger-summary'
 
 /** Avatars the trigger shows for a multiple pick before folding the rest into "+n". */
@@ -49,9 +50,9 @@ export const PlayerPicker = ({
   /** Layout for the trigger, e.g. joining it to its neighbour. */
   className?: string
 }) => {
-  const sheet = useHandheld()
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
+  const sheet = useSheetMode(open)
   const byId = new Map(players.map((p) => [p.steamId, p]))
   const mine = players.filter((p) => mySteamIds.includes(p.steamId))
   const meRow = mine[0] && { ...mine[0], clips: mine.reduce((n, p) => n + p.clips, 0) }
@@ -115,6 +116,14 @@ export const PlayerPicker = ({
     })
     setOpen(false)
   }
+
+  const summary = (
+    <TriggerSummary
+      tokens={tokens}
+      label={value.length === 0 ? 'All players' : only ? labelOf(only) : `${value.length} selected`}
+      me={only === ME && Boolean(meRow)}
+    />
+  )
 
   const list = (
     <>
@@ -208,17 +217,7 @@ export const PlayerPicker = ({
         className="p-0"
         trigger={
           <button type="button" className={triggerClassName}>
-            <TriggerSummary
-              tokens={tokens}
-              label={
-                value.length === 0
-                  ? 'All players'
-                  : only
-                    ? labelOf(only)
-                    : `${value.length} selected`
-              }
-              me={only === ME && Boolean(meRow)}
-            />
+            {summary}
             <ChevronDown className="size-4 text-muted" />
           </button>
         }
@@ -252,13 +251,7 @@ export const PlayerPicker = ({
       onOpenChange={setOpen}
     >
       <Combobox.Trigger className={triggerClassName}>
-        <TriggerSummary
-          tokens={tokens}
-          label={
-            value.length === 0 ? 'All players' : only ? labelOf(only) : `${value.length} selected`
-          }
-          me={only === ME && Boolean(meRow)}
-        />
+        {summary}
         <Combobox.Icon>
           <ChevronDown className="size-4 text-muted" />
         </Combobox.Icon>

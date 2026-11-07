@@ -1,7 +1,7 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Clapperboard, SearchX } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useDeferredValue, useLayoutEffect, useRef } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
@@ -118,21 +118,28 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
 
       <div className="relative">
         {/* In at once, out with the new view's fade-in, so the two crossfade. */}
-        <div
-          aria-hidden
-          className={cn(
-            'pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-250 ease-out-quart',
-            stale ? 'opacity-100 duration-0' : 'opacity-0',
+        <AnimatePresence>
+          {stale && (
+            <motion.div
+              aria-hidden
+              initial={false}
+              exit={{
+                opacity: 0,
+                transition: { duration: reduce ? 0 : 0.25, ease: EASE_OUT_QUART },
+              }}
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+            >
+              <HighlightsSkeleton />
+            </motion.div>
           )}
-        >
-          <HighlightsSkeleton />
-        </div>
+        </AnimatePresence>
         <FadeSwap swapKey={view} appear={false}>
           <div
             // Set only on mount: the view fading out would clear it as it unmounts.
             ref={(el) => {
               if (el) content.current = el
             }}
+            inert={stale}
             className={cn(stale && 'opacity-0')}
           >
             {clips.isPending ? (
