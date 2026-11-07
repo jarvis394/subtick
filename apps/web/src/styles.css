@@ -180,6 +180,8 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
+    /* Space for the scrollbar even on short pages, so content doesn't shift as pages change height. */
+    scrollbar-gutter: stable;
     /* Below md the app shell's sticky header (h-14) would cover focused and anchored content. */
     @media (width < 48rem) {
       scroll-padding-top: 3.5rem;

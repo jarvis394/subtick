@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Clapperboard, SearchX } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -68,6 +68,7 @@ const groupByDay = (clips: Clip[]) => {
 export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const search: ClipListSearch = useSearch({ strict: false })
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // The bar answers each click at once; the feed re-renders behind it, interruptibly, so a
   // run of toggles in the Filters popover doesn't wait on every card.
@@ -78,9 +79,11 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const filterKey = JSON.stringify(filters)
   const filtered = filterKey !== JSON.stringify(feedFilters({}, steamId))
   // The cards on screen answer old filters until the deferred render catches up and the new clips
-  // load: hidden at once under skeletons, so they don't flash before the new view fades in.
-  const stale =
-    clips.isPlaceholderData || JSON.stringify(feedFilters(search, steamId)) !== filterKey
+  // load: hidden at once, so they don't flash before the new view fades in. Skeletons cover them
+  // only while there's a load to wait on, not for the frame or two a cached answer takes.
+  const next = clipsQuery(feedFilters(search, steamId))
+  const stale = clips.isPlaceholderData || JSON.stringify(next.queryKey[2]) !== filterKey
+  const waiting = stale && queryClient.getQueryData(next.queryKey) === undefined
   // Only the first load is pending; it waits blank ('idle') before its skeletons. Results stay one
   // view across filters, so cards both filters share stay mounted rather than rebuilt.
   const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
@@ -119,7 +122,7 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
       <div className="relative">
         {/* In at once, out with the new view's fade-in, so the two crossfade. */}
         <AnimatePresence>
-          {stale && (
+          {waiting && (
             <motion.div
               aria-hidden
               initial={false}

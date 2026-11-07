@@ -164,24 +164,29 @@ export const DetailFilters = ({
             ))}
           </Section>
         ) : null}
-        {count > 0 && (
-          <div className="-mb-1 flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                onChange({
-                  maps: undefined,
-                  tags: undefined,
-                  moments: undefined,
-                  clutch: undefined,
-                })
-              }
-            >
-              Clear
-            </Button>
-          </div>
-        )}
+        {/* Always laid out, so the panel doesn't change height as the first filter goes on. */}
+        <div
+          inert={count === 0}
+          className={cn(
+            '-mt-3 -mb-1 flex justify-end transition-opacity duration-150 ease-out motion-reduce:transition-none',
+            count === 0 && 'opacity-0',
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              onChange({
+                maps: undefined,
+                tags: undefined,
+                moments: undefined,
+                clutch: undefined,
+              })
+            }
+          >
+            Clear
+          </Button>
+        </div>
       </div>
     </Popover>
   )
