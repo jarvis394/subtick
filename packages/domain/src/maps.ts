@@ -13,10 +13,10 @@ const MAP_NAMES: Record<string, string> = {
   cs_office: 'Office',
 }
 
-/** `de_inferno` → `Inferno`; unknown maps lose their prefix and get capitalized. */
+/** `de_inferno` → `Inferno` */
 export const mapName = (id: string | null | undefined) => {
   if (!id) return 'Unknown map'
   const bare = id.replace(/^(de|cs|ar|dz)_/, '')
 
-  return MAP_NAMES[id] ?? bare.charAt(0).toUpperCase() + bare.slice(1)
+  return MAP_NAMES[id] ?? id
 }

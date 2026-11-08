@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * A sidebar row's shape; the kit button owns its colors, hover, press and current page. Rows are
- * the kit's large size, compacted to 34px on desktop. In the rail a row is a square whose
+ * the kit's large size, compacted to 38px on desktop. In the rail a row is a square whose
  * padding centers its icon on x = 28px, so the icon never moves as the width animates.
  */
 const rowClass = (collapsed: boolean) =>
@@ -25,7 +25,7 @@ const rowClass = (collapsed: boolean) =>
     // Rows sit flush in a grid; the 1px margins keep a clickable gap between their fills.
     'my-px justify-start overflow-hidden font-normal',
     'transition-[width,color] duration-200 ease-out-quart motion-reduce:transition-none',
-    'desktop:h-8.5 desktop:gap-2.5 desktop:rounded-lg desktop:text-body',
+    'desktop:h-9.5 desktop:gap-2.5 desktop:rounded-lg desktop:text-body',
     collapsed ? 'w-11 desktop:w-10' : 'w-full',
   )
 
@@ -170,7 +170,7 @@ export const RecentRow = ({
         }
         className={cn(
           rowClass(collapsed),
-          'px-2.5 desktop:h-9.5 desktop:px-2',
+          'px-2.5 desktop:px-2',
           '[&_svg]:size-4.5',
           !collapsed && 'pointer-coarse:pr-10',
         )}
