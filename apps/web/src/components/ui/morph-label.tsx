@@ -16,7 +16,6 @@ export const MorphLabel = ({
   align?: 'center' | 'start'
 }) => {
   const box = useRef<HTMLSpanElement>(null)
-  const mounted = useRef(false)
   const change = useRef(0)
   const reduce = useReducedMotion()
   // Each change is a new element, never an exiting one brought back: flipping A -> B -> A faster
@@ -29,12 +28,8 @@ export const MorphLabel = ({
   // change pins the box at the old width, eases it to the new one, and lets go once there.
   const measure = (incoming: HTMLSpanElement | null) => {
     const el = box.current
+    // On mount the box has no ref yet: React attaches a child's ref before its parent's.
     if (!el || !incoming) return
-    if (!mounted.current) {
-      mounted.current = true
-
-      return
-    }
     const outgoing = [...el.children].filter((child) => child !== incoming)
     // Mid-change the box is already pinned, so it eases on from where it is.
     const from = el.style.width
