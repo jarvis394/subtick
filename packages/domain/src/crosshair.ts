@@ -6,7 +6,7 @@ const DICTIONARY = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789'
 const CODE_RE = new RegExp(`^CS[${DICTIONARY}]{44}$`)
 const BYTES = 32
 
-export const CROSSHAIR_STYLES = [
+const CROSSHAIR_STYLES = [
   'Dynamic cross',
   'Dynamic circle',
   'Dynamic cross (legacy)',

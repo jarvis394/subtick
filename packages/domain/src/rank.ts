@@ -23,6 +23,15 @@ export interface PlayerRank {
   wins: number
 }
 
+/** A rank on its own, outside any one match: no movement around it. */
+export const standingRank = (mode: MatchMode, after: number): PlayerRank => ({
+  mode,
+  after,
+  before: after,
+  change: 0,
+  wins: 0,
+})
+
 /** Premier color tiers, every 5,000 rating. */
 export const PREMIER_TIERS = ['grey', 'cyan', 'blue', 'purple', 'pink', 'red', 'gold'] as const
 export type PremierTier = (typeof PREMIER_TIERS)[number]

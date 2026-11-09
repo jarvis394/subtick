@@ -1,69 +1,85 @@
+import { standingRank } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import { Pencil } from 'lucide-react'
-import { ShareActions } from '@/components/share-actions'
-import { EditableImage } from '@/components/settings/editable-image'
-import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { FadeImage } from '@/components/ui/fade-image'
 import { GeneratedBanner } from '@/components/profile/generated-banner'
-import type { Player } from '@/lib/queries'
 import { playerSlug } from '@/components/player-link'
+import { RankBadge } from '@/components/rank-badge'
+import { EditableImage } from '@/components/settings/editable-image'
+import { ShareActions } from '@/components/share-actions'
+import { Avatar } from '@/components/ui/avatar'
+import { IconButton } from '@/components/ui/button'
+import { FadeImage } from '@/components/ui/fade-image'
+import { Card } from '@/components/ui/surface'
+import { timeAgo } from '@/lib/format'
+import type { Player } from '@/lib/queries'
 
-export const ProfileBanner = ({ player }: { player: Player }) => (
-  // Edge to edge and flush with the top on phones.
-  <EditableImage
-    kind="banner"
-    enabled={player.isMe}
-    className="-mx-4 -mt-6 aspect-[3/1] max-h-64 overflow-hidden bg-linear-to-br from-surface-2 to-surface-3 md:mx-0 md:mt-0 md:rounded-2xl"
-  >
-    {player.bannerUrl ? (
-      <FadeImage src={player.bannerUrl} alt="" className="size-full object-cover" />
-    ) : (
-      <GeneratedBanner seed={player.steamId} className="size-full" />
-    )}
-  </EditableImage>
-)
+/** Premier when the player has it, otherwise the highest Competitive group. */
+const headlineRank = ({ premier, competitive }: Player['ranks']) => {
+  if (premier) return standingRank('premier', premier.current)
 
-export const ProfileIdentity = ({ player }: { player: Player }) => {
-  const steamName =
-    player.personaName && player.personaName !== player.name ? player.personaName : null
+  return competitive && standingRank('competitive', competitive.best)
+}
+
+export const ProfileHeader = ({ player }: { player: Player }) => {
+  const rank = headlineRank(player.ranks)
 
   return (
-    <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+    // Flush with the top of the page on phones.
+    <Card bleed className="-mt-6 overflow-hidden border-t-0 md:mt-0 md:border-t">
       <EditableImage
-        kind="avatar"
+        kind="banner"
         enabled={player.isMe}
-        // Positioned, so it stays over the banner while the banner image (a layer of its own
-        // until its fade-in finishes) loads, page transitions included.
-        className="relative -mt-12 flex rounded-full ring-4 ring-surface md:-mt-14"
+        className="aspect-[3/1] overflow-hidden bg-surface-2 @3xl:aspect-[4/1]"
       >
-        <Avatar
-          src={player.avatarUrl}
-          name={player.name}
-          className="size-24 text-display md:size-28"
-        />
-      </EditableImage>
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-section font-semibold tracking-tight">{player.name}</h1>
-        {steamName && (
-          <p className="truncate text-body text-muted">
-            <span className="sr-only">Steam name: </span>
-            {steamName} on Steam
-          </p>
+        {player.bannerUrl ? (
+          <FadeImage src={player.bannerUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <GeneratedBanner seed={player.steamId} className="size-full" />
         )}
-        <div className="mt-1.5 flex items-center gap-1.5">
+      </EditableImage>
+
+      <div className="flex flex-wrap items-start gap-x-5 px-4 pb-4 md:px-6 md:pb-5">
+        <EditableImage
+          kind="avatar"
+          enabled={player.isMe}
+          // Positioned, so it stays over the banner while the banner image (a layer of its own
+          // until its fade-in finishes) loads, page transitions included.
+          className="relative -mt-12 flex rounded-full ring-4 ring-surface @2xl:-mt-16"
+        >
+          <Avatar
+            src={player.avatarUrl}
+            name={player.name}
+            className="size-24 text-display @2xl:size-32"
+          />
+        </EditableImage>
+
+        <div className="order-last mt-3 min-w-0 basis-full @2xl:order-none @2xl:basis-0 @2xl:grow">
+          <h1 className="truncate text-display font-semibold tracking-tight">{player.name}</h1>
+          {(rank || player.lastMatchAt) && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-small text-muted">
+              {rank && <RankBadge rank={rank} showChange={false} />}
+              {player.lastMatchAt && <span>Last played {timeAgo(player.lastMatchAt)}</span>}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-3 ml-auto flex items-center gap-1.5 @2xl:ml-0">
+          {player.isMe && (
+            <IconButton
+              variant="quiet"
+              label="Edit profile"
+              render={<Link to="/settings" hash="profile" />}
+            >
+              <Pencil />
+            </IconButton>
+          )}
           <ShareActions
             quiet
             url={`${window.location.origin}/players/${playerSlug(player)}`}
             title={`${player.name} on subtick`}
           />
-          {player.isMe && (
-            <Button size="sm" variant="ghost" render={<Link to="/settings" hash="profile" />}>
-              <Pencil /> Edit profile
-            </Button>
-          )}
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

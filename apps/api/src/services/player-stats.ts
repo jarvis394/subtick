@@ -30,14 +30,21 @@ export interface MatchPlayerRow {
   partyId: string | null
 }
 
-export const resultOf = (
-  m: Pick<PlayedMatch, 'startingSide' | 'scoreStartedCt' | 'scoreStartedT'>,
-): MatchResult | null => {
+type Scored = Pick<PlayedMatch, 'startingSide' | 'scoreStartedCt' | 'scoreStartedT'>
+
+/** From the player's side: their team first. */
+export const scoreOf = (m: Scored) => {
   const own = m.startingSide === 'CT' ? m.scoreStartedCt : m.scoreStartedT
   const enemy = m.startingSide === 'CT' ? m.scoreStartedT : m.scoreStartedCt
-  if (own === null || enemy === null) return null
 
-  return own > enemy ? 'win' : own < enemy ? 'loss' : 'draw'
+  return own === null || enemy === null ? null : { own, enemy }
+}
+
+export const resultOf = (m: Scored): MatchResult | null => {
+  const score = scoreOf(m)
+  if (!score) return null
+
+  return score.own > score.enemy ? 'win' : score.own < score.enemy ? 'loss' : 'draw'
 }
 
 const round = (n: number, digits = 2) => Number(n.toFixed(digits))
@@ -66,14 +73,16 @@ export const mapStats = (matches: PlayedMatch[]) =>
     })
     .toSorted((a, b) => b.matches - a.matches || (b.winRate ?? 0) - (a.winRate ?? 0))
 
-/** Premier now and at its best, and the latest skill group per mode. */
+/** Premier now and at its best; per skill-group mode, the highest with its map. */
 export const ranks = (matches: PlayedMatch[]) => {
   const premier = matches.filter((m) => m.rank?.mode === 'premier' && m.rank.after > 0)
 
-  const latest = (mode: 'competitive' | 'wingman') => {
-    const m = matches.find((x) => x.rank?.mode === mode && x.rank.after > 0)
+  const groups = (mode: 'competitive' | 'wingman') => {
+    const ranked = matches.filter((x) => x.rank?.mode === mode && x.rank.after > 0)
+    if (!ranked.length) return null
+    const top = ranked.reduce((a, b) => (b.rank!.after > a.rank!.after ? b : a))
 
-    return m ? { group: m.rank!.after, map: m.map } : null
+    return { best: top.rank!.after, bestMap: top.map }
   }
 
   return {
@@ -83,10 +92,19 @@ export const ranks = (matches: PlayedMatch[]) => {
           best: Math.max(...premier.map((m) => m.rank!.after)),
         }
       : null,
-    competitive: latest('competitive'),
-    wingman: latest('wingman'),
+    competitive: groups('competitive'),
+    wingman: groups('wingman'),
   }
 }
+
+const CROSSHAIR_HISTORY = 10
+
+/** The player's distinct crosshairs, latest first. */
+export const crosshairHistory = (matches: PlayedMatch[]) =>
+  [...new Set(matches.flatMap((m) => (m.crosshair ? [m.crosshair] : [])))].slice(
+    0,
+    CROSSHAIR_HISTORY,
+  )
 
 /**
  * Who the player plays with. A teammate seen in two or more of these matches is a regular:

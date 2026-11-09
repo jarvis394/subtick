@@ -45,7 +45,7 @@ function SettingsPage() {
   const steamError = emailError ? undefined : error
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-10 @3xl:max-w-5xl">
+    <div className="mx-auto grid gap-10 md:max-w-2xl @3xl:max-w-5xl">
       <h1 className="font-serif text-display tracking-tight">Settings</h1>
 
       {/* Sections sit side by side once the content area (not the viewport: the sidebar takes

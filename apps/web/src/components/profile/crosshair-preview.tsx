@@ -46,9 +46,9 @@ export const CrosshairPreview = ({
   crosshair: Crosshair
   className?: string
 }) => {
-  // A fixed field of view (120 px at the crosshair's own resolution), so it shows at a modest,
-  // steady zoom; only one too large for it widens the view.
-  const r = Math.max(extent(crosshair) * 1.2, 60)
+  // A fixed field of view (32 px at the crosshair's own resolution), so crosshairs compare at one
+  // zoom in a small square; only one too large for it widens the view.
+  const r = Math.max(extent(crosshair) * 1.2, 16)
   const outline = crosshair.outlineMode === 2 ? 0.5 : 1
   const shapes = bars(crosshair)
 

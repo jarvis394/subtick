@@ -4,14 +4,12 @@ import { Avatar } from '@/components/ui/avatar'
 import type { Player } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { playerSlug } from '@/components/player-link'
+import { ratingTone } from './facts'
 
 const GRID =
   'grid grid-cols-[minmax(0,1fr)_3.5rem_4rem] items-center gap-x-3 px-4 md:grid-cols-[minmax(0,1fr)_5rem_6rem_6rem_6rem] md:px-5'
 
 const WIDE = 'hidden md:block'
-
-const tone = (rating: number) =>
-  rating >= 1.15 ? 'text-success' : rating < 0.85 ? 'text-danger' : undefined
 
 export const TeammatesTab = ({ player }: { player: Player }) => {
   if (!player.teammates.length)
@@ -56,10 +54,10 @@ export const TeammatesTab = ({ player }: { player: Player }) => {
           >
             {t.winRate === null ? '–' : `${t.winRate}%`}
           </span>
-          <span className={cn(WIDE, 'text-right font-medium', tone(t.theirRating))}>
+          <span className={cn(WIDE, 'text-right font-medium', ratingTone(t.theirRating))}>
             {t.theirRating.toFixed(2)}
           </span>
-          <span className={cn(WIDE, 'text-right font-medium', tone(t.ownRating))}>
+          <span className={cn(WIDE, 'text-right font-medium', ratingTone(t.ownRating))}>
             {t.ownRating.toFixed(2)}
           </span>
         </Link>

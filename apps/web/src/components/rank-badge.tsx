@@ -2,7 +2,7 @@ import { type PlayerRank, type PremierTier, premierTier, skillGroupName } from '
 import { cn } from '@/lib/utils'
 import { Tooltip } from '@/components/ui/tooltip'
 
-const TIER_COLORS: Record<PremierTier, string> = {
+export const TIER_COLORS: Record<PremierTier, string> = {
   grey: '#b5b5b5',
   cyan: '#79c3ea',
   blue: '#5a86e6',

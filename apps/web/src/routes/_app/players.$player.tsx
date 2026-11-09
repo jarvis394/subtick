@@ -7,8 +7,8 @@ import { playerSlug } from '@/components/player-link'
 import { MapsTab } from '@/components/profile/maps-tab'
 import { MatchesTab } from '@/components/profile/matches-tab'
 import { OverviewTab } from '@/components/profile/overview-tab'
-import { ProfileBanner, ProfileIdentity } from '@/components/profile/profile-header'
-import { CrosshairCard, PartyCard, RanksCard, SteamCard } from '@/components/profile/side-rail'
+import { ProfileHeader } from '@/components/profile/profile-header'
+import { ProfileRail } from '@/components/profile/side-rail'
 import { TeammatesTab } from '@/components/profile/teammates-tab'
 import { Skeleton } from '@/components/ui/surface'
 import { Tab, Tabs, TabsList, TabsPanel } from '@/components/ui/tabs'
@@ -47,13 +47,15 @@ export const Route = createFileRoute('/_app/players/$player')({
 })
 
 const ProfileSkeleton = () => (
-  <div aria-hidden>
-    <Skeleton className="-mx-4 -mt-6 aspect-[3/1] max-h-64 rounded-none md:mx-0 md:mt-0 md:rounded-2xl" />
-    <div className="mt-4 flex items-end gap-5 px-1 md:px-6">
-      <span className="-mt-12 flex rounded-full ring-4 ring-surface md:-mt-14">
-        <Skeleton className="size-24 rounded-full md:size-28" />
-      </span>
-      <Skeleton className="mb-2 h-7 w-48 rounded" />
+  <div aria-hidden className="grid grid-cols-1 gap-8 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="@container min-w-0">
+      <Skeleton className="-mx-4 -mt-6 aspect-[3/1] rounded-none md:mx-0 md:mt-0 md:rounded-t-2xl md:rounded-b-none @3xl:aspect-[4/1]" />
+      <div className="flex items-start gap-5 px-4 md:px-6">
+        <span className="relative -mt-12 flex rounded-full ring-4 ring-surface @2xl:-mt-16">
+          <Skeleton className="size-24 rounded-full @2xl:size-32" />
+        </span>
+        <Skeleton className="mt-4 h-8 w-48 rounded" />
+      </div>
     </div>
   </div>
 )
@@ -64,6 +66,13 @@ function ProfilePage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const player = useQuery(playerQuery(params.player))
   const tab = search.tab ?? 'overview'
+
+  const setTab = (next: Tab) =>
+    navigate({
+      search: (s) => ({ ...s, tab: next === 'overview' ? undefined : next }),
+      replace: true,
+      resetScroll: false,
+    })
 
   if (player.isError)
     return player.error instanceof ApiError && player.error.status === 404 ? (
@@ -76,24 +85,10 @@ function ProfilePage() {
 
   return (
     <div>
-      {/* The rail runs from the top of the page, beside the banner. */}
       <div className="grid grid-cols-1 gap-8 @5xl:grid-cols-[minmax(0,1fr)_20rem] @5xl:items-start">
-        <div className="min-w-0">
-          <ProfileBanner player={p} />
-          <div className="mt-4 px-1 md:px-6">
-            <ProfileIdentity player={p} />
-          </div>
-          <Tabs
-            value={tab}
-            onValueChange={(next) =>
-              navigate({
-                search: (s) => ({ ...s, tab: next === 'overview' ? undefined : (next as Tab) }),
-                replace: true,
-                resetScroll: false,
-              })
-            }
-            className="mt-8 min-w-0"
-          >
+        <div className="@container min-w-0">
+          <ProfileHeader player={p} />
+          <Tabs value={tab} onValueChange={(next) => setTab(next as Tab)} className="mt-6 min-w-0">
             <TabsList variant="segmented" aria-label="Profile" className="mb-6">
               {TABS.map((t) => (
                 <Tab key={t.id} value={t.id}>
@@ -116,12 +111,7 @@ function ProfilePage() {
           </Tabs>
         </div>
 
-        <aside className="grid min-w-0 grid-cols-1 gap-4 *:min-w-0">
-          <RanksCard ranks={p.ranks} />
-          <CrosshairCard crosshair={p.crosshair} />
-          <PartyCard party={p.party} />
-          <SteamCard player={p} />
-        </aside>
+        <ProfileRail player={p} />
       </div>
 
       <ClipViewerDialog

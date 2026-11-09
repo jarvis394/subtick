@@ -3,15 +3,19 @@ import { cn } from '@/lib/utils'
 
 export const Card = ({
   bleed,
+  recessed,
   className,
   ...props
 }: ComponentProps<'div'> & {
   /** Edge to edge on phones (cancels the page's px-4, top and bottom borders only), a card from md up. */
   bleed?: boolean
+  /** Sits below the page rather than on it, for a card framing brighter content. */
+  recessed?: boolean
 }) => (
   <div
     className={cn(
-      'rounded-2xl border bg-surface',
+      'rounded-2xl border',
+      recessed ? 'bg-background' : 'bg-surface',
       bleed && '-mx-4 rounded-none border-x-0 md:mx-0 md:rounded-2xl md:border-x',
       className,
     )}

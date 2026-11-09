@@ -5,7 +5,15 @@ import { z } from 'zod'
 import type { Context } from '../context'
 import { notOneKill } from '../services/highlights'
 import { imageUrl, subtickIdentities } from '../services/profile-images'
-import { type PlayedMatch, mapStats, ranks, resultOf, teammates } from '../services/player-stats'
+import {
+  type PlayedMatch,
+  crosshairHistory,
+  mapStats,
+  ranks,
+  resultOf,
+  scoreOf,
+  teammates,
+} from '../services/player-stats'
 import { getProfiles, resolvePlayer } from '../services/profiles'
 import { authGuard } from './guard'
 
@@ -53,8 +61,12 @@ export const playerRoutes = (ctx: Context) => {
         const steamId = await resolvePlayer(ctx, params.steamId)
         if (!steamId) return status(404, { error: 'not_found' as const })
 
-        const [rows, identities, [link]] = await Promise.all([
+        const [rows, [played], identities, [link]] = await Promise.all([
           history(steamId),
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(matchPlayer)
+            .where(eq(matchPlayer.steamId, steamId)),
           subtickIdentities(ctx, [steamId]),
           db
             .select({ personaName: steamLink.personaName, avatarUrl: steamLink.avatarUrl })
@@ -102,7 +114,6 @@ export const playerRoutes = (ctx: Context) => {
             ),
         ])
         const steam = profiles.get(steamId)
-        const withCrosshair = rows.find((r) => r.crosshair)
 
         return {
           steamId,
@@ -121,12 +132,16 @@ export const playerRoutes = (ctx: Context) => {
           memberSince: identity?.memberSince ?? null,
           lastMatchAt: rows[0]?.playedAt ?? null,
           clipCount: clips?.count ?? 0,
+          /** Every match on record, past the window `history` is capped to. */
+          total: played?.count ?? 0,
           /** Newest first; the profile summarizes any window of it against the same lobbies. */
           history: matches.map((m) => ({
             matchId: m.matchId,
             map: m.map,
             playedAt: m.playedAt,
             result: resultOf(m),
+            score: scoreOf(m),
+            rank: m.rank,
             stats: m.stats,
             lobby: lobbyTotals((lobbies.get(m.matchId) ?? []).map((o) => o.stats)),
           })),
@@ -144,12 +159,7 @@ export const playerRoutes = (ctx: Context) => {
               vanity: profile?.vanity ?? null,
             }
           }),
-          crosshair: withCrosshair && {
-            code: withCrosshair.crosshair!,
-            matchId: withCrosshair.matchId,
-            map: withCrosshair.map,
-            playedAt: withCrosshair.playedAt,
-          },
+          crosshairs: crosshairHistory(matches),
         }
       },
       { auth: true, params: PlayerParams },

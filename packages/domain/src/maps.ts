@@ -16,7 +16,6 @@ const MAP_NAMES: Record<string, string> = {
 /** `de_inferno` → `Inferno` */
 export const mapName = (id: string | null | undefined) => {
   if (!id) return 'Unknown map'
-  const bare = id.replace(/^(de|cs|ar|dz)_/, '')
 
   return MAP_NAMES[id] ?? id
 }
