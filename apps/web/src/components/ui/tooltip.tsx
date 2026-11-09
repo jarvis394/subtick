@@ -41,7 +41,7 @@ export const Tooltip = ({
     </BaseTooltip.Root>
   )
 
-const CURSOR_GAP = 12
+const CURSOR_GAP = 24
 
 /**
  * A hover label that follows the cursor across all of `trigger` once `armed`, positioned above
