@@ -374,14 +374,10 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
   const [hovered, setHovered] = useState<Played | null>(null)
   const pointer = useRef<{ x: number; y: number } | null>(null)
   const [armed, setArmed] = useState(false)
-  const [figure, setFigure] = useState<HTMLElement | null>(null)
   const [columns, setColumns] = useState<HTMLElement | null>(null)
   const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const max = Math.max(2, ...sessions.flat().map((m) => m.stats.rating))
   const chronological = sessions.toReversed()
-  // The figure sets the sides, since the columns run on past it while scrolled; the columns set
-  // the top and bottom.
-  const boundary = [figure, columns].filter((el) => el !== null)
 
   const scheduleOpen = () => {
     clearTimeout(openTimer.current)
@@ -479,7 +475,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
   // The scroller bleeds 1rem into the page gutter, so columns scroll out past the content edge
   // instead of being cut at it, with a Base UI scrollbar in the padding below.
   return (
-    <figure ref={setFigure}>
+    <figure>
       <ScrollArea.Root
         className={cn(
           'relative -mx-4 overflow-x-clip pb-2 data-has-overflow-x:cursor-grab',
@@ -511,7 +507,6 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 <CursorTooltip
                   content={active && <MatchTip m={active} />}
                   armed={armed && !!active}
-                  boundary={boundary}
                   className="w-56 p-3 max-md:hidden"
                   trigger={
                     <ol

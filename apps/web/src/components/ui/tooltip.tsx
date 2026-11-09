@@ -1,5 +1,5 @@
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
-import { type ReactElement, type ReactNode, useRef, useState } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 const POPUP = cn(
@@ -24,7 +24,7 @@ export const Tooltip = ({
 }: {
   content: ReactNode
   trigger: ReactElement<Record<string, unknown>>
-  side?: 'top' | 'bottom' | 'left' | 'right'
+  side?: 'top' | 'right' | 'bottom' | 'left'
   align?: 'start' | 'center' | 'end'
   className?: string
 }) =>
@@ -41,86 +41,43 @@ export const Tooltip = ({
     </BaseTooltip.Root>
   )
 
-const CURSOR_GAP = 16
-const FLIP_BACK_SLACK = 24
-// Unmeasured until it first opens; the popup's max width errs towards having room.
-const UNMEASURED_WIDTH = 288
+const CURSOR_GAP = 12
 
 /**
- * A hover label that follows the cursor across all of `trigger` once `armed`, until the cursor
- * leaves it or `armed` drops; the caller decides when, delay included. It stays inside `boundary`:
- * out of room on the right it glides to the cursor's left, so it never covers what the cursor
- * points at.
+ * A hover label that follows the cursor across all of `trigger` once `armed`, positioned above
+ * the cursor until the cursor leaves it or `armed` drops; the caller decides when, delay included.
  */
 export const CursorTooltip = ({
   content,
   trigger,
   armed,
-  boundary,
   className,
 }: {
   content: ReactNode
   trigger: ReactElement<Record<string, unknown>>
   armed: boolean
-  boundary: Element[]
   className?: string
-}) => {
-  const [flipped, setFlipped] = useState(false)
-  const popup = useRef<HTMLDivElement>(null)
-
-  const placeFor = (clientX: number) => {
-    const width = popup.current?.offsetWidth ?? UNMEASURED_WIDTH
-    const right = Math.min(
-      window.innerWidth,
-      ...boundary.map((el) => el.getBoundingClientRect().right),
-    )
-    const room = right - clientX - CURSOR_GAP - width
-
-    setFlipped((was) => room < (was ? FLIP_BACK_SLACK : 0))
-  }
-
-  return (
-    <BaseTooltip.Root
-      open={armed}
-      onOpenChange={(nextOpen, eventDetails) => {
-        if (!nextOpen && armed) {
-          eventDetails.cancel()
-        }
-      }}
-      trackCursorAxis="both"
-      disableHoverablePopup
-    >
-      <BaseTooltip.Trigger
-        render={trigger}
-        delay={0}
-        closeOnClick={false}
-        onPointerMove={(e) => placeFor(e.clientX)}
-      />
-      <BaseTooltip.Portal>
-        {/* The positioner tracks the cursor; the popup's own translate does the flip, because
-            percent of its own width can animate where the positioner's coordinates can't. */}
-        <BaseTooltip.Positioner
-          side="right"
-          sideOffset={CURSOR_GAP}
-          positionMethod="fixed"
-          collisionBoundary={boundary}
-          collisionPadding={0}
-          collisionAvoidance={{ side: 'none', align: 'shift' }}
-          className="z-50"
-        >
-          <BaseTooltip.Popup
-            ref={popup}
-            style={{ translate: flipped ? `calc(-100% - ${CURSOR_GAP * 2}px)` : undefined }}
-            className={cn(
-              POPUP,
-              'transition-[scale,opacity,translate] motion-reduce:transition-[opacity]',
-              className,
-            )}
-          >
-            {content}
-          </BaseTooltip.Popup>
-        </BaseTooltip.Positioner>
-      </BaseTooltip.Portal>
-    </BaseTooltip.Root>
-  )
-}
+}) => (
+  <BaseTooltip.Root
+    open={armed}
+    onOpenChange={(nextOpen, eventDetails) => {
+      if (!nextOpen && armed) {
+        eventDetails.cancel()
+      }
+    }}
+    trackCursorAxis="both"
+    disableHoverablePopup
+  >
+    <BaseTooltip.Trigger render={trigger} delay={0} closeOnClick={false} />
+    <BaseTooltip.Portal>
+      <BaseTooltip.Positioner
+        side="top"
+        sideOffset={CURSOR_GAP}
+        positionMethod="fixed"
+        className="z-50"
+      >
+        <BaseTooltip.Popup className={cn(POPUP, className)}>{content}</BaseTooltip.Popup>
+      </BaseTooltip.Positioner>
+    </BaseTooltip.Portal>
+  </BaseTooltip.Root>
+)
