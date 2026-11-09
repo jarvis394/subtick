@@ -221,7 +221,17 @@ const SessionColumns = ({
 )
 
 /** Half a column wide, joining the ratings either side of a break between sessions. */
-const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: number }) => {
+const SessionConnector = ({
+  from,
+  to,
+  max,
+  popup,
+}: {
+  from: Played
+  to: Played
+  max: number
+  popup: PopupControl
+}) => {
   const r = 4
 
   const y = (rating: number) => Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
@@ -242,20 +252,33 @@ const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: nu
 
   return (
     <li aria-hidden style={connectorTrack} className={PLOT_BOX}>
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="size-full overflow-visible text-border-strong"
-      >
-        <path
-          d={outline}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+      <div className="relative h-full">
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="size-full overflow-visible text-border-strong"
+        >
+          <path
+            d={outline}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        {/* Each half hands its hover to the match it faces, lighting up that column. */}
+        <div className="absolute inset-0 flex">
+          {[from, to].map((m) => (
+            <div
+              key={m.matchId}
+              className="h-full w-1/2"
+              data-match-id={m.matchId}
+              onPointerEnter={(e) => popup.onColumn(m, e)}
+            />
+          ))}
+        </div>
+      </div>
     </li>
   )
 }
@@ -452,7 +475,12 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                               popup={popup}
                             />
                             {next && (
-                              <SessionConnector from={session[0]!} to={next.at(-1)!} max={max} />
+                              <SessionConnector
+                                from={session[0]!}
+                                to={next.at(-1)!}
+                                max={max}
+                                popup={popup}
+                              />
                             )}
                           </Fragment>
                         )
