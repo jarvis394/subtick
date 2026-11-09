@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react'
 import { MapIcon } from '@/components/map-icon'
+import { Button } from '@/components/ui/button'
 import { CursorTooltip } from '@/components/ui/tooltip'
 import { formatDate } from '@/lib/format'
 import { useDragScroll } from '@/hooks/use-drag-scroll'
@@ -215,10 +216,12 @@ const SessionLabel = ({ matches }: { matches: Played[] }) => {
     <li style={sessionTrack(matches.length)}>
       {/* Overlaid, each inset by the other's width plus 16px: sticky stops at its parent's
           padding, so the labels push each other instead of colliding. */}
-      <div
+      <Button
+        size="xs"
+        variant="recessed"
         className={cn(
-          // A static label in the recessed style: no hover or press, so it never reads as a control.
-          'relative -mx-1 flex h-7 w-[calc(100%+0.5rem)] items-center rounded-md bg-background text-left text-micro font-normal text-muted',
+          // The pseudo-element takes the hit area to 32px, past the 28px it draws.
+          '-mx-1 w-[calc(100%+0.5rem)] text-left text-micro font-normal after:absolute after:-inset-y-0.5 after:inset-x-0',
           matches.length > 1 ? 'px-2.5' : 'px-1.5',
         )}
       >
@@ -234,7 +237,7 @@ const SessionLabel = ({ matches }: { matches: Played[] }) => {
             </span>
           )}
         </span>
-      </div>
+      </Button>
     </li>
   )
 }
