@@ -179,7 +179,7 @@ export const SessionSplitChart = ({
         <ScrollArea.Viewport
           ref={setViewport}
           className={cn(
-            'overscroll-x-contain overscroll-y-none select-none',
+            'overscroll-x-contain select-none',
             'active:cursor-grabbing',
             dragging && 'cursor-grabbing',
           )}
