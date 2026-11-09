@@ -14,7 +14,7 @@ import { NavItem, fade } from './rows'
 /**
  * Geometry is identical expanded and collapsed: the sidebar keeps its full-width layout and the
  * rail (56px) just clips it. Every icon is centered on x = 28px, so nothing moves while the width
- * animates; labels only fade. Rows shrink to 40px squares so hover states stay tidy in the rail.
+ * animates; labels only fade. Rows shrink to squares (40px, 44px handheld) so hover states stay tidy in the rail.
  */
 export const RAIL_WIDTH = 'w-14'
 
@@ -81,7 +81,7 @@ export const SidebarContent = ({
 
       {/* Header and footer hold still; everything between them scrolls as one. */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-2">
-        <nav className="grid px-2">
+        <nav className="grid px-1.5 desktop:px-2">
           <NavItem
             to="/"
             icon={<Clapperboard />}

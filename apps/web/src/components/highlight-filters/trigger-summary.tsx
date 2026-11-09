@@ -143,7 +143,7 @@ const Mark = ({ token }: { token: SummaryToken }) => {
   return (
     // A disc in the trigger's own fill behind each mark, so overlapping ones read apart. A ring
     // would leave an anti-aliased seam between it and the image.
-    <span className="flex rounded-full bg-surface p-0.5 group-hover/trigger:bg-surface-2 group-data-popup-open/trigger:bg-surface-2">
+    <span className="flex rounded-full bg-surface p-0.5 transition-colors duration-150 ease-out pointer-fine:group-hover/trigger:bg-surface-2 pointer-coarse:group-active/trigger:bg-surface-2 pointer-coarse:group-active/trigger:duration-0 group-data-popup-open/trigger:bg-surface-2">
       {'avatar' in token ? (
         <Avatar src={token.avatar.src} name={token.avatar.name} className="size-5 text-micro" />
       ) : (

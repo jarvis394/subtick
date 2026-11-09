@@ -119,7 +119,9 @@ function CreateHighlightsPage() {
             playedWith={scope.hasParty}
             countLabel="Moments"
             search={search}
-            onChange={(patch) => navigate({ search: (s) => ({ ...s, ...patch }) })}
+            onChange={(patch) =>
+              navigate({ search: (s) => ({ ...s, ...patch }), resetScroll: false })
+            }
           />
         )}
       </div>

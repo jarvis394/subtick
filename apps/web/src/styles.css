@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Phones and tablets, as useHandheld reads them, and everything else. */
+@custom-variant handheld (@media (width < 64rem), (pointer: coarse));
+@custom-variant desktop (@media (width >= 64rem) and (not (pointer: coarse)));
+
 /*
  * subtick design tokens. Neutral greys, a blue accent for interactive UI, CS2 orange as the brand
  * color (the wordmark and the game's own moments: aces, MVPs, highlights), team colors for CT/T.
@@ -157,6 +161,16 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   /* Edge drawers: iOS-style settle. */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Starts off the button and holds there through the delay, so quick loads never show it. */
+  --animate-shimmer: shimmer 1.1s ease-in-out 150ms infinite both;
+  @keyframes shimmer {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 100% 0;
+    }
+  }
 }
 
 @layer base {
@@ -166,6 +180,8 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
+    /* Space for the scrollbar even on short pages, so content doesn't shift as pages change height. */
+    scrollbar-gutter: stable;
     /* Below md the app shell's sticky header (h-14) would cover focused and anchored content. */
     @media (width < 48rem) {
       scroll-padding-top: 3.5rem;

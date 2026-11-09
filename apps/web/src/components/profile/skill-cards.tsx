@@ -1,8 +1,8 @@
 import { Popover } from '@base-ui/react/popover'
 import { type SkillArea, type SkillMetric, type SkillStanding, skillSummary } from '@subtick/domain'
 import { ArrowDown, ArrowUp, ChevronUp, Minus } from 'lucide-react'
-import { menuPopupClass } from '@/components/match-menu'
 import { Button } from '@/components/ui/button'
+import { popupClass } from '@/components/ui/popup-styles'
 import { Card } from '@/components/ui/surface'
 import { cn } from '@/lib/utils'
 import { CardHeader } from './card-header'
@@ -135,7 +135,7 @@ const AreaDetails = ({ area, size }: { area: Area; size: number }) => {
       <Popover.Portal>
         <Popover.Positioner side="top" sideOffset={8} collisionPadding={16} className="z-50">
           <Popover.Popup
-            className={cn(menuPopupClass, 'w-80 max-w-[calc(100vw-2rem)] p-4 pt-3 text-small')}
+            className={cn(popupClass, 'w-80 max-w-[calc(100vw-2rem)] p-4 pt-3 text-small')}
           >
             <Popover.Title className="text-body font-medium">{title}</Popover.Title>
             <Popover.Description className="mt-0.5 text-caption text-muted">

@@ -1,7 +1,7 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Clapperboard, SearchX } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useDeferredValue, useLayoutEffect, useRef } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
@@ -15,8 +15,9 @@ import { dayLabel } from '@/lib/format'
 import { type ClipListSearch, NO_FILTERS, clipMask, feedFilters } from '@/lib/highlights'
 import { EASE_OUT_QUART } from '@/lib/motion'
 import { type Clip, clipsQuery } from '@/lib/queries'
+import { cn } from '@/lib/utils'
 
-/** How long a load runs before skeletons show: most loads finish sooner and never show them. */
+/** How long the first load runs before skeletons show: most finish sooner and never show them. */
 const SKELETON_DELAY_MS = 400
 
 /** Stands in for a day of clips: laid out like the heading and cards it's replaced by. */
@@ -67,19 +68,25 @@ const groupByDay = (clips: Clip[]) => {
 export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
   const search: ClipListSearch = useSearch({ strict: false })
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // The bar answers each click at once; the feed re-renders behind it, interruptibly, so a
   // run of toggles in the Filters popover doesn't wait on every card.
   const feedSearch = useDeferredValue(search)
   const filters = feedFilters(feedSearch, steamId)
-  const clips = useInfiniteQuery(clipsQuery(filters))
+  const clips = useInfiniteQuery({ ...clipsQuery(filters), placeholderData: keepPreviousData })
   const items = clips.data?.pages.flatMap((p) => p.items) ?? []
-  const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
   const filterKey = JSON.stringify(filters)
   const filtered = filterKey !== JSON.stringify(feedFilters({}, steamId))
-  // Crossfades only between kinds of view. Results stay one view across filters, so cards both
-  // filters share stay mounted rather than rebuilt. Before the skeleton delay a load shows
-  // nothing ('idle'): the old view fades out and the page waits.
+  // The cards on screen answer old filters until the deferred render catches up and the new clips
+  // load: hidden at once, so they don't flash before the new view fades in. Skeletons cover them
+  // only while there's a load to wait on, not for the frame or two a cached answer takes.
+  const next = clipsQuery(feedFilters(search, steamId))
+  const stale = clips.isPlaceholderData || JSON.stringify(next.queryKey[2]) !== filterKey
+  const waiting = stale && queryClient.getQueryData(next.queryKey) === undefined
+  // Only the first load is pending; it waits blank ('idle') before its skeletons. Results stay one
+  // view across filters, so cards both filters share stay mounted rather than rebuilt.
+  const showSkeleton = useDelayed(clips.isPending, SKELETON_DELAY_MS)
   const view = clips.isPending
     ? showSkeleton
       ? 'loading'
@@ -88,94 +95,120 @@ export const HighlightsFeed = ({ steamId }: { steamId?: string }) => {
       ? 'empty'
       : 'results'
 
-  const results = useRef<HTMLDivElement>(null)
-  const shownKey = useRef<string>(undefined)
+  const content = useRef<HTMLElement>(null)
+  const settled = useRef({ stale, view })
   const reduce = useReducedMotion()
 
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- replays a DOM fade on the results when the filter changes
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- replays a DOM fade when new clips replace stale ones
   useLayoutEffect(() => {
-    // Results arriving after a load already fade in with the view, so only a swap between two
-    // shown filters replays it.
-    const prev = clips.isPending ? undefined : shownKey.current
-    shownKey.current = clips.isPending ? undefined : filterKey
-    if (!prev || prev === filterKey || reduce) return
-    // Cards stay mounted across filters; the whole block fades in once, on the compositor.
-    results.current?.animate(
+    const prev = settled.current
+    settled.current = { stale, view }
+    // A new view fades in with the swap (the stale one leaves hidden); one that stays fades here.
+    if (!prev.stale || stale || prev.view !== view || reduce) return
+    content.current?.animate(
       { opacity: [0, 1] },
       { duration: 250, easing: `cubic-bezier(${EASE_OUT_QUART.join(',')})` },
     )
-  }, [filterKey, clips.isPending, reduce])
+  }, [stale, view, reduce])
 
   const update = (patch: Partial<ClipListSearch>) =>
-    navigate({ to: '.', search: (s) => ({ ...s, ...patch }) })
+    // The filter sheets lock scrolling; a scroll reset under them jumps the page as they close.
+    navigate({ to: '.', search: (s) => ({ ...s, ...patch }), resetScroll: false })
 
   return (
     <>
       <HighlightFilters search={search} steamId={steamId} onChange={update} />
 
-      <FadeSwap swapKey={view} appear={false}>
-        {clips.isPending ? (
-          showSkeleton && <HighlightsSkeleton />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={filtered ? <SearchX /> : <Clapperboard />}
-            title={filtered ? 'Nothing matches these filters' : 'No clips yet'}
-            description={
-              filtered
-                ? 'Try removing a filter or two.'
-                : 'The best moments of every match are clipped automatically. They show up here once recorded.'
-            }
-            action={
-              filtered && (
-                <Button size="sm" onClick={() => update(NO_FILTERS)}>
-                  Clear filters
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <div ref={results} className="grid gap-12">
-            {groupByDay(items).map((group) => (
-              // Days off screen skip layout and paint, so long feeds scroll and refilter cheaply. The
-              // containment clips paint at the box, so it's padded out to keep the focus rings.
-              <section
-                key={group.label}
-                className="-mx-1 px-1 [contain-intrinsic-size:auto_none_auto_40rem] [content-visibility:auto]"
-              >
-                <h2 className="mb-4 text-body font-medium">
-                  {group.label}
-                  <span className="text-muted">
-                    {' · '}
-                    {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
-                  </span>
-                </h2>
-                <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-                  {group.clips.map((clip) =>
-                    clip.clip ? (
-                      <HighlightCard
-                        key={clip.id}
-                        highlight={{ ...clip, clip: clip.clip }}
-                        player={clip.player}
-                      />
-                    ) : null,
-                  )}
-                </div>
-              </section>
-            ))}
-            {clips.hasNextPage && (
-              <div className="flex justify-center">
-                <Button
-                  variant="secondary"
-                  onClick={() => clips.fetchNextPage()}
-                  loading={clips.isFetchingNextPage}
-                >
-                  Show more
-                </Button>
+      <div className="relative">
+        {/* In at once, out with the new view's fade-in, so the two crossfade. */}
+        <AnimatePresence>
+          {waiting && (
+            <motion.div
+              aria-hidden
+              initial={false}
+              exit={{
+                opacity: 0,
+                transition: { duration: reduce ? 0 : 0.25, ease: EASE_OUT_QUART },
+              }}
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+            >
+              <HighlightsSkeleton />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <FadeSwap swapKey={view} appear={false}>
+          <div
+            // Set only on mount: the view fading out would clear it as it unmounts.
+            ref={(el) => {
+              if (el) content.current = el
+            }}
+            inert={stale}
+            className={cn(stale && 'opacity-0')}
+          >
+            {clips.isPending ? (
+              showSkeleton && <HighlightsSkeleton />
+            ) : items.length === 0 ? (
+              <EmptyState
+                icon={filtered ? <SearchX /> : <Clapperboard />}
+                title={filtered ? 'Nothing matches these filters' : 'No clips yet'}
+                description={
+                  filtered
+                    ? 'Try removing a filter or two.'
+                    : 'The best moments of every match are clipped automatically. They show up here once recorded.'
+                }
+                action={
+                  filtered && (
+                    <Button size="sm" onClick={() => update(NO_FILTERS)}>
+                      Clear filters
+                    </Button>
+                  )
+                }
+              />
+            ) : (
+              <div className="grid gap-12">
+                {groupByDay(items).map((group) => (
+                  // Days off screen skip layout and paint, so long feeds scroll and refilter cheaply. The
+                  // containment clips paint at the box, so it's padded out to keep the focus rings.
+                  <section
+                    key={group.label}
+                    className="-mx-1 px-1 [contain-intrinsic-size:auto_none_auto_40rem] [content-visibility:auto]"
+                  >
+                    <h2 className="mb-4 text-body font-medium">
+                      {group.label}
+                      <span className="text-muted">
+                        {' · '}
+                        {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
+                      </span>
+                    </h2>
+                    <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+                      {group.clips.map((clip) =>
+                        clip.clip ? (
+                          <HighlightCard
+                            key={clip.id}
+                            highlight={{ ...clip, clip: clip.clip }}
+                            player={clip.player}
+                          />
+                        ) : null,
+                      )}
+                    </div>
+                  </section>
+                ))}
+                {clips.hasNextPage && (
+                  <div className="flex justify-center">
+                    <Button
+                      variant="secondary"
+                      onClick={() => clips.fetchNextPage()}
+                      loading={clips.isFetchingNextPage}
+                    >
+                      Show more
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </FadeSwap>
+        </FadeSwap>
+      </div>
 
       <ClipViewerDialog
         clipId={search.clip}

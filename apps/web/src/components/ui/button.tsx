@@ -46,7 +46,7 @@ const styles = {
       'text-muted [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
       // Muted at rest; full color while hovered or selected.
       // A parent `group/button` lights it too, for a whole row that links through it.
-      'hover:text-foreground group-hover/button:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
+      'hover:text-foreground group-hover/button:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground data-lit:text-foreground',
     ),
     danger: 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
     brand: 'text-brand-text [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',
@@ -90,6 +90,7 @@ const boxClass = (
   tone: ButtonTone,
   size: string,
   showCurrent: boolean,
+  raised = false,
 ) =>
   cn(
     'group/button relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center font-medium whitespace-nowrap select-none',
@@ -99,7 +100,7 @@ const boxClass = (
     // Loading is disabled too, but keeps full color: the spinner is the feedback.
     'disabled:cursor-not-allowed data-disabled:cursor-not-allowed disabled:not-aria-busy:opacity-50 data-disabled:not-aria-busy:opacity-50 aria-busy:cursor-wait',
     // Selected (a pressed toggle, an open menu, the current page): lit like a hovered button.
-    'aria-pressed:[--bg:var(--bg-hover)] data-popup-open:[--bg:var(--bg-hover)]',
+    'aria-pressed:[--bg:var(--bg-hover)] data-popup-open:[--bg:var(--bg-hover)] data-lit:[--bg:var(--bg-hover)]',
     showCurrent && 'aria-[current=page]:[--bg:var(--bg-hover)]',
     showCurrent &&
       variant === 'ghost' &&
@@ -107,6 +108,7 @@ const boxClass = (
       'aria-[current=page]:text-foreground',
     '[&_svg]:size-4 [&_svg]:shrink-0',
     styles[variant][tone],
+    raised && '[--bg-hover:var(--color-surface-3)]',
     size,
   )
 
@@ -130,11 +132,20 @@ const ButtonLayer = () => (
       // Press moves (strong ease-out); hover only recolors (plain ease).
       '[transition:inset_160ms_var(--ease-out-quart),background-color_150ms_ease]',
       'group-hover/button:bg-(--bg-hover) group-active/button:inset-px',
+      // Touch has no hover: lit the moment a finger lands, fading out on release.
+      'pointer-coarse:group-active/button:bg-(--bg-hover) pointer-coarse:group-active/button:[transition:inset_160ms_var(--ease-out-quart),background-color_0ms]',
       'group-disabled/button:inset-0 group-data-disabled/button:inset-0',
       // Reduced motion: no press movement, keep the color fade.
       'motion-reduce:group-active/button:inset-0',
     )}
   />
+)
+
+/** A light band sweeping across the background while what the button leads to loads. */
+const Shimmer = () => (
+  <span aria-hidden className="absolute inset-0 -z-10 overflow-hidden rounded-[inherit]">
+    <span className="absolute inset-0 animate-shimmer bg-linear-to-r from-transparent via-foreground/10 to-transparent motion-reduce:animate-none motion-reduce:opacity-50" />
+  </span>
 )
 
 /**
@@ -178,10 +189,16 @@ export interface ButtonProps extends Omit<
   size?: ButtonSize
   /** Shows a spinner over the label and blocks clicks, without dimming or changing the width. */
   loading?: boolean
+  /** Shimmers while what the button leads to loads (a page, say); it stays clickable. */
+  pending?: boolean
   /** Renders as this element instead, e.g. `render={<Link to="/setup" />}`. */
   render?: ReactElement
   /** `false` keeps a link to the current page looking like its neighbours instead of selected. */
   showCurrent?: boolean
+  /** Lit like a hovered button, e.g. while a control laid over it is hovered or its menu is open. */
+  highlighted?: boolean
+  /** Sits on an already lit fill, such as a hovered row, so its own hover steps a shade further. */
+  raised?: boolean
   className?: string
 }
 
@@ -189,18 +206,20 @@ const ButtonRoot = ({
   className,
   variant,
   loading,
+  pending,
   render,
   disabled,
   focusableWhenDisabled,
   children,
   ...props
-}: Omit<ButtonProps, 'tone' | 'size' | 'showCurrent'>) => {
+}: Omit<ButtonProps, 'tone' | 'size' | 'showCurrent' | 'highlighted' | 'raised'>) => {
   const content =
     variant === 'link' ? (
       children
     ) : (
       <>
         <ButtonLayer />
+        {pending && <Shimmer />}
         {loading === undefined ? children : <Busy loading={loading}>{children}</Busy>}
       </>
     )
@@ -225,13 +244,18 @@ export const Button = ({
   tone = 'neutral',
   size = 'md',
   showCurrent = true,
+  highlighted,
+  raised,
   className,
   ...props
 }: ButtonProps) => (
   <ButtonRoot
     variant={variant}
+    data-lit={highlighted || undefined}
     className={cn(
-      variant === 'link' ? linkClass(tone) : boxClass(variant, tone, sizes[size], showCurrent),
+      variant === 'link'
+        ? linkClass(tone)
+        : boxClass(variant, tone, sizes[size], showCurrent, raised),
       className,
     )}
     {...props}
@@ -254,14 +278,17 @@ export const IconButton = ({
   size = 'md',
   tooltip = true,
   showCurrent = true,
+  highlighted,
+  raised,
   className,
   ...props
 }: IconButtonProps) => {
   const button = (
     <ButtonRoot
       aria-label={label}
+      data-lit={highlighted || undefined}
       variant={variant}
-      className={cn(boxClass(variant, tone, iconSizes[size], showCurrent), className)}
+      className={cn(boxClass(variant, tone, iconSizes[size], showCurrent, raised), className)}
       {...props}
     />
   )
