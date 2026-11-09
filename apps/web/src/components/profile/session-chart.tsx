@@ -357,7 +357,10 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
       >
         <ScrollArea.Viewport
           ref={pinToEnd}
-          className={cn('overscroll-x-contain select-none', dragging && 'cursor-grabbing')}
+          className={cn(
+            'overscroll-x-contain overscroll-y-none select-none',
+            dragging && 'cursor-grabbing',
+          )}
           {...handlers}
         >
           <ScrollArea.Content className="px-4 pt-1 pb-1">
