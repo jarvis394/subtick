@@ -172,7 +172,9 @@ const MatchColumn = ({ m, max, hovered }: { m: Played; max: number; hovered: boo
 const pinToEnd = (viewport: HTMLDivElement | null) => {
   if (!viewport) return
   const stop = observeResize([viewport, ...viewport.children], () => {
-    viewport.scrollLeft = viewport.scrollWidth
+    if (viewport.scrollWidth > viewport.clientWidth) {
+      viewport.scrollLeft = viewport.scrollWidth
+    }
   })
 
   for (const input of ['pointerdown', 'wheel', 'touchstart', 'keydown']) {
@@ -192,19 +194,17 @@ export const WinLoss = ({ wins, losses }: { wins: number; losses: number }) => (
 )
 
 const sessionFade = (reduce: boolean | null) => ({
-  layout: true,
   initial: reduce ? false : { opacity: 0, scale: 0.98 },
   animate: { opacity: 1, scale: 1 },
   exit: reduce ? undefined : { opacity: 0, scale: 0.98 },
-  transition: { duration: 0.35, ease: EASE_OUT_QUART },
+  transition: { duration: 0.25, ease: EASE_OUT_QUART },
 })
 
 const connectorFade = (reduce: boolean | null) => ({
-  layout: true,
   initial: reduce ? false : { opacity: 0 },
   animate: { opacity: 1 },
   exit: reduce ? undefined : { opacity: 0 },
-  transition: { duration: 0.25, ease: EASE_OUT_QUART },
+  transition: { duration: 0.2, ease: EASE_OUT_QUART },
 })
 
 const SessionColumns = ({
@@ -220,14 +220,16 @@ const SessionColumns = ({
   popup: PopupControl
   reduce: boolean | null
 }) => (
-  <motion.li style={sessionTrack(matches.length)} {...sessionFade(reduce)}>
+  <motion.li
+    style={sessionTrack(matches.length)}
+    className="transition-[flex,min-width] duration-300 ease-out"
+    {...sessionFade(reduce)}
+  >
     <ol className="flex w-full gap-1">
       {matches.toReversed().map((m) => (
-        <motion.li
+        <li
           key={m.matchId}
-          layout
-          transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
-          className="group flex flex-1 shrink-0"
+          className="group flex flex-1 shrink-0 transition-[flex,min-width] duration-300 ease-out"
           style={{ minWidth: ITEM_WIDTH }}
           data-match-id={m.matchId}
           onPointerEnter={(e) => popup.onColumn(m, e)}
@@ -235,7 +237,7 @@ const SessionColumns = ({
           onBlur={popup.onClose}
         >
           <MatchColumn m={m} max={max} hovered={m.matchId === hoveredId} />
-        </motion.li>
+        </li>
       ))}
     </ol>
   </motion.li>
@@ -367,7 +369,11 @@ const SessionLabel = ({
   const sticks = matches.length > 2
 
   return (
-    <motion.li style={sessionTrack(matches.length)} {...sessionFade(reduce)}>
+    <motion.li
+      style={sessionTrack(matches.length)}
+      className="transition-[flex,min-width] duration-300 ease-out"
+      {...sessionFade(reduce)}
+    >
       {/* Overlaid, each inset by the other's width plus 16px: sticky stops at its parent's
           padding, so the labels push each other instead of colliding. */}
       <Button
@@ -425,12 +431,21 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
     return pinToEnd(node)
   }
 
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- Pins viewport to the end when switching session scope
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- Pins viewport to the end for multiple sessions, or resets to 0 for single session
   useEffect(() => {
     const el = viewportRef.current
 
-    if (el && sessions.length > 0) {
+    if (!el) return
+
+    if (sessions.length <= 1) {
+      el.scrollLeft = 0
+    } else {
       el.scrollLeft = el.scrollWidth
+      const raf = requestAnimationFrame(() => {
+        el.scrollLeft = el.scrollWidth
+      })
+
+      return () => cancelAnimationFrame(raf)
     }
   }, [sessions])
 
@@ -576,7 +591,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                       }}
                       onPointerLeave={leaveColumns}
                     >
-                      <AnimatePresence initial={false} mode="popLayout">
+                      <AnimatePresence initial={false}>
                         {chronological.flatMap((session, i) => {
                           const next = chronological[i + 1]
                           const sessionKey = session[0]!.matchId
@@ -625,7 +640,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 </div>
               </div>
               <ol aria-label="Sessions" className="mt-2 flex w-full gap-1">
-                <AnimatePresence initial={false} mode="popLayout">
+                <AnimatePresence initial={false}>
                   {chronological.flatMap((session, i) => {
                     const sessionKey = session[0]!.matchId
 
