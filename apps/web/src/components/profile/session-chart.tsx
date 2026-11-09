@@ -408,16 +408,23 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
           ref={pinToEnd}
           className={cn(
             'overscroll-x-contain overscroll-y-none select-none',
-            // Pressing or dragging anywhere on the chart reads as grabbing, even over its links.
-            'active:cursor-grabbing active:[&_*]:cursor-grabbing!',
-            dragging && 'cursor-grabbing [&_*]:cursor-grabbing!',
+            'active:cursor-grabbing',
+            dragging && 'cursor-grabbing',
           )}
           {...handlers}
         >
           <ScrollArea.Content className="px-4 pt-1 pb-1">
             <div className="w-max min-w-full">
               {/* Isolated so the line and ratings layer among themselves, under the edge fades. */}
-              <div ref={setColumns} className="relative isolate">
+              <div
+                ref={setColumns}
+                className={cn(
+                  'relative isolate',
+                  // The columns grab, even over their match links; the labels below stay clickable.
+                  'active:[&_*]:cursor-grabbing!',
+                  dragging && '[&_*]:cursor-grabbing!',
+                )}
+              >
                 <CursorTooltip
                   content={active && <MatchTip m={active} />}
                   armed={armed && !!active}
