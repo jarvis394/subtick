@@ -223,6 +223,62 @@ const SessionColumns = ({
 const connectorY = (rating: number, max: number) =>
   Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
 
+const connectorOutline = (
+  start: number,
+  end: number,
+  rx: number,
+  ry: number,
+  offset: number,
+) => {
+  const topSegments = () => {
+    if (start > end) {
+      const xApex = 100 - rx - offset
+      const slope = (end - start) / xApex
+      const topStartX = rx
+      const topStartY = start + rx * slope
+
+      return [
+        `M0 ${start + ry}`,
+        `Q0 ${start} ${topStartX} ${topStartY}`,
+        `L${xApex} ${end}`,
+        `L${100 - rx} ${end}`,
+        `Q100 ${end} 100 ${end + ry}`,
+      ]
+    }
+
+    if (start < end) {
+      const xApex = rx + offset
+      const slope = (end - start) / (100 - xApex)
+      const topEndX = 100 - rx
+      const topEndY = end - rx * slope
+
+      return [
+        `M0 ${start + ry}`,
+        `Q0 ${start} ${rx} ${start}`,
+        `L${xApex} ${start}`,
+        `L${topEndX} ${topEndY}`,
+        `Q100 ${end} 100 ${end + ry}`,
+      ]
+    }
+
+    return [
+      `M0 ${start + ry}`,
+      `Q0 ${start} ${rx} ${start}`,
+      `L${100 - rx} ${end}`,
+      `Q100 ${end} 100 ${end + ry}`,
+    ]
+  }
+
+  return [
+    ...topSegments(),
+    `L100 ${100 - ry}`,
+    `Q100 100 ${100 - rx} 100`,
+    `L${rx} 100`,
+    `Q0 100 0 ${100 - ry}`,
+    'Z',
+  ].join(' ')
+}
+
 /** Half a column wide, joining the ratings either side of a break between sessions. */
 const SessionConnector = ({
   from,
@@ -235,25 +291,9 @@ const SessionConnector = ({
   max: number
   popup: PopupControl
 }) => {
-  const rx = 14
-  const ry = 3
-  const offset = 4
   const start = connectorY(from.stats.rating, max)
   const end = connectorY(to.stats.rating, max)
-
-  const outline = [
-    `M0 ${start + ry}`,
-    `Q0 ${start} ${rx} ${start}`,
-    `L${rx + offset} ${start}`,
-    `L${100 - rx - offset} ${end}`,
-    `L${100 - rx} ${end}`,
-    `Q100 ${end} 100 ${end + ry}`,
-    `L100 ${100 - ry}`,
-    `Q100 100 ${100 - rx} 100`,
-    `L${rx} 100`,
-    `Q0 100 0 ${100 - ry}`,
-    'Z',
-  ].join(' ')
+  const outline = connectorOutline(start, end, 14, 3, 4)
 
   return (
     <li aria-hidden style={connectorTrack} className={cn('relative', PLOT_BOX)}>
