@@ -1,453 +1,76 @@
 import { ScrollArea } from '@base-ui/react/scroll-area'
-import { mapName, summarize } from '@subtick/domain'
-import { Link } from '@tanstack/react-router'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import {
-  type CSSProperties,
-  type FocusEvent,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { MapIcon } from '@/components/map-icon'
-import { Button } from '@/components/ui/button'
+import { AnimatePresence, motion } from 'motion/react'
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
 import { CursorTooltip } from '@/components/ui/tooltip'
-import { formatDate } from '@/lib/format'
 import { useDragScroll } from '@/hooks/use-drag-scroll'
-import { EASE_OUT_QUART } from '@/lib/motion'
-import { observeResize } from '@/lib/resizeObserve'
 import { cn } from '@/lib/utils'
-import { formatImpact, impactTone, type Played, RESULT_LABEL } from './facts'
-import { ScoreBadge } from './score-badge'
-
-/** Ratings this far from 1.00 take the full color, so an outlier never washes out the rest. */
-const RATING_SPREAD = 0.5
+import type { Played } from './facts'
+import { MatchColumn, MatchTip, PLOT_BOX, type PopupControl } from './match-column'
+import { SessionConnector } from './session-connector'
+import { connectorId } from './session-layout'
+import { SessionLabel, sessionKey, Track } from './session-track'
+import { useSessionZoom } from './use-session-zoom'
 
 const OPEN_DELAY_MS = 300
-// The columns and the 1.00 line have to agree on it, with headroom for the tallest bar's rating.
-const PLOT_BOX = 'h-32 pt-5 md:h-44'
-
-/** One match column, and the half-width connector that stands between sessions. */
-const ITEM_WIDTH = '3.5rem'
-const ITEM_GAP = '0.25rem'
-const CONNECTOR_WIDTH = '1.75rem'
-
-const connectorTrack = { flex: 'none', width: CONNECTOR_WIDTH }
-
-/** Shared by the columns row and the labels row, which must line up without sharing a parent. */
-const sessionTrack = (size: number) => ({
-  flex: `${size} ${size} 0%`,
-  minWidth: `calc(${size} * ${ITEM_WIDTH} + ${size - 1} * ${ITEM_GAP})`,
-})
-
-/** What the columns report so the chart can decide when its popup opens. */
-type PopupControl = {
-  onColumn: (m: Played, e: ReactPointerEvent) => void
-  onFocus: (m: Played, e: FocusEvent<HTMLElement>) => void
-  onClose: () => void
-}
-
-const DAY = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
-
-/** A darker left edge shades the session labels into the chart's background. */
-const SESSION_LABEL_BG =
-  'linear-gradient(to right, color-mix(in oklab, var(--color-background) 85%, black), var(--color-background))'
-
-// The raw tokens: Tailwind only emits a `--color-*` variable it finds written out in full.
-const RATING_MIDPOINT = 'color-mix(in oklab, var(--foreground) 70%, var(--muted))'
-
-const barPercent = (rating: number, max: number) => Math.max((rating / max) * 100, 3)
-
-const ratingColor = (rating: number) => {
-  const pole = rating >= 1 ? 'var(--success)' : 'var(--danger)'
-  const strength = Math.min(Math.abs(rating - 1) / RATING_SPREAD, 1) * 100
-
-  return `color-mix(in oklab, ${pole} ${strength}%, ${RATING_MIDPOINT})`
-}
-
-const describe = ({ map, score, result, stats, playedAt }: Played) =>
-  [
-    `${mapName(map)}${score ? ` ${score.own}:${score.enemy}` : ''}`,
-    result && RESULT_LABEL[result].toLowerCase(),
-    stats.impact !== undefined && `impact ${formatImpact(stats.impact)}`,
-    `rating ${stats.rating.toFixed(2)}`,
-    `${stats.kills} kills, ${stats.deaths} deaths`,
-    `${Math.round(stats.adr)} ADR`,
-    formatDate(playedAt),
-  ]
-    .filter(Boolean)
-    .join(', ')
-
-const TipRow = ({
-  label,
-  children,
-  className,
-  color,
-}: {
-  label: string
-  children: ReactNode
-  className?: string
-  color?: string
-}) => (
-  <tr>
-    <th scope="row" className="py-0.5 text-left font-normal text-muted">
-      {label}
-    </th>
-    <td className={cn('py-0.5 text-right font-medium', className)} style={{ color }}>
-      {children}
-    </td>
-  </tr>
-)
-
-const MatchTip = ({ m }: { m: Played }) => {
-  const { impact, rating, kills, deaths, adr } = m.stats
-
-  return (
-    <div className="grid gap-2">
-      <div className="flex items-center gap-2">
-        <MapIcon map={m.map} className="size-5" />
-        <span className="truncate text-body font-medium">{mapName(m.map)}</span>
-        <ScoreBadge match={m} />
-      </div>
-      {/* Every row always renders, so the popup keeps its height from match to match. */}
-      <table className="w-full tabular-nums">
-        <tbody>
-          <TipRow label="Impact" className={impact === undefined ? undefined : impactTone(impact)}>
-            {impact === undefined ? '–' : formatImpact(impact)}
-          </TipRow>
-          <TipRow label="Rating" color={ratingColor(rating)}>
-            {rating.toFixed(2)}
-          </TipRow>
-          <TipRow label="K / D">
-            {kills}
-            <span className="mx-1 font-normal text-muted">/</span>
-            {deaths}
-          </TipRow>
-          <TipRow label="ADR">{Math.round(adr)}</TipRow>
-        </tbody>
-      </table>
-      <span className="text-caption text-muted">{formatDate(m.playedAt)}</span>
-    </div>
-  )
-}
-
-const MatchColumn = ({ m, max, hovered }: { m: Played; max: number; hovered: boolean }) => {
-  const height = barPercent(m.stats.rating, max)
-  const color = ratingColor(m.stats.rating)
-
-  return (
-    <Link
-      to="/matches/$id"
-      params={{ id: m.matchId }}
-      aria-label={describe(m)}
-      className="relative flex w-full flex-col items-center rounded-md outline-none after:absolute after:inset-y-0 after:-inset-x-0.5 group-first:after:-left-1.5 group-last:after:-right-1.5 focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className={cn('block w-full', PLOT_BOX)}>
-        <span className="relative block h-full">
-          <span
-            className={cn(
-              'absolute inset-x-0 bottom-0 rounded-[3px] transition-opacity duration-150 group-focus-within:opacity-100',
-              hovered ? 'opacity-100' : 'opacity-75',
-            )}
-            style={{ height: `${height}%`, backgroundColor: color }}
-          />
-          <span
-            aria-hidden
-            className="absolute inset-x-0 z-20 mb-1 flex justify-center text-micro font-medium tabular-nums"
-            style={{ bottom: `${height}%`, color }}
-          >
-            <span className="rounded-sm bg-surface px-1">{m.stats.rating.toFixed(2)}</span>
-          </span>
-        </span>
-      </span>
-      <MapIcon map={m.map} className="mt-2 size-4 rounded-sm text-micro" />
-      <ScoreBadge match={m} className="mt-1.5 text-micro" />
-    </Link>
-  )
-}
-
-/** Opens on the newest matches and stays there through late layout, until the user scrolls. */
-const pinToEnd = (viewport: HTMLDivElement | null) => {
-  if (!viewport) return
-  const stop = observeResize([viewport, ...viewport.children], () => {
-    if (viewport.scrollWidth > viewport.clientWidth) {
-      viewport.scrollLeft = viewport.scrollWidth
-    }
-  })
-
-  for (const input of ['pointerdown', 'wheel', 'touchstart', 'keydown']) {
-    viewport.addEventListener(input, stop, { once: true, passive: true })
-  }
-
-  return stop
-}
-
-/** The side that leads takes its color; level stays neutral. */
-export const WinLoss = ({ wins, losses }: { wins: number; losses: number }) => (
-  <>
-    <span className={cn(wins > losses && 'text-success')}>{wins}W</span>
-    {' / '}
-    <span className={cn(losses > wins && 'text-danger')}>{losses}L</span>
-  </>
-)
-
-const sessionFade = (reduce: boolean | null) => ({
-  initial: reduce ? false : { opacity: 0, scale: 0.98 },
-  animate: { opacity: 1, scale: 1 },
-  exit: reduce ? undefined : { opacity: 0, scale: 0.98 },
-  transition: { duration: 0.25, ease: EASE_OUT_QUART },
-})
-
-const connectorFade = (reduce: boolean | null) => ({
-  initial: reduce ? false : { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: reduce ? undefined : { opacity: 0 },
-  transition: { duration: 0.2, ease: EASE_OUT_QUART },
-})
 
 const SessionColumns = ({
   matches,
   max,
   hoveredId,
   popup,
-  reduce,
 }: {
   matches: Played[]
   max: number
   hoveredId: string | undefined
   popup: PopupControl
-  reduce: boolean | null
 }) => (
-  <motion.li
-    style={sessionTrack(matches.length)}
-    className="transition-[flex,min-width] duration-300 ease-out"
-    {...sessionFade(reduce)}
-  >
-    <ol className="flex w-full gap-1">
-      {matches.toReversed().map((m) => (
-        <li
-          key={m.matchId}
-          className="group flex flex-1 shrink-0 transition-[flex,min-width] duration-300 ease-out"
-          style={{ minWidth: ITEM_WIDTH }}
-          data-match-id={m.matchId}
-          onPointerEnter={(e) => popup.onColumn(m, e)}
-          onFocus={(e) => popup.onFocus(m, e)}
-          onBlur={popup.onClose}
-        >
-          <MatchColumn m={m} max={max} hovered={m.matchId === hoveredId} />
-        </li>
-      ))}
-    </ol>
-  </motion.li>
-)
-
-const connectorY = (rating: number, max: number) =>
-  Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
-
-const connectorOutline = (
-  start: number,
-  end: number,
-  rx: number,
-  ry: number,
-  offset: number,
-) => {
-  const topSegments = () => {
-    if (start > end) {
-      const xTarget = 100 - rx - offset
-      const slope = (end - start) / xTarget
-      const topStartX = rx
-      const topStartY = start + rx * slope
-      const lineEndX = xTarget - offset
-      const lineEndY = end - offset * slope
-
-      return [
-        `M0 ${start + ry}`,
-        `Q0 ${start} ${topStartX} ${topStartY}`,
-        `L${lineEndX} ${lineEndY}`,
-        `Q${xTarget} ${end} ${100 - rx} ${end}`,
-        `Q100 ${end} 100 ${end + ry}`,
-      ]
-    }
-
-    if (start < end) {
-      const xTarget = rx + offset
-      const slope = (end - start) / (100 - xTarget)
-      const lineStartX = xTarget + offset
-      const lineStartY = start + offset * slope
-      const topEndX = 100 - rx
-      const topEndY = end - rx * slope
-
-      return [
-        `M0 ${start + ry}`,
-        `Q0 ${start} ${rx} ${start}`,
-        `Q${xTarget} ${start} ${lineStartX} ${lineStartY}`,
-        `L${topEndX} ${topEndY}`,
-        `Q100 ${end} 100 ${end + ry}`,
-      ]
-    }
-
-    return [
-      `M0 ${start + ry}`,
-      `Q0 ${start} ${rx} ${start}`,
-      `L${100 - rx} ${end}`,
-      `Q100 ${end} 100 ${end + ry}`,
-    ]
-  }
-
-  return [
-    ...topSegments(),
-    `L100 ${100 - ry}`,
-    `Q100 100 ${100 - rx} 100`,
-    `L${rx} 100`,
-    `Q0 100 0 ${100 - ry}`,
-    'Z',
-  ].join(' ')
-}
-
-/** Half a column wide, joining the ratings either side of a break between sessions. */
-const SessionConnector = ({
-  from,
-  to,
-  max,
-  popup,
-  reduce,
-}: {
-  from: Played
-  to: Played
-  max: number
-  popup: PopupControl
-  reduce: boolean | null
-}) => {
-  const start = connectorY(from.stats.rating, max)
-  const end = connectorY(to.stats.rating, max)
-  const outline = connectorOutline(start, end, 14, 3, 4)
-
-  return (
-    <motion.li
-      aria-hidden
-      style={connectorTrack}
-      className={cn('relative', PLOT_BOX)}
-      {...connectorFade(reduce)}
-    >
-      <div className="relative h-full">
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="size-full overflow-visible"
-        >
-          <path d={outline} fill="var(--background)" />
-        </svg>
-      </div>
-      {/* Each half hands its hover to the match it faces, lighting up that column. */}
-      {/* -inset-x-1 spans the gap-1 between sessions, and -top-10 covers the full chart height. */}
-      <div className="absolute -inset-x-1 -top-10 bottom-0 z-10 flex">
-        {[from, to].map((m) => (
-          <div
-            key={m.matchId}
-            className="h-full w-1/2"
-            data-match-id={m.matchId}
-            onPointerEnter={(e) => popup.onColumn(m, e)}
-          />
-        ))}
-      </div>
-    </motion.li>
-  )
-}
-
-const SessionLabel = ({
-  matches,
-  reduce,
-}: {
-  matches: Played[]
-  reduce: boolean | null
-}) => {
-  const { wins, losses } = summarize(matches)
-  const date = DAY.format(new Date(matches.at(-1)!.playedAt))
-  // A shorter session's label fills its block, leaving nothing to travel.
-  const sticks = matches.length > 2
-
-  return (
-    <motion.li
-      style={sessionTrack(matches.length)}
-      className="transition-[flex,min-width] duration-300 ease-out"
-      {...sessionFade(reduce)}
-    >
-      {/* Overlaid, each inset by the other's width plus 16px: sticky stops at its parent's
-          padding, so the labels push each other instead of colliding. */}
-      <Button
-        size="xs"
-        variant="recessed"
-        className={cn(
-          // The pseudo-element takes the hit area to 32px, past the 28px it draws.
-          '-mx-1 w-[calc(100%+0.5rem)] text-left text-micro font-normal after:absolute after:-inset-y-0.5 after:inset-x-0',
-          matches.length > 1 ? 'px-2.5' : 'px-1.5',
-        )}
-        // The layer stays clear at rest so the gradient shows; hover still fills it.
-        style={{ backgroundImage: SESSION_LABEL_BG, '--bg': 'transparent' } as CSSProperties}
+  <ol className="flex gap-1">
+    {matches.toReversed().map((m) => (
+      <li
+        key={m.matchId}
+        className="group flex min-w-0 flex-1"
+        data-match-id={m.matchId}
+        onPointerEnter={(e) => popup.onColumn(m, e)}
+        onFocus={(e) => popup.onFocus(m, e)}
+        onBlur={popup.onClose}
       >
-        <span className="grid w-full *:col-start-1 *:row-start-1">
-          <span className={cn(sticks && 'pr-16', matches.length === 1 && 'text-center')}>
-            <span className={cn('inline-block', sticks && 'sticky left-5.5')}>{date}</span>
-          </span>
-          {matches.length > 1 && (
-            <span className={cn('text-right tabular-nums', sticks && 'pl-14')}>
-              <span className={cn('inline-block', sticks && 'sticky right-5.5')}>
-                <WinLoss wins={wins} losses={losses} />
-              </span>
-            </span>
-          )}
-        </span>
-      </Button>
-    </motion.li>
-  )
-}
-
-const SessionLabelSpacer = ({ reduce }: { reduce: boolean | null }) => (
-  <motion.li aria-hidden style={connectorTrack} {...connectorFade(reduce)} />
+        <MatchColumn m={m} max={max} hovered={m.matchId === hoveredId} />
+      </li>
+    ))}
+  </ol>
 )
 
 /**
  * One column per match, oldest to newest and grouped by session: a bar rising from 0 with its
  * rating on top and a dashed line at 1.00, the map and score under it. Scrolls sideways rather than
- * squeezing, opening on the newest.
+ * squeezing, opening on the newest. A `focusKey` zooms the chart into that session.
  */
-export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
-  const reduce = useReducedMotion()
+export const SessionSplitChart = ({
+  sessions,
+  focusKey,
+  onToggleSession,
+}: {
+  sessions: Played[][]
+  focusKey: string | null
+  onToggleSession?: (key: string) => void
+}) => {
   const [active, setActive] = useState<Played | null>(null)
   const [hovered, setHovered] = useState<Played | null>(null)
   const pointer = useRef<{ x: number; y: number } | null>(null)
   const [armed, setArmed] = useState(false)
   const [columns, setColumns] = useState<HTMLElement | null>(null)
-  const viewportRef = useRef<HTMLDivElement | null>(null)
   const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const max = Math.max(2, ...sessions.flat().map((m) => m.stats.rating))
   const chronological = sessions.toReversed()
 
-  const setViewport = (node: HTMLDivElement | null) => {
-    viewportRef.current = node
+  const shownSessions = focusKey
+    ? chronological.filter((s) => sessionKey(s) === focusKey)
+    : chronological
 
-    return pinToEnd(node)
-  }
-
-  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- Pins viewport to the end for multiple sessions, or resets to 0 for single session
-  useEffect(() => {
-    const el = viewportRef.current
-
-    if (!el) return
-
-    if (sessions.length <= 1) {
-      el.scrollLeft = 0
-    } else {
-      el.scrollLeft = el.scrollWidth
-      const raf = requestAnimationFrame(() => {
-        el.scrollLeft = el.scrollWidth
-      })
-
-      return () => cancelAnimationFrame(raf)
-    }
-  }, [sessions])
+  const { setViewport, layout, transition, departure } = useSessionZoom({
+    sessions: chronological.map((s) => ({ key: sessionKey(s), size: s.length })),
+    focusKey,
+  })
 
   const scheduleOpen = () => {
     clearTimeout(openTimer.current)
@@ -562,8 +185,13 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
           )}
           {...handlers}
         >
-          <ScrollArea.Content className="px-4 pt-1 pb-1 [&_*]:cursor-grab">
-            <div className="w-max min-w-full">
+          {/* Clipped so sessions pushed past the right edge never widen the scrollable area. */}
+          <ScrollArea.Content className="overflow-x-clip px-4 pt-1 pb-1 [&_*]:cursor-grab">
+            <motion.div
+              className="min-w-full"
+              initial={false}
+              animate={{ width: layout.total, transition }}
+            >
               {/* Isolated so the line and ratings layer among themselves, under the edge fades. */}
               <div
                 ref={setColumns}
@@ -581,7 +209,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   trigger={
                     <ol
                       aria-label="Rating by match, grouped by session, oldest first"
-                      className="flex w-full gap-1"
+                      className="grid grid-cols-1 *:col-start-1 *:row-start-1"
                       onPointerEnter={(e) => {
                         pointer.current = { x: e.clientX, y: e.clientY }
                         openAfterDelay(e)
@@ -591,36 +219,53 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                       }}
                       onPointerLeave={leaveColumns}
                     >
-                      <AnimatePresence initial={false}>
-                        {chronological.flatMap((session, i) => {
-                          const next = chronological[i + 1]
-                          const sessionKey = session[0]!.matchId
+                      <AnimatePresence initial={false} custom={departure}>
+                        {shownSessions.flatMap((session, i) => {
+                          const key = sessionKey(session)
+                          const next = shownSessions[i + 1]
+                          const slot = layout.slots[key]
 
-                          const nodes = [
-                            <SessionColumns
-                              key={sessionKey}
-                              matches={session}
-                              max={max}
-                              hoveredId={hovered?.matchId}
-                              popup={popup}
-                              reduce={reduce}
-                            />,
-                          ]
+                          if (!slot) return []
 
-                          if (next) {
-                            nodes.push(
-                              <SessionConnector
-                                key={`${sessionKey}-connector`}
-                                from={session[0]!}
-                                to={next.at(-1)!}
+                          const connector = connectorId(key)
+                          const connectorSlot = layout.slots[connector]
+
+                          return [
+                            <Track
+                              key={key}
+                              id={key}
+                              slot={slot}
+                              transition={transition}
+                              departure={departure}
+                            >
+                              <SessionColumns
+                                matches={session}
                                 max={max}
+                                hoveredId={hovered?.matchId}
                                 popup={popup}
-                                reduce={reduce}
-                              />,
-                            )
-                          }
-
-                          return nodes
+                              />
+                            </Track>,
+                            ...(next && connectorSlot
+                              ? [
+                                  <Track
+                                    key={connector}
+                                    id={connector}
+                                    slot={connectorSlot}
+                                    transition={transition}
+                                    departure={departure}
+                                    decorative
+                                    className={PLOT_BOX}
+                                  >
+                                    <SessionConnector
+                                      from={session[0]!}
+                                      to={next.at(-1)!}
+                                      max={max}
+                                      popup={popup}
+                                    />
+                                  </Track>,
+                                ]
+                              : []),
+                          ]
                         })}
                       </AnimatePresence>
                     </ol>
@@ -639,33 +284,36 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   </div>
                 </div>
               </div>
-              <ol aria-label="Sessions" className="mt-2 flex w-full gap-1">
-                <AnimatePresence initial={false}>
-                  {chronological.flatMap((session, i) => {
-                    const sessionKey = session[0]!.matchId
+              <ol
+                aria-label="Sessions"
+                className="mt-2 grid grid-cols-1 *:col-start-1 *:row-start-1"
+              >
+                <AnimatePresence initial={false} custom={departure}>
+                  {shownSessions.map((session) => {
+                    const key = sessionKey(session)
+                    const slot = layout.slots[key]
 
-                    const nodes = [
-                      <SessionLabel
-                        key={`${sessionKey}-label`}
-                        matches={session}
-                        reduce={reduce}
-                      />,
-                    ]
-
-                    if (i < chronological.length - 1) {
-                      nodes.push(
-                        <SessionLabelSpacer
-                          key={`${sessionKey}-spacer`}
-                          reduce={reduce}
-                        />,
+                    return (
+                      slot && (
+                        <Track
+                          key={key}
+                          id={key}
+                          slot={slot}
+                          transition={transition}
+                          departure={departure}
+                        >
+                          <SessionLabel
+                            matches={session}
+                            open={key === focusKey}
+                            onToggle={onToggleSession && (() => onToggleSession(key))}
+                          />
+                        </Track>
                       )
-                    }
-
-                    return nodes
+                    )
                   })}
                 </AnimatePresence>
               </ol>
-            </div>
+            </motion.div>
           </ScrollArea.Content>
         </ScrollArea.Viewport>
         {/* Columns fade into the gutter the scroller bleeds into, rather than cut at the screen. */}
