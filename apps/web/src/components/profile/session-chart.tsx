@@ -300,7 +300,7 @@ const SessionConnector = ({
   const outline = connectorOutline(start, end, 14, 3, 4)
 
   return (
-    <li aria-hidden style={connectorTrack} className={cn('relative', PLOT_BOX)}>
+    <li aria-hidden style={connectorTrack} className={cn('relative z-10', PLOT_BOX)}>
       <div className="relative h-full">
         <svg
           viewBox="0 0 100 100"
@@ -309,7 +309,7 @@ const SessionConnector = ({
         >
           <path
             d={outline}
-            fill="none"
+            fill="var(--background)"
             stroke="currentColor"
             strokeWidth="1.5"
             strokeLinejoin="round"
@@ -561,7 +561,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 {/* Between the bars and their ratings: each rating masks the line. */}
                 <div
                   aria-hidden
-                  className={cn('pointer-events-none absolute -inset-x-4 top-0 z-10', PLOT_BOX)}
+                  className={cn('pointer-events-none absolute -inset-x-4 top-0 z-1', PLOT_BOX)}
                 >
                   <div className="relative h-full">
                     <div
