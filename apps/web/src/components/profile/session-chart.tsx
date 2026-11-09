@@ -408,7 +408,9 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
           ref={pinToEnd}
           className={cn(
             'overscroll-x-contain overscroll-y-none select-none',
-            dragging && 'cursor-grabbing',
+            // Pressing or dragging anywhere on the chart reads as grabbing, even over its links.
+            'active:cursor-grabbing active:[&_*]:cursor-grabbing!',
+            dragging && 'cursor-grabbing [&_*]:cursor-grabbing!',
           )}
           {...handlers}
         >
