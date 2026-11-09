@@ -41,15 +41,16 @@ type PopupControl = {
 
 const DAY = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 
-const RATING_MIDPOINT = 'color-mix(in oklab, var(--color-foreground) 70%, var(--color-muted))'
+// The raw tokens: Tailwind only emits a `--color-*` variable it finds written out in full.
+const RATING_MIDPOINT = 'color-mix(in oklab, var(--foreground) 70%, var(--muted))'
 
 const barPercent = (rating: number, max: number) => Math.max((rating / max) * 100, 3)
 
 const ratingColor = (rating: number) => {
-  const pole = rating >= 1 ? 'success' : 'danger'
+  const pole = rating >= 1 ? 'var(--success)' : 'var(--danger)'
   const strength = Math.min(Math.abs(rating - 1) / RATING_SPREAD, 1) * 100
 
-  return `color-mix(in oklab, var(--color-${pole}) ${strength}%, ${RATING_MIDPOINT})`
+  return `color-mix(in oklab, ${pole} ${strength}%, ${RATING_MIDPOINT})`
 }
 
 const describe = ({ map, score, result, stats, playedAt }: Played) =>
@@ -140,10 +141,10 @@ const MatchColumn = ({ m, max, hovered }: { m: Played; max: number; hovered: boo
           />
           <span
             aria-hidden
-            className="absolute inset-x-0 mb-1 text-center text-micro font-medium tabular-nums"
+            className="absolute inset-x-0 z-20 mb-1 flex justify-center text-micro font-medium tabular-nums"
             style={{ bottom: `${height}%`, color }}
           >
-            {m.stats.rating.toFixed(2)}
+            <span className="rounded-sm bg-surface px-1">{m.stats.rating.toFixed(2)}</span>
           </span>
         </span>
       </span>
@@ -354,7 +355,8 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
         >
           <ScrollArea.Content className="px-4 pt-1 pb-1">
             <div className="w-max min-w-full">
-              <div ref={setColumns}>
+              {/* Isolated so the line and ratings layer among themselves, under the edge fades. */}
+              <div ref={setColumns} className="relative isolate">
                 <CursorTooltip
                   content={active && <MatchTip m={active} />}
                   armed={armed && !!active}
@@ -382,6 +384,18 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                     </ol>
                   }
                 />
+                {/* Between the bars and their ratings: each rating masks the line. */}
+                <div
+                  aria-hidden
+                  className={cn('pointer-events-none absolute -inset-x-4 top-0 z-10', PLOT_BOX)}
+                >
+                  <div className="relative h-full">
+                    <div
+                      className="absolute inset-x-0 border-t border-dashed border-foreground/30"
+                      style={{ bottom: `${(1 / max) * 100}%` }}
+                    />
+                  </div>
+                </div>
               </div>
               <ol aria-label="Sessions" className="mt-2 flex gap-3">
                 {chronological.map((session) => (
@@ -391,19 +405,6 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
             </div>
           </ScrollArea.Content>
         </ScrollArea.Viewport>
-        {/* Over the viewport, not inside it, so the line and its label stay put while columns scroll. */}
-        <div aria-hidden className={cn('pointer-events-none absolute inset-x-0 top-1', PLOT_BOX)}>
-          <div className="relative h-full">
-            <div
-              className="absolute inset-x-0 border-t border-dashed border-foreground/30"
-              style={{ bottom: `${(1 / max) * 100}%` }}
-            >
-              <span className="absolute right-4 bottom-1 rounded-sm bg-surface px-1 text-micro text-muted tabular-nums">
-                1.00
-              </span>
-            </div>
-          </div>
-        </div>
         {/* Columns fade into the gutter the scroller bleeds into, rather than cut at the screen. */}
         <div
           aria-hidden

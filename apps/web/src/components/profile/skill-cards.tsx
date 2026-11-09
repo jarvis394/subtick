@@ -1,8 +1,8 @@
-import { Popover } from '@base-ui/react/popover'
 import { type SkillArea, type SkillMetric, type SkillStanding, skillSummary } from '@subtick/domain'
 import { ArrowDown, ArrowUp, ChevronUp, Minus } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { popupClass } from '@/components/ui/popup-styles'
+import { Popover } from '@/components/ui/popover'
 import { Card } from '@/components/ui/surface'
 import { cn } from '@/lib/utils'
 import { CardHeader } from './card-header'
@@ -63,9 +63,9 @@ const FILL: Record<SkillStanding, string> = {
 const PIP = { up: 'bg-success', flat: 'bg-foreground/25', down: 'bg-danger' }
 
 const TREND_ICON = {
-  up: <ArrowUp aria-label="Up" className="size-3 text-success" />,
-  flat: <Minus aria-label="Flat" className="size-3 text-muted" />,
-  down: <ArrowDown aria-label="Down" className="size-3 text-danger" />,
+  up: <ArrowUp aria-label="Up" className="size-3 text-success handheld:size-4" />,
+  flat: <Minus aria-label="Flat" className="size-3 text-muted handheld:size-4" />,
+  down: <ArrowDown aria-label="Down" className="size-3 text-danger handheld:size-4" />,
 }
 
 const fillOf = (value: number, [min, max]: Area['scale']) =>
@@ -100,100 +100,115 @@ const Well = ({
   </div>
 )
 
-const AreaDetails = ({ area, size }: { area: Area; size: number }) => {
+const AreaDetails = ({
+  area,
+  size,
+  open,
+  onOpenChange,
+}: {
+  area: Area
+  size: number
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) => {
   const { title, how } = AREAS[area.area]
   const { label, format } = METRICS[area.area]
   const compared = area.metrics.filter((m) => m.trend)
   const up = compared.filter((m) => m.trend === 'up').length
 
   return (
-    <Popover.Root>
-      <Popover.Trigger
-        openOnHover
-        delay={200}
-        render={
-          <Button
-            size="xs"
-            variant="ghost"
-            className="-mx-1.5 mt-2 -mb-1.5 w-[calc(100%+0.75rem)] justify-start gap-2 px-1.5 text-caption font-normal"
-          />
-        }
-      >
-        <span aria-hidden className="flex shrink-0 gap-0.5">
-          {area.metrics.map((m) => (
-            <span
-              key={m.metric}
-              className={cn('size-1.5 rounded-full', m.trend ? PIP[m.trend] : 'bg-foreground/15')}
-            />
-          ))}
-        </span>
-        <span className="min-w-0 truncate tabular-nums">
-          {compared.length ? `${up} of ${compared.length} up` : 'Details'}
-        </span>
-        <ChevronUp aria-hidden className="ml-auto" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="top" sideOffset={8} collisionPadding={16} className="z-50">
-          <Popover.Popup
-            className={cn(popupClass, 'w-80 max-w-[calc(100vw-2rem)] p-4 pt-3 text-small')}
-          >
-            <Popover.Title className="text-body font-medium">{title}</Popover.Title>
-            <Popover.Description className="mt-0.5 text-caption text-muted">
-              {how}
-            </Popover.Description>
-            <table className="mt-2 w-full tabular-nums">
-              <thead className="text-caption text-muted">
-                <tr>
-                  <td />
-                  <th scope="col" className="pb-1 pl-4 text-right font-normal whitespace-nowrap">
-                    Last {size}
-                  </th>
-                  <th scope="col" className="pb-1 pl-4 text-right font-normal whitespace-nowrap">
-                    Previous {size}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr:last-child>*]:pb-2">
-                {area.metrics.map((m) => (
-                  <tr key={m.metric}>
-                    <th scope="row" className="py-1 text-left font-normal">
-                      {METRICS[m.metric].label}
-                    </th>
-                    <td className="py-1 pl-4 text-right font-medium">
-                      <span className="inline-flex items-center gap-1">
-                        {m.trend && TREND_ICON[m.trend]}
-                        {m.value === null ? '–' : METRICS[m.metric].format(m.value)}
-                      </span>
-                    </td>
-                    <td className="py-1 pl-4 text-right text-muted">
-                      {m.previous === null ? '–' : METRICS[m.metric].format(m.previous)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              {area.lobby !== null && (
-                <tfoot className="border-t">
-                  <tr>
-                    <th
-                      scope="row"
-                      className="pt-2 text-left font-normal whitespace-nowrap text-muted"
-                    >
-                      Lobby {label.toLowerCase()}
-                    </th>
-                    <td className="pt-2 pl-4 text-right font-medium">{format(area.lobby)}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+    <Popover
+      title={title}
+      open={open}
+      onOpenChange={onOpenChange}
+      openOnHover
+      side="top"
+      sideOffset={8}
+      className="w-80 max-w-[calc(100vw-2rem)] p-4 pt-3"
+      trigger={
+        <Button
+          size="xs"
+          variant="ghost"
+          className="-mx-1.5 mt-2 -mb-1.5 w-[calc(100%+0.75rem)] justify-start gap-2 px-1.5 text-caption font-normal"
+        >
+          <span aria-hidden className="flex shrink-0 gap-0.5">
+            {area.metrics.map((m) => (
+              <span
+                key={m.metric}
+                className={cn('size-1.5 rounded-full', m.trend ? PIP[m.trend] : 'bg-foreground/15')}
+              />
+            ))}
+          </span>
+          <span className="min-w-0 truncate tabular-nums">
+            {compared.length ? `${up} of ${compared.length} up` : 'Details'}
+          </span>
+          <ChevronUp aria-hidden className="ml-auto" />
+        </Button>
+      }
+    >
+      <div className="text-small handheld:text-lead">
+        <h4 aria-hidden className="text-body font-medium handheld:text-title">
+          {title}
+        </h4>
+        <p className="mt-0.5 text-caption text-muted handheld:mt-1 handheld:text-body">{how}</p>
+        <table className="mt-2 w-full tabular-nums handheld:mt-4">
+          <thead className="text-caption text-muted handheld:text-small">
+            <tr>
+              <td />
+              <th scope="col" className="pb-1 pl-4 text-right font-normal whitespace-nowrap">
+                Last {size}
+              </th>
+              <th scope="col" className="pb-1 pl-4 text-right font-normal whitespace-nowrap">
+                Previous {size}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="[&>tr:last-child>*]:pb-2">
+            {area.metrics.map((m) => (
+              <tr key={m.metric}>
+                <th scope="row" className="py-1 text-left font-normal handheld:py-1.5">
+                  {METRICS[m.metric].label}
+                </th>
+                <td className="py-1 pl-4 text-right font-medium handheld:py-1.5">
+                  <span className="inline-flex items-center gap-1">
+                    {m.trend && TREND_ICON[m.trend]}
+                    {m.value === null ? '–' : METRICS[m.metric].format(m.value)}
+                  </span>
+                </td>
+                <td className="py-1 pl-4 text-right text-muted handheld:py-1.5">
+                  {m.previous === null ? '–' : METRICS[m.metric].format(m.previous)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {area.lobby !== null && (
+            <tfoot className="border-t">
+              <tr>
+                <th scope="row" className="pt-2 text-left font-normal whitespace-nowrap text-muted">
+                  Lobby {label.toLowerCase()}
+                </th>
+                <td className="pt-2 pl-4 text-right font-medium">{format(area.lobby)}</td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </Popover>
   )
 }
 
-const AreaCard = ({ area, size }: { area: Area; size: number }) => {
+const AreaCard = ({
+  area,
+  size,
+  open,
+  onOpenChange,
+}: {
+  area: Area
+  size: number
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) => {
   const { title } = AREAS[area.area]
   const { format } = METRICS[area.area]
 
@@ -216,13 +231,15 @@ const AreaCard = ({ area, size }: { area: Area; size: number }) => {
           format={format}
         />
       </div>
-      <AreaDetails area={area} size={size} />
+      <AreaDetails area={area} size={size} open={open} onOpenChange={onOpenChange} />
     </div>
   )
 }
 
 /** Four areas of play, each the latest matches against the ones before and the lobby. */
 export const SkillCards = ({ history }: { history: Played[] }) => {
+  // One place for what's open: hover and click would otherwise each leave a popover up.
+  const [openArea, setOpenArea] = useState<SkillArea | null>(null)
   const { size, areas } = skillSummary(history)
 
   return (
@@ -236,7 +253,17 @@ export const SkillCards = ({ history }: { history: Played[] }) => {
       <Card bleed className="overflow-hidden md:-mx-4">
         <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
           {areas.map((area) => (
-            <AreaCard key={area.area} area={area} size={size} />
+            <AreaCard
+              key={area.area}
+              area={area}
+              size={size}
+              open={openArea === area.area}
+              onOpenChange={(next) =>
+                setOpenArea((current) =>
+                  next ? area.area : current === area.area ? null : current,
+                )
+              }
+            />
           ))}
         </div>
       </Card>
