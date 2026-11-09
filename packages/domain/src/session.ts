@@ -8,7 +8,7 @@ export const splitSessions = <M extends { playedAt: Date | string }>(newestFirst
   let newer: number | null = null
   for (const match of newestFirst) {
     const at = new Date(match.playedAt).getTime()
-    if (newer === null || newer - at > gap) sessions.push([match])
+    if (newer === null || newer - at >= gap) sessions.push([match])
     else sessions.at(-1)!.push(match)
     newer = at
   }

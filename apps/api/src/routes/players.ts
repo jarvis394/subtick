@@ -133,7 +133,7 @@ export const playerRoutes = (ctx: Context) => {
           lastMatchAt: rows[0]?.playedAt ?? null,
           clipCount: clips?.count ?? 0,
           /** Every match on record, past the window `history` is capped to. */
-          matchCount: played?.count ?? 0,
+          total: played?.count ?? 0,
           /** Newest first; the profile summarizes any window of it against the same lobbies. */
           history: matches.map((m) => ({
             matchId: m.matchId,

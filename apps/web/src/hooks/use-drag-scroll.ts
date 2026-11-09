@@ -123,7 +123,11 @@ export const useDragScroll = ({
         if (moved) onDragEnd(ev && { x: ev.clientX, y: ev.clientY })
       }
 
-      const abort = () => end()
+      const abort = () => {
+        // A canceled press never produces the click this flag would swallow.
+        swallowClick.current = false
+        end()
+      }
 
       const move = (ev: globalThis.PointerEvent) => {
         if (ev.pointerId !== pointerId) return

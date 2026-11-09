@@ -25,7 +25,7 @@ const AREAS: Record<SkillArea, { title: string; how: string }> = {
   },
   utility: {
     title: 'Utility',
-    how: 'Grenade damage a round. The stats below are per match.',
+    how: 'Grenade damage per round. The stats below are per match.',
   },
   impact: {
     title: 'Impact',

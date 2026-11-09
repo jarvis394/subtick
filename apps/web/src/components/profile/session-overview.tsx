@@ -34,13 +34,7 @@ const Readout = ({
 )
 
 /** Stats over the latest session or every match, picked here, above the chart split by session. */
-export const SplitSessions = ({
-  history,
-  matchCount,
-}: {
-  history: Played[]
-  matchCount: number
-}) => {
+export const SplitSessions = ({ history, total }: { history: Played[]; total: number }) => {
   const [picked, setPicked] = useState<Scope>('all')
   const sessions = splitSessions(history)
   const scope = sessions.length > 1 ? picked : 'all'
@@ -54,13 +48,18 @@ export const SplitSessions = ({
   return (
     <section>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 className="text-title font-medium">
-            {scope === 'session' ? 'Last session' : 'Matches'}
-          </h2>
-          <span className="text-title text-muted tabular-nums">
-            {scope === 'session' ? shown.length : matchCount}
-          </span>
+        <div>
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h2 className="text-title font-medium">
+              {scope === 'session' ? 'Last session' : 'Matches'}
+            </h2>
+            <span className="text-title text-muted tabular-nums">
+              {scope === 'session' ? shown.length : total}
+            </span>
+          </div>
+          {scope === 'all' && total > shown.length && (
+            <p className="text-caption text-muted">Stats from the latest {shown.length} matches</p>
+          )}
         </div>
         {sessions.length > 1 && (
           <Segmented
@@ -94,6 +93,7 @@ export const SplitSessions = ({
                 <span className="sr-only"> from the previous session</span>
               </span>
             ) : (
+              lobbyRating !== null &&
               lobbyRating > 0 && (
                 <>
                   <span className="sr-only">Lobby average </span>~{lobbyRating.toFixed(2)}

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { BarChart3, ChevronRight } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { HighlightCard } from '@/components/highlight-card'
+import { LoadFailed } from '@/components/load-failed'
 import { playerSlug } from '@/components/player-link'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
@@ -44,6 +45,12 @@ const Highlights = ({ player }: { player: Player }) => {
             <Skeleton key={i} className="aspect-video" />
           ))}
         </div>
+      ) : clips.isError && !items.length ? (
+        <LoadFailed
+          title="Couldn’t load highlights"
+          onRetry={() => void clips.refetch()}
+          retrying={clips.isRefetching}
+        />
       ) : items.length ? (
         <div className={CLIP_GRID}>
           {items.map((clip) =>
@@ -65,9 +72,9 @@ const Highlights = ({ player }: { player: Player }) => {
   )
 }
 
-const Stats = ({ player: { history, matchCount } }: { player: Player }) => (
+const Stats = ({ player: { history, total } }: { player: Player }) => (
   <>
-    <SplitSessions history={history} matchCount={matchCount} />
+    <SplitSessions history={history} total={total} />
     <section>
       <h2 className="mb-4 flex flex-wrap items-baseline gap-x-3 text-title font-medium">
         Best map

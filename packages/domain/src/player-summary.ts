@@ -73,8 +73,8 @@ export const summarizeLobby = (lobbies: LobbyTotals[]) => {
   const aimPlayers = sum((l) => l.aimPlayers)
 
   return {
-    rating: players ? round(sum((l) => l.ratingSum) / players) : 0,
-    utilityPerRound: rounds ? round(sum((l) => l.utilityDamage) / rounds, 1) : 0,
+    rating: players ? round(sum((l) => l.ratingSum) / players) : null,
+    utilityPerRound: rounds ? round(sum((l) => l.utilityDamage) / rounds, 1) : null,
     impact: impactPlayers ? round(sum((l) => l.impactSum) / impactPlayers, 1) : null,
     aim: aimPlayers ? round(sum((l) => l.aimSum) / aimPlayers, 0) : null,
   }

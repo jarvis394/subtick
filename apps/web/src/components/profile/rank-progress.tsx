@@ -11,7 +11,10 @@ const MODE_LABEL = { premier: 'Premier rating', competitive: 'Competitive', wing
 
 type RankedMode = keyof typeof MODE_LABEL
 
-/** Oldest first. Premier when there's a line to draw, else whichever skill-group mode has one. */
+/**
+ * Oldest first. Premier when there's a line to draw, else whichever skill-group mode has one.
+ * Skill groups are per map, so those lines stay on the map with the most ranked matches.
+ */
 const rankSeries = (history: Played[]) => {
   const ofMode = (mode: RankedMode) =>
     history
@@ -20,9 +23,23 @@ const rankSeries = (history: Played[]) => {
       )
       .toReversed()
 
-  const mode = (['premier', 'competitive', 'wingman'] as const).find((m) => ofMode(m).length > 1)
+  const seriesOf = (mode: RankedMode) => {
+    const points = ofMode(mode)
+    if (mode === 'premier') return points.length > 1 ? { mode, points, map: null } : null
 
-  return mode ? { mode, points: ofMode(mode) } : null
+    const [map, onMap] =
+      [...Map.groupBy(points, (p) => p.match.map ?? 'unknown')].toSorted(
+        (a, b) => b[1].length - a[1].length,
+      )[0] ?? []
+
+    return map && onMap && onMap.length > 1 ? { mode, points: onMap, map } : null
+  }
+
+  return (
+    (['premier', 'competitive', 'wingman'] as const)
+      .map(seriesOf)
+      .find((series) => series !== null) ?? null
+  )
 }
 
 /** A rating line over the player's ranked matches, evenly spaced: one step per match played. */
@@ -34,7 +51,8 @@ export const RankProgressChart = ({ history }: { history: Played[] }) => {
   if (!series)
     return <p className="text-small text-muted">Play two ranked matches to start the line.</p>
 
-  const { mode, points } = series
+  const { mode, points, map } = series
+  const label = map ? `${MODE_LABEL[mode]} on ${mapName(map)}` : MODE_LABEL[mode]
   const values = points.map((p) => p.rank.after)
   const low = Math.min(...values)
   const high = Math.max(...values)
@@ -66,7 +84,7 @@ export const RankProgressChart = ({ history }: { history: Played[] }) => {
   return (
     <figure>
       <figcaption className="mb-3 flex items-baseline justify-between gap-3 text-small">
-        <span className="text-muted">{MODE_LABEL[mode]}</span>
+        <span className="text-muted">{label}</span>
         {mode === 'premier' && moved !== 0 && (
           <span
             className={cn('font-medium tabular-nums', moved > 0 ? 'text-success' : 'text-danger')}
@@ -79,7 +97,7 @@ export const RankProgressChart = ({ history }: { history: Played[] }) => {
       </figcaption>
       <div
         role="img"
-        aria-label={`${MODE_LABEL[mode]} over ${points.length} matches: from ${format(values[0]!)} to ${format(latest)}, highest ${format(high)}.`}
+        aria-label={`${label} over ${points.length} matches: from ${format(values[0]!)} to ${format(latest)}, highest ${format(high)}.`}
         onPointerDown={pick}
         onPointerMove={pick}
         onPointerLeave={() => setHovered(null)}
