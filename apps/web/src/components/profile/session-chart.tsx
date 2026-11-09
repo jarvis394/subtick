@@ -311,8 +311,8 @@ const SessionConnector = ({
         </svg>
       </div>
       {/* Each half hands its hover to the match it faces, lighting up that column. */}
-      {/* -inset-x-3 spans the gap-3 between sessions, and -top-10 covers the full chart height. */}
-      <div className="absolute -inset-x-3 -top-10 bottom-0 z-10 flex">
+      {/* -inset-x-1 spans the gap-1 between sessions, and -top-10 covers the full chart height. */}
+      <div className="absolute -inset-x-1 -top-10 bottom-0 z-10 flex">
         {[from, to].map((m) => (
           <div
             key={m.matchId}
@@ -516,7 +516,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   trigger={
                     <ol
                       aria-label="Rating by match, grouped by session, oldest first"
-                      className="flex gap-3"
+                      className="flex gap-1"
                       onPointerEnter={(e) => {
                         pointer.current = { x: e.clientX, y: e.clientY }
                         openAfterDelay(e)
@@ -564,7 +564,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   </div>
                 </div>
               </div>
-              <ol aria-label="Sessions" className="mt-2 flex gap-3">
+              <ol aria-label="Sessions" className="mt-2 flex gap-1">
                 {chronological.map((session, i) => (
                   <Fragment key={session[0]!.matchId}>
                     <SessionLabel matches={session} />
