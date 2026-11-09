@@ -220,6 +220,9 @@ const SessionColumns = ({
   </li>
 )
 
+const connectorY = (rating: number, max: number) =>
+  Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
+
 /** Half a column wide, joining the ratings either side of a break between sessions. */
 const SessionConnector = ({
   from,
@@ -232,26 +235,28 @@ const SessionConnector = ({
   max: number
   popup: PopupControl
 }) => {
-  const r = 4
+  const rx = 14
+  const ry = 3
+  const offset = 4
+  const start = connectorY(from.stats.rating, max)
+  const end = connectorY(to.stats.rating, max)
 
-  const y = (rating: number) => Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
-
-  const start = y(from.stats.rating)
-  const end = y(to.stats.rating)
   const outline = [
-    `M0 ${start + r}`,
-    `Q0 ${start} ${r} ${start}`,
-    `C34 ${start}, 66 ${end}, ${100 - r} ${end}`,
-    `Q100 ${end} 100 ${end + r}`,
-    `L100 ${100 - r}`,
-    `Q100 100 ${100 - r} 100`,
-    `L${r} 100`,
-    `Q0 100 0 ${100 - r}`,
+    `M0 ${start + ry}`,
+    `Q0 ${start} ${rx} ${start}`,
+    `L${rx + offset} ${start}`,
+    `L${100 - rx - offset} ${end}`,
+    `L${100 - rx} ${end}`,
+    `Q100 ${end} 100 ${end + ry}`,
+    `L100 ${100 - ry}`,
+    `Q100 100 ${100 - rx} 100`,
+    `L${rx} 100`,
+    `Q0 100 0 ${100 - ry}`,
     'Z',
   ].join(' ')
 
   return (
-    <li aria-hidden style={connectorTrack} className={PLOT_BOX}>
+    <li aria-hidden style={connectorTrack} className={cn('relative', PLOT_BOX)}>
       <div className="relative h-full">
         <svg
           viewBox="0 0 100 100"
@@ -267,17 +272,18 @@ const SessionConnector = ({
             vectorEffect="non-scaling-stroke"
           />
         </svg>
-        {/* Each half hands its hover to the match it faces, lighting up that column. */}
-        <div className="absolute inset-0 flex">
-          {[from, to].map((m) => (
-            <div
-              key={m.matchId}
-              className="h-full w-1/2"
-              data-match-id={m.matchId}
-              onPointerEnter={(e) => popup.onColumn(m, e)}
-            />
-          ))}
-        </div>
+      </div>
+      {/* Each half hands its hover to the match it faces, lighting up that column. */}
+      {/* -inset-x-3 spans the gap-3 between sessions, and -top-10 covers the full chart height. */}
+      <div className="absolute -inset-x-3 -top-10 bottom-0 z-10 flex">
+        {[from, to].map((m) => (
+          <div
+            key={m.matchId}
+            className="h-full w-1/2"
+            data-match-id={m.matchId}
+            onPointerEnter={(e) => popup.onColumn(m, e)}
+          />
+        ))}
       </div>
     </li>
   )
@@ -357,7 +363,11 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
   const popup: PopupControl = {
     onColumn: (m, e) => {
       if (e.pointerType === 'touch') return
+      pointer.current = { x: e.clientX, y: e.clientY }
       hoverMatch(m)
+      if (!armed && !openTimer.current) {
+        scheduleOpen()
+      }
     },
     onFocus: (m, e) => {
       // A tap or click focuses the link too, and only the keyboard should open the popup.
@@ -399,11 +409,24 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
   })
 
   const syncHoverToScroll = () => {
-    if (!pointer.current) return
+    if (!pointer.current || !columns) return
+    const rect = columns.getBoundingClientRect()
+    const { x, y } = pointer.current
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      leaveColumns()
+
+      return
+    }
+
     const match = matchAt(pointer.current)
 
-    if (match) hoverMatch(match)
-    else leaveColumns()
+    if (match) {
+      hoverMatch(match)
+      if (!armed && !openTimer.current) {
+        scheduleOpen()
+      }
+    }
   }
 
   // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- Scrolling the page or chart moves content under a still cursor without pointer events, and only a window listener sees both.
@@ -457,7 +480,10 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                     <ol
                       aria-label="Rating by match, grouped by session, oldest first"
                       className="flex gap-3"
-                      onPointerEnter={openAfterDelay}
+                      onPointerEnter={(e) => {
+                        pointer.current = { x: e.clientX, y: e.clientY }
+                        openAfterDelay(e)
+                      }}
                       onPointerMove={(e) => {
                         pointer.current = { x: e.clientX, y: e.clientY }
                       }}

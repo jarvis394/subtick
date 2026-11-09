@@ -65,7 +65,6 @@ export const CursorTooltip = ({
   boundary: Element[]
   className?: string
 }) => {
-  const [hovering, setHovering] = useState(false)
   const [flipped, setFlipped] = useState(false)
   const popup = useRef<HTMLDivElement>(null)
 
@@ -82,8 +81,12 @@ export const CursorTooltip = ({
 
   return (
     <BaseTooltip.Root
-      open={hovering && armed}
-      onOpenChange={setHovering}
+      open={armed}
+      onOpenChange={(nextOpen, eventDetails) => {
+        if (!nextOpen && armed) {
+          eventDetails.cancel()
+        }
+      }}
       trackCursorAxis="both"
       disableHoverablePopup
     >
@@ -92,7 +95,6 @@ export const CursorTooltip = ({
         delay={0}
         closeOnClick={false}
         onPointerMove={(e) => placeFor(e.clientX)}
-        onPointerLeave={() => setHovering(false)}
       />
       <BaseTooltip.Portal>
         {/* The positioner tracks the cursor; the popup's own translate does the flip, because
