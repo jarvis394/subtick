@@ -17,6 +17,7 @@ import { useCancelMatch, useRetryMatch } from '@/hooks/use-match-actions'
 import { IconButton } from '@/components/ui/button'
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/menu'
 import { MorphLabel } from '@/components/ui/morph-label'
+import { copyToClipboard } from '@/lib/use-copied'
 import { cn } from '@/lib/utils'
 
 /** Valve's replay-server link that makes CS2 download the demo and open it. */
@@ -59,7 +60,7 @@ const CopyItem = ({
     <MenuItem
       closeOnClick={false}
       onClick={() => {
-        void navigator.clipboard.writeText(text)
+        void copyToClipboard(text)
         setCopied(true)
         timer.current = setTimeout(onDone, COPIED_MS)
       }}
