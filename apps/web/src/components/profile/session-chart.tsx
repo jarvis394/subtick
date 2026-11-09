@@ -38,8 +38,8 @@ const connectorTrack = { flex: 'none', width: CONNECTOR_WIDTH }
 
 /** Shared by the columns row and the labels row, which must line up without sharing a parent. */
 const sessionTrack = (size: number) => ({
-  flex: 'none',
-  width: `calc(${size} * ${ITEM_WIDTH} + ${size - 1} * ${ITEM_GAP})`,
+  flex: `${size} ${size} 0%`,
+  minWidth: `calc(${size} * ${ITEM_WIDTH} + ${size - 1} * ${ITEM_GAP})`,
 })
 
 /** What the columns report so the chart can decide when its popup opens. */
@@ -192,7 +192,7 @@ export const WinLoss = ({ wins, losses }: { wins: number; losses: number }) => (
 )
 
 const sessionFade = (reduce: boolean | null) => ({
-  layout: 'position' as const,
+  layout: true,
   initial: reduce ? false : { opacity: 0, scale: 0.98 },
   animate: { opacity: 1, scale: 1 },
   exit: reduce ? undefined : { opacity: 0, scale: 0.98 },
@@ -200,7 +200,7 @@ const sessionFade = (reduce: boolean | null) => ({
 })
 
 const connectorFade = (reduce: boolean | null) => ({
-  layout: 'position' as const,
+  layout: true,
   initial: reduce ? false : { opacity: 0 },
   animate: { opacity: 1 },
   exit: reduce ? undefined : { opacity: 0 },
@@ -221,19 +221,21 @@ const SessionColumns = ({
   reduce: boolean | null
 }) => (
   <motion.li style={sessionTrack(matches.length)} {...sessionFade(reduce)}>
-    <ol className="flex gap-1">
+    <ol className="flex w-full gap-1">
       {matches.toReversed().map((m) => (
-        <li
+        <motion.li
           key={m.matchId}
-          className="group flex shrink-0"
-          style={{ width: ITEM_WIDTH }}
+          layout
+          transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
+          className="group flex flex-1 shrink-0"
+          style={{ minWidth: ITEM_WIDTH }}
           data-match-id={m.matchId}
           onPointerEnter={(e) => popup.onColumn(m, e)}
           onFocus={(e) => popup.onFocus(m, e)}
           onBlur={popup.onClose}
         >
           <MatchColumn m={m} max={max} hovered={m.matchId === hoveredId} />
-        </li>
+        </motion.li>
       ))}
     </ol>
   </motion.li>
@@ -564,7 +566,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   trigger={
                     <ol
                       aria-label="Rating by match, grouped by session, oldest first"
-                      className="flex gap-1"
+                      className="flex w-full gap-1"
                       onPointerEnter={(e) => {
                         pointer.current = { x: e.clientX, y: e.clientY }
                         openAfterDelay(e)
@@ -622,7 +624,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                   </div>
                 </div>
               </div>
-              <ol aria-label="Sessions" className="mt-2 flex gap-1">
+              <ol aria-label="Sessions" className="mt-2 flex w-full gap-1">
                 <AnimatePresence initial={false} mode="popLayout">
                   {chronological.flatMap((session, i) => {
                     const sessionKey = session[0]!.matchId
