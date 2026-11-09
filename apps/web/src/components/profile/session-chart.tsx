@@ -2,6 +2,7 @@ import { ScrollArea } from '@base-ui/react/scroll-area'
 import { mapName, summarize } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import {
+  type CSSProperties,
   type FocusEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -40,6 +41,10 @@ type PopupControl = {
 }
 
 const DAY = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
+
+/** A darker left edge shades the session labels into the chart's background. */
+const SESSION_LABEL_BG =
+  'linear-gradient(to right, color-mix(in oklab, var(--color-background) 85%, black), var(--color-background))'
 
 // The raw tokens: Tailwind only emits a `--color-*` variable it finds written out in full.
 const RATING_MIDPOINT = 'color-mix(in oklab, var(--foreground) 70%, var(--muted))'
@@ -224,6 +229,8 @@ const SessionLabel = ({ matches }: { matches: Played[] }) => {
           '-mx-1 w-[calc(100%+0.5rem)] text-left text-micro font-normal after:absolute after:-inset-y-0.5 after:inset-x-0',
           matches.length > 1 ? 'px-2.5' : 'px-1.5',
         )}
+        // The layer stays clear at rest so the gradient shows; hover still fills it.
+        style={{ backgroundImage: SESSION_LABEL_BG, '--bg': 'transparent' } as CSSProperties}
       >
         <span className="grid w-full *:col-start-1 *:row-start-1">
           <span className={cn(sticks && 'pr-16', matches.length === 1 && 'text-center')}>
