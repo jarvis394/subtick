@@ -413,14 +413,14 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
           )}
           {...handlers}
         >
-          <ScrollArea.Content className="px-4 pt-1 pb-1">
+          <ScrollArea.Content className="px-4 pt-1 pb-1 [&_*]:cursor-grab">
             <div className="w-max min-w-full">
               {/* Isolated so the line and ratings layer among themselves, under the edge fades. */}
               <div
                 ref={setColumns}
                 className={cn(
                   'relative isolate',
-                  // The columns grab, even over their match links; the labels below stay clickable.
+                  // Pressing or dragging reads as grabbing; at rest everything shows grab, not a hand.
                   'active:[&_*]:cursor-grabbing!',
                   dragging && '[&_*]:cursor-grabbing!',
                 )}
