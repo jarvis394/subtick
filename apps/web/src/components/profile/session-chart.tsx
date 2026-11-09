@@ -28,10 +28,14 @@ const OPEN_DELAY_MS = 300
 // The columns and the 1.00 line have to agree on it, with headroom for the tallest bar's rating.
 const PLOT_BOX = 'h-32 pt-5 md:h-44'
 
+/** One match column, and the connector that stands in for one between sessions. */
+const ITEM_WIDTH = '4rem'
+const ITEM_GAP = '0.25rem'
+
 /** Shared by the columns row and the labels row, which must line up without sharing a parent. */
 const sessionTrack = (size: number) => ({
-  flex: `${size} ${size} 0`,
-  minWidth: `calc(${size} * 3.25rem + ${size - 1} * 0.25rem)`,
+  flex: 'none',
+  width: `calc(${size} * ${ITEM_WIDTH} + ${size - 1} * ${ITEM_GAP})`,
 })
 
 /** What the columns report so the chart can decide when its popup opens. */
@@ -199,7 +203,8 @@ const SessionColumns = ({
       {matches.toReversed().map((m) => (
         <li
           key={m.matchId}
-          className="group flex min-w-13 flex-1"
+          className="group flex shrink-0"
+          style={{ width: ITEM_WIDTH }}
           data-match-id={m.matchId}
           onPointerEnter={(e) => popup.onColumn(m, e)}
           onFocus={(e) => popup.onFocus(m, e)}
@@ -214,25 +219,40 @@ const SessionColumns = ({
 
 /** One column wide, joining the ratings either side of a break between sessions. */
 const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: number }) => {
-  const y = (rating: number) => Math.min(98, Math.max(2, 100 - barPercent(rating, max))).toFixed(2)
+  const r = 4
+
+  const y = (rating: number) => Math.min(92, Math.max(4, 100 - barPercent(rating, max)))
 
   const start = y(from.stats.rating)
   const end = y(to.stats.rating)
+  const outline = [
+    `M0 ${start + r}`,
+    `Q0 ${start} ${r} ${start}`,
+    `C34 ${start}, 66 ${end}, ${100 - r} ${end}`,
+    `Q100 ${end} 100 ${end + r}`,
+    `L100 ${100 - r}`,
+    `Q100 100 ${100 - r} 100`,
+    `L${r} 100`,
+    `Q0 100 0 ${100 - r}`,
+    'Z',
+  ].join(' ')
 
   return (
     <li aria-hidden style={sessionTrack(1)} className={PLOT_BOX}>
-      <div className="h-full rounded-md border">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="size-full text-muted">
-          <path
-            d={`M0 ${start} C34 ${start}, 66 ${end}, 100 ${end}`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-      </div>
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="size-full overflow-visible text-muted"
+      >
+        <path
+          d={outline}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
     </li>
   )
 }
