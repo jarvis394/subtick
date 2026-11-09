@@ -232,30 +232,34 @@ const connectorOutline = (
 ) => {
   const topSegments = () => {
     if (start > end) {
-      const xApex = 100 - rx - offset
-      const slope = (end - start) / xApex
+      const xTarget = 100 - rx - offset
+      const slope = (end - start) / xTarget
       const topStartX = rx
       const topStartY = start + rx * slope
+      const lineEndX = xTarget - offset
+      const lineEndY = end - offset * slope
 
       return [
         `M0 ${start + ry}`,
         `Q0 ${start} ${topStartX} ${topStartY}`,
-        `L${xApex} ${end}`,
-        `L${100 - rx} ${end}`,
+        `L${lineEndX} ${lineEndY}`,
+        `Q${xTarget} ${end} ${100 - rx} ${end}`,
         `Q100 ${end} 100 ${end + ry}`,
       ]
     }
 
     if (start < end) {
-      const xApex = rx + offset
-      const slope = (end - start) / (100 - xApex)
+      const xTarget = rx + offset
+      const slope = (end - start) / (100 - xTarget)
+      const lineStartX = xTarget + offset
+      const lineStartY = start + offset * slope
       const topEndX = 100 - rx
       const topEndY = end - rx * slope
 
       return [
         `M0 ${start + ry}`,
         `Q0 ${start} ${rx} ${start}`,
-        `L${xApex} ${start}`,
+        `Q${xTarget} ${start} ${lineStartX} ${lineStartY}`,
         `L${topEndX} ${topEndY}`,
         `Q100 ${end} 100 ${end + ry}`,
       ]
