@@ -1,9 +1,9 @@
 import { ScrollArea } from '@base-ui/react/scroll-area'
 import { mapName, summarize } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   type CSSProperties,
-  Fragment,
   type FocusEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { CursorTooltip } from '@/components/ui/tooltip'
 import { formatDate } from '@/lib/format'
 import { useDragScroll } from '@/hooks/use-drag-scroll'
+import { EASE_OUT_QUART } from '@/lib/motion'
 import { observeResize } from '@/lib/resizeObserve'
 import { cn } from '@/lib/utils'
 import { formatImpact, impactTone, type Played, RESULT_LABEL } from './facts'
@@ -190,18 +191,36 @@ export const WinLoss = ({ wins, losses }: { wins: number; losses: number }) => (
   </>
 )
 
+const sessionFade = (reduce: boolean | null) => ({
+  layout: 'position' as const,
+  initial: reduce ? false : { opacity: 0, scale: 0.98 },
+  animate: { opacity: 1, scale: 1 },
+  exit: reduce ? undefined : { opacity: 0, scale: 0.98 },
+  transition: { duration: 0.35, ease: EASE_OUT_QUART },
+})
+
+const connectorFade = (reduce: boolean | null) => ({
+  layout: 'position' as const,
+  initial: reduce ? false : { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: reduce ? undefined : { opacity: 0 },
+  transition: { duration: 0.25, ease: EASE_OUT_QUART },
+})
+
 const SessionColumns = ({
   matches,
   max,
   hoveredId,
   popup,
+  reduce,
 }: {
   matches: Played[]
   max: number
   hoveredId: string | undefined
   popup: PopupControl
+  reduce: boolean | null
 }) => (
-  <li style={sessionTrack(matches.length)}>
+  <motion.li style={sessionTrack(matches.length)} {...sessionFade(reduce)}>
     <ol className="flex gap-1">
       {matches.toReversed().map((m) => (
         <li
@@ -217,7 +236,7 @@ const SessionColumns = ({
         </li>
       ))}
     </ol>
-  </li>
+  </motion.li>
 )
 
 const connectorY = (rating: number, max: number) =>
@@ -289,18 +308,25 @@ const SessionConnector = ({
   to,
   max,
   popup,
+  reduce,
 }: {
   from: Played
   to: Played
   max: number
   popup: PopupControl
+  reduce: boolean | null
 }) => {
   const start = connectorY(from.stats.rating, max)
   const end = connectorY(to.stats.rating, max)
   const outline = connectorOutline(start, end, 14, 3, 4)
 
   return (
-    <li aria-hidden style={connectorTrack} className={cn('relative', PLOT_BOX)}>
+    <motion.li
+      aria-hidden
+      style={connectorTrack}
+      className={cn('relative', PLOT_BOX)}
+      {...connectorFade(reduce)}
+    >
       <div className="relative h-full">
         <svg
           viewBox="0 0 100 100"
@@ -322,18 +348,24 @@ const SessionConnector = ({
           />
         ))}
       </div>
-    </li>
+    </motion.li>
   )
 }
 
-const SessionLabel = ({ matches }: { matches: Played[] }) => {
+const SessionLabel = ({
+  matches,
+  reduce,
+}: {
+  matches: Played[]
+  reduce: boolean | null
+}) => {
   const { wins, losses } = summarize(matches)
   const date = DAY.format(new Date(matches.at(-1)!.playedAt))
   // A shorter session's label fills its block, leaving nothing to travel.
   const sticks = matches.length > 2
 
   return (
-    <li style={sessionTrack(matches.length)}>
+    <motion.li style={sessionTrack(matches.length)} {...sessionFade(reduce)}>
       {/* Overlaid, each inset by the other's width plus 16px: sticky stops at its parent's
           padding, so the labels push each other instead of colliding. */}
       <Button
@@ -360,9 +392,13 @@ const SessionLabel = ({ matches }: { matches: Played[] }) => {
           )}
         </span>
       </Button>
-    </li>
+    </motion.li>
   )
 }
+
+const SessionLabelSpacer = ({ reduce }: { reduce: boolean | null }) => (
+  <motion.li aria-hidden style={connectorTrack} {...connectorFade(reduce)} />
+)
 
 /**
  * One column per match, oldest to newest and grouped by session: a bar rising from 0 with its
@@ -370,14 +406,31 @@ const SessionLabel = ({ matches }: { matches: Played[] }) => {
  * squeezing, opening on the newest.
  */
 export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
+  const reduce = useReducedMotion()
   const [active, setActive] = useState<Played | null>(null)
   const [hovered, setHovered] = useState<Played | null>(null)
   const pointer = useRef<{ x: number; y: number } | null>(null)
   const [armed, setArmed] = useState(false)
   const [columns, setColumns] = useState<HTMLElement | null>(null)
+  const viewportRef = useRef<HTMLDivElement | null>(null)
   const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const max = Math.max(2, ...sessions.flat().map((m) => m.stats.rating))
   const chronological = sessions.toReversed()
+
+  const setViewport = (node: HTMLDivElement | null) => {
+    viewportRef.current = node
+
+    return pinToEnd(node)
+  }
+
+  // oxlint-disable-next-line subtick/no-unreasoned-state-sync -- Pins viewport to the end when switching session scope
+  useEffect(() => {
+    const el = viewportRef.current
+
+    if (el && sessions.length > 0) {
+      el.scrollLeft = el.scrollWidth
+    }
+  }, [sessions])
 
   const scheduleOpen = () => {
     clearTimeout(openTimer.current)
@@ -484,7 +537,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
         )}
       >
         <ScrollArea.Viewport
-          ref={pinToEnd}
+          ref={setViewport}
           className={cn(
             'overscroll-x-contain overscroll-y-none select-none',
             'active:cursor-grabbing',
@@ -521,28 +574,38 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                       }}
                       onPointerLeave={leaveColumns}
                     >
-                      {chronological.map((session, i) => {
-                        const next = chronological[i + 1]
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {chronological.flatMap((session, i) => {
+                          const next = chronological[i + 1]
+                          const sessionKey = session[0]!.matchId
 
-                        return (
-                          <Fragment key={session[0]!.matchId}>
+                          const nodes = [
                             <SessionColumns
+                              key={sessionKey}
                               matches={session}
                               max={max}
                               hoveredId={hovered?.matchId}
                               popup={popup}
-                            />
-                            {next && (
+                              reduce={reduce}
+                            />,
+                          ]
+
+                          if (next) {
+                            nodes.push(
                               <SessionConnector
+                                key={`${sessionKey}-connector`}
                                 from={session[0]!}
                                 to={next.at(-1)!}
                                 max={max}
                                 popup={popup}
-                              />
-                            )}
-                          </Fragment>
-                        )
-                      })}
+                                reduce={reduce}
+                              />,
+                            )
+                          }
+
+                          return nodes
+                        })}
+                      </AnimatePresence>
                     </ol>
                   }
                 />
@@ -560,12 +623,30 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 </div>
               </div>
               <ol aria-label="Sessions" className="mt-2 flex gap-1">
-                {chronological.map((session, i) => (
-                  <Fragment key={session[0]!.matchId}>
-                    <SessionLabel matches={session} />
-                    {i < chronological.length - 1 && <li aria-hidden style={connectorTrack} />}
-                  </Fragment>
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {chronological.flatMap((session, i) => {
+                    const sessionKey = session[0]!.matchId
+
+                    const nodes = [
+                      <SessionLabel
+                        key={`${sessionKey}-label`}
+                        matches={session}
+                        reduce={reduce}
+                      />,
+                    ]
+
+                    if (i < chronological.length - 1) {
+                      nodes.push(
+                        <SessionLabelSpacer
+                          key={`${sessionKey}-spacer`}
+                          reduce={reduce}
+                        />,
+                      )
+                    }
+
+                    return nodes
+                  })}
+                </AnimatePresence>
               </ol>
             </div>
           </ScrollArea.Content>

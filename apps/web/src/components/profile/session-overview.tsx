@@ -1,9 +1,7 @@
 import { splitSessions, summarize, summarizeLobby } from '@subtick/domain'
 import { ArrowDown, ArrowUp } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { Segmented } from '@/components/ui/segmented'
-import { EASE_OUT_QUART } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { type Played, ratingTone } from './facts'
 import { SessionSplitChart, WinLoss } from './session-chart'
@@ -38,7 +36,6 @@ const Readout = ({
 /** Stats over the latest session or every match, picked here, above the chart split by session. */
 export const SplitSessions = ({ history, total }: { history: Played[]; total: number }) => {
   const [picked, setPicked] = useState<Scope>('all')
-  const reduce = useReducedMotion()
   const sessions = splitSessions(history)
   const scope = sessions.length > 1 ? picked : 'all'
   const shown = scope === 'session' ? sessions[0]! : history
@@ -119,17 +116,7 @@ export const SplitSessions = ({ history, total }: { history: Played[]; total: nu
         <Readout label="Headshots" value={`${s.hsPercent}%`} note={`${s.kastPercent}% KAST`} />
       </dl>
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={scope}
-          initial={reduce ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? undefined : { opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: EASE_OUT_QUART }}
-        >
-          <SessionSplitChart sessions={charted} />
-        </motion.div>
-      </AnimatePresence>
+      <SessionSplitChart sessions={charted} />
     </section>
   )
 }
