@@ -3,6 +3,7 @@ import { mapName, summarize } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import {
   type CSSProperties,
+  Fragment,
   type FocusEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -211,6 +212,31 @@ const SessionColumns = ({
   </li>
 )
 
+/** One column wide, joining the ratings either side of a break between sessions. */
+const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: number }) => {
+  const y = (rating: number) => Math.min(98, Math.max(2, 100 - barPercent(rating, max))).toFixed(2)
+
+  const start = y(from.stats.rating)
+  const end = y(to.stats.rating)
+
+  return (
+    <li aria-hidden style={sessionTrack(1)} className={PLOT_BOX}>
+      <div className="h-full rounded-md border">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="size-full text-muted">
+          <path
+            d={`M0 ${start} C34 ${start}, 66 ${end}, 100 ${end}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+    </li>
+  )
+}
+
 const SessionLabel = ({ matches }: { matches: Played[] }) => {
   const { wins, losses } = summarize(matches)
   const date = DAY.format(new Date(matches.at(-1)!.playedAt))
@@ -382,15 +408,23 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                       }}
                       onPointerLeave={leaveColumns}
                     >
-                      {chronological.map((session) => (
-                        <SessionColumns
-                          key={session[0]!.matchId}
-                          matches={session}
-                          max={max}
-                          hoveredId={hovered?.matchId}
-                          popup={popup}
-                        />
-                      ))}
+                      {chronological.map((session, i) => {
+                        const next = chronological[i + 1]
+
+                        return (
+                          <Fragment key={session[0]!.matchId}>
+                            <SessionColumns
+                              matches={session}
+                              max={max}
+                              hoveredId={hovered?.matchId}
+                              popup={popup}
+                            />
+                            {next && (
+                              <SessionConnector from={session[0]!} to={next.at(-1)!} max={max} />
+                            )}
+                          </Fragment>
+                        )
+                      })}
                     </ol>
                   }
                 />
@@ -408,8 +442,11 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 </div>
               </div>
               <ol aria-label="Sessions" className="mt-2 flex gap-3">
-                {chronological.map((session) => (
-                  <SessionLabel key={session[0]!.matchId} matches={session} />
+                {chronological.map((session, i) => (
+                  <Fragment key={session[0]!.matchId}>
+                    <SessionLabel matches={session} />
+                    {i < chronological.length - 1 && <li aria-hidden style={sessionTrack(1)} />}
+                  </Fragment>
                 ))}
               </ol>
             </div>
