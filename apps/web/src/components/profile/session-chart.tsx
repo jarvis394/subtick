@@ -309,7 +309,7 @@ const SessionConnector = ({
         >
           <path
             d={outline}
-            fill="var(--background)"
+            fill="var(--surface)"
             stroke="currentColor"
             strokeWidth="1.5"
             strokeLinejoin="round"
