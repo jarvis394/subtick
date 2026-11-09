@@ -33,11 +33,20 @@ const styles = {
     brand:
       'text-brand-text [--bg:var(--color-brand-soft)] [--bg-hover:var(--color-brand-soft-hover)]',
   },
+  recessed: {
+    neutral: cn(
+      'text-muted [--bg:var(--color-background)] [--bg-hover:var(--color-surface-2)]',
+      'hover:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
+    ),
+    danger: 'text-danger [--bg:var(--color-background)] [--bg-hover:var(--color-danger-soft)]',
+    brand: 'text-brand-text [--bg:var(--color-background)] [--bg-hover:var(--color-brand-soft)]',
+  },
   ghost: {
     neutral: cn(
       'text-muted [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
       // Muted at rest; full color while hovered or selected.
-      'hover:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
+      // A parent `group/button` lights it too, for a whole row that links through it.
+      'hover:text-foreground group-hover/button:text-foreground aria-pressed:text-foreground data-popup-open:text-foreground',
     ),
     danger: 'text-danger [--bg:transparent] [--bg-hover:var(--color-surface-2)]',
     brand: 'text-brand-text [--bg:transparent] [--bg-hover:var(--color-brand-soft)]',

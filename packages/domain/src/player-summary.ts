@@ -6,14 +6,13 @@ export type MatchResult = 'win' | 'loss' | 'draw'
 export interface LobbyTotals {
   players: number
   ratingSum: number
-  kills: number
-  deaths: number
-  damage: number
   roundsPlayed: number
-  headshotKills: number
-  kastRounds: number
-  openingKills: number
-  openingDeaths: number
+  utilityDamage: number
+  /** Only the players whose stats have them: older matches lack impact and aim. */
+  impactSum: number
+  impactPlayers: number
+  aimSum: number
+  aimPlayers: number
 }
 
 export interface SummaryMatch {
@@ -53,11 +52,9 @@ export const summarize = (matches: SummaryMatch[]) => {
     hsPercent: percent(headshots, kills) ?? 0,
     kastPercent: percent(kast, rounds) ?? 0,
     openingKills,
-    openingDeaths,
     openingWinRate: percent(openingKills, openingKills + openingDeaths),
     clutchesWon: sum((s) => s.clutchesWon),
-    clutchesAttempted: sum((s) => s.clutchesAttempted),
-    roundsPlayed: rounds,
+    enemiesFlashed: sum((s) => s.enemiesFlashed),
     /** multiKills[n - 1] = rounds with exactly n kills. */
     multiKills: [0, 1, 2, 3, 4].map((n) => sum((s) => s.multiKills[n]!)),
     tradeKills: sum((s) => s.tradeKills),
@@ -66,27 +63,20 @@ export const summarize = (matches: SummaryMatch[]) => {
   }
 }
 
-export type PlayerSummary = ReturnType<typeof summarize>
-
 /** What the average other player in the same lobbies did, comparable to `summarize`. */
 export const summarizeLobby = (lobbies: LobbyTotals[]) => {
   const sum = (pick: (l: LobbyTotals) => number) => lobbies.reduce((t, l) => t + pick(l), 0)
 
   const players = sum((l) => l.players)
-  const kills = sum((l) => l.kills)
-  const deaths = sum((l) => l.deaths)
   const rounds = sum((l) => l.roundsPlayed)
-  const headshots = sum((l) => l.headshotKills)
-  const kast = sum((l) => l.kastRounds)
-  const openingKills = sum((l) => l.openingKills)
+  const impactPlayers = sum((l) => l.impactPlayers)
+  const aimPlayers = sum((l) => l.aimPlayers)
 
   return {
     rating: players ? round(sum((l) => l.ratingSum) / players) : 0,
-    kd: round(deaths ? kills / deaths : kills),
-    adr: rounds ? round(sum((l) => l.damage) / rounds, 1) : 0,
-    hsPercent: percent(headshots, kills) ?? 0,
-    kastPercent: percent(kast, rounds) ?? 0,
-    openingWinRate: percent(openingKills, openingKills + sum((l) => l.openingDeaths)),
+    utilityPerRound: rounds ? round(sum((l) => l.utilityDamage) / rounds, 1) : 0,
+    impact: impactPlayers ? round(sum((l) => l.impactSum) / impactPlayers, 1) : null,
+    aim: aimPlayers ? round(sum((l) => l.aimSum) / aimPlayers, 0) : null,
   }
 }
 
@@ -96,13 +86,11 @@ export const lobbyTotals = (stats: PlayerStats[]): LobbyTotals => {
   return {
     players: stats.length,
     ratingSum: sum((s) => s.rating),
-    kills: sum((s) => s.kills),
-    deaths: sum((s) => s.deaths),
-    damage: sum((s) => s.damage),
     roundsPlayed: sum((s) => s.roundsPlayed),
-    headshotKills: sum((s) => s.headshotKills),
-    kastRounds: sum((s) => s.kastRounds),
-    openingKills: sum((s) => s.openingKills),
-    openingDeaths: sum((s) => s.openingDeaths),
+    utilityDamage: sum((s) => s.utilityDamage),
+    impactSum: sum((s) => s.impact ?? 0),
+    impactPlayers: stats.filter((s) => s.impact !== undefined).length,
+    aimSum: sum((s) => s.aim?.rating ?? 0),
+    aimPlayers: stats.filter((s) => s.aim).length,
   }
 }
