@@ -28,9 +28,12 @@ const OPEN_DELAY_MS = 300
 // The columns and the 1.00 line have to agree on it, with headroom for the tallest bar's rating.
 const PLOT_BOX = 'h-32 pt-5 md:h-44'
 
-/** One match column, and the connector that stands in for one between sessions. */
-const ITEM_WIDTH = '4rem'
+/** One match column, and the half-width connector that stands between sessions. */
+const ITEM_WIDTH = '3.5rem'
 const ITEM_GAP = '0.25rem'
+const CONNECTOR_WIDTH = '1.75rem'
+
+const connectorTrack = { flex: 'none', width: CONNECTOR_WIDTH }
 
 /** Shared by the columns row and the labels row, which must line up without sharing a parent. */
 const sessionTrack = (size: number) => ({
@@ -217,7 +220,7 @@ const SessionColumns = ({
   </li>
 )
 
-/** One column wide, joining the ratings either side of a break between sessions. */
+/** Half a column wide, joining the ratings either side of a break between sessions. */
 const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: number }) => {
   const r = 4
 
@@ -238,11 +241,11 @@ const SessionConnector = ({ from, to, max }: { from: Played; to: Played; max: nu
   ].join(' ')
 
   return (
-    <li aria-hidden style={sessionTrack(1)} className={PLOT_BOX}>
+    <li aria-hidden style={connectorTrack} className={PLOT_BOX}>
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        className="size-full overflow-visible text-muted"
+        className="size-full overflow-visible text-border-strong"
       >
         <path
           d={outline}
@@ -465,7 +468,7 @@ export const SessionSplitChart = ({ sessions }: { sessions: Played[][] }) => {
                 {chronological.map((session, i) => (
                   <Fragment key={session[0]!.matchId}>
                     <SessionLabel matches={session} />
-                    {i < chronological.length - 1 && <li aria-hidden style={sessionTrack(1)} />}
+                    {i < chronological.length - 1 && <li aria-hidden style={connectorTrack} />}
                   </Fragment>
                 ))}
               </ol>
