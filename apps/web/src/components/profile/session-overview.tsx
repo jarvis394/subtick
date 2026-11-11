@@ -1,12 +1,18 @@
 import { splitSessions, summarize, summarizeLobby } from '@subtick/domain'
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowDown, ArrowUp, ChevronRight } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { FadeSwap } from '@/components/fade-swap'
+import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/ui/segmented'
+import { sessionAnchor } from '@/lib/sessions'
 import { cn } from '@/lib/utils'
 import { type Played, ratingTone } from './facts'
 import { SessionSplitChart } from './session-chart'
 import { sessionDay, sessionKey, WinLoss } from './session-track'
+
+/** Sits flush with the text below; the button's padding reaches into the gutter. */
+const TITLE_BUTTON = '-mx-3.5 gap-3 text-title'
 
 const SCOPES = [
   { id: 'session', label: 'Session' },
@@ -48,7 +54,15 @@ const Readout = ({
 )
 
 /** Stats over the latest session or every match, picked here, above the chart split by session. */
-export const SplitSessions = ({ history, total }: { history: Played[]; total: number }) => {
+export const SplitSessions = ({
+  player,
+  history,
+  total,
+}: {
+  player: string
+  history: Played[]
+  total: number
+}) => {
   const [view, setView] = useState<{ scope: Scope; openedKey?: string }>({ scope: 'all' })
   const sessions = splitSessions(history)
   const scope = sessions.length > 1 ? view.scope : 'all'
@@ -65,6 +79,14 @@ export const SplitSessions = ({ history, total }: { history: Played[]; total: nu
   const title = focused ? lastSessionTitle : 'Matches'
   const count = focused ? focused.length : total
 
+  const heading = (
+    <>
+      {title}
+      <span className="text-muted tabular-nums">{count}</span>
+      <ChevronRight aria-hidden strokeWidth={2.5} className="-ml-1 opacity-30" />
+    </>
+  )
+
   const toggleSession = (key: string) =>
     setView(key === focusKey ? { scope: 'all' } : { scope: 'session', openedKey: key })
 
@@ -73,10 +95,38 @@ export const SplitSessions = ({ history, total }: { history: Played[]; total: nu
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <FadeSwap swapKey={`${title} ${count}`} appear={false}>
-            <div className="flex flex-wrap items-baseline gap-x-3">
-              <h2 className="text-title font-medium">{title}</h2>
-              <span className="text-title text-muted tabular-nums">{count}</span>
-            </div>
+            <h2 className="text-title font-medium">
+              {focused ? (
+                <Button
+                  variant="plain"
+                  className={TITLE_BUTTON}
+                  render={
+                    <Link
+                      to="/sessions"
+                      search={{ player, until: new Date(focused.at(-1)!.playedAt).toISOString() }}
+                      hash={sessionAnchor(focusKey!)}
+                    />
+                  }
+                >
+                  {heading}
+                </Button>
+              ) : (
+                <Button
+                  variant="plain"
+                  className={TITLE_BUTTON}
+                  render={
+                    <Link
+                      to="/players/$player"
+                      params={{ player }}
+                      search={{ tab: 'matches' }}
+                      resetScroll={false}
+                    />
+                  }
+                >
+                  {heading}
+                </Button>
+              )}
+            </h2>
           </FadeSwap>
           {scope === 'all' && total > shown.length && (
             <p className="text-caption text-muted">Stats from the latest {shown.length} matches</p>

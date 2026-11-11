@@ -72,9 +72,9 @@ const Highlights = ({ player }: { player: Player }) => {
   )
 }
 
-const Stats = ({ player: { history, total } }: { player: Player }) => (
+const Stats = ({ player, player: { history, total } }: { player: Player }) => (
   <>
-    <SplitSessions history={history} total={total} />
+    <SplitSessions player={playerSlug(player)} history={history} total={total} />
     <section>
       <h2 className="mb-4 flex flex-wrap items-baseline gap-x-3 text-title font-medium">
         Best map
