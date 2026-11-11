@@ -72,6 +72,12 @@ const stopWatchingFirstLoad = router.subscribe('onResolved', () => {
   stopWatchingFirstLoad()
 })
 
+// index.html's empty shell stays behind the page until the first route is on screen.
+const stopWatchingFirstRender = router.subscribe('onRendered', () => {
+  delete document.documentElement.dataset.bootShell
+  stopWatchingFirstRender()
+})
+
 declare module '@tanstack/react-query' {
   interface Register {
     mutationMeta: { inlineError?: boolean }

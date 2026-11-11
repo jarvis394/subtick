@@ -10,12 +10,74 @@
         const theme = localStorage.getItem('subtick-theme')
         if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
       } catch {}
+      // The signed-in area's empty shell until the app renders (styles.css, .boot-shell).
+      if (!['/login', '/signup'].includes(location.pathname)) {
+        document.documentElement.dataset.bootShell = ''
+        try {
+          if (localStorage.getItem('subtick:sidebar-collapsed') === 'true')
+            document.documentElement.dataset.bootCollapsed = ''
+        } catch {}
+      }
     </script>
+    <!--
+      The signed-in area's empty shell (app-shell.tsx), inline so it paints before any stylesheet
+      or script loads: the header bar below md, the sidebar's space and the inset frame from md.
+      Colors mirror the tokens in src/styles.css. It sits behind the page, so the app shell covers it,
+      and main.tsx drops it after the first route renders, so pages without the shell never show it.
+    -->
+    <style>
+      :root {
+        --boot-background: #f7f7f7;
+        --boot-surface: #ffffff;
+        --boot-border: rgb(17 17 17 / 0.09);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --boot-background: #111111;
+          --boot-surface: #181818;
+          --boot-border: rgb(255 255 255 / 0.07);
+        }
+      }
+      :root[data-theme='dark'] {
+        --boot-background: #111111;
+        --boot-surface: #181818;
+        --boot-border: rgb(255 255 255 / 0.07);
+      }
+      .boot-shell {
+        display: none;
+      }
+      :root[data-boot-shell] .boot-shell {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background:
+          linear-gradient(var(--boot-border), var(--boot-border)) 0 calc(3.5rem - 1px) / 100% 1px
+            no-repeat,
+          var(--boot-surface);
+      }
+      @media (width >= 48rem) {
+        :root[data-boot-shell] .boot-shell {
+          background: var(--boot-background);
+        }
+        .boot-shell-frame {
+          position: fixed;
+          inset: 0.5rem 0.5rem 0.5rem 16rem;
+          border: 1px solid var(--boot-border);
+          border-radius: 1rem;
+          background: var(--boot-surface);
+        }
+        :root[data-boot-collapsed] .boot-shell-frame {
+          left: 3.5rem;
+        }
+      }
+    </style>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>subtick</title>
   </head>
   <body>
     <div id="root"></div>
+    <div class="boot-shell" aria-hidden="true"><div class="boot-shell-frame"></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

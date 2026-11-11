@@ -65,7 +65,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <div
           className={cn(
             // The page is the raised surface; the sidebar and the drawer sit on the background.
-            'relative z-10 flex min-h-dvh bg-surface',
+            // From md the frame's own layer paints the surface, so the sidebar's space stays the
+            // background while its content fades in, as index.html's empty shell paints it.
+            'relative z-10 flex min-h-dvh bg-surface md:bg-background',
             // Pushed fully off to the right while open, less the swipe progress while dragged back.
             'max-md:group-data-active/indent:[translate:calc(100%*(1-var(--nav-progress)))_0]',
             '[transition:translate_var(--nav-duration)_var(--ease-drawer)]',
@@ -164,7 +166,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <main
               id="content"
               tabIndex={-1}
-              className="mx-auto w-full max-w-6xl px-4 py-6 outline-none md:px-8 md:py-10"
+              // Fades in over the prerendered empty frame, as the sidebar's content does.
+              className="mx-auto w-full max-w-6xl px-4 py-6 outline-none transition-opacity duration-200 ease-out-quart starting:opacity-0 md:px-8 md:py-10 motion-reduce:transition-none"
             >
               {children}
             </main>
