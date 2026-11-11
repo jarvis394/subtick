@@ -1,5 +1,6 @@
 import { type LobbyTotals, type SummaryMatch, summarize, summarizeLobby } from './player-summary'
 import { IMPACT_MAX, IMPACT_MIN } from './stats'
+import { utilityRating } from './utility-rating'
 
 /** Matches on each side of the comparison, once a player has that many. */
 const SKILL_WINDOW = 15
@@ -29,10 +30,17 @@ const measure = (matches: SkillMatch[]) => {
 
   const perMatch = (total: number) => (matches.length ? total / matches.length : 0)
 
+  const sum = (pick: (m: SkillMatch) => number) => matches.reduce((t, m) => t + pick(m), 0)
+
   return {
     form: s.rating,
     aim: average(aims.map((a) => a.rating)),
-    utility: s.utilityPerRound,
+    utility: utilityRating({
+      damage: sum((m) => m.stats.utilityDamage),
+      enemiesFlashed: s.enemiesFlashed,
+      flashAssists: s.flashAssists,
+      rounds: sum((m) => m.stats.roundsPlayed),
+    }),
     impact: average(impacts),
     kd: s.kd,
     adr: s.adr,
@@ -51,6 +59,7 @@ const measure = (matches: SkillMatch[]) => {
       aimTotal((a) => a.bursts),
     ),
     headshots: s.hsPercent,
+    utilityDamage: perMatch(sum((m) => m.stats.utilityDamage)),
     flashAssists: perMatch(s.flashAssists),
     enemiesFlashed: perMatch(s.enemiesFlashed),
     openingKills: perMatch(s.openingKills),
@@ -65,7 +74,7 @@ export type SkillMetric = keyof ReturnType<typeof measure>
 const AREAS = {
   form: { scale: [0, 2], metrics: ['kd', 'adr', 'kast', 'openings'] },
   aim: { scale: [0, 100], metrics: ['accuracy', 'headHits', 'counterStrafe', 'headshots'] },
-  utility: { scale: [0, 20], metrics: ['flashAssists', 'enemiesFlashed'] },
+  utility: { scale: [0, 100], metrics: ['utilityDamage', 'enemiesFlashed', 'flashAssists'] },
   impact: {
     scale: [IMPACT_MIN, IMPACT_MAX],
     metrics: ['openingKills', 'clutches', 'tradeKills', 'multiKillRounds'],
@@ -95,7 +104,7 @@ export const skillSummary = (newestFirst: SkillMatch[]) => {
   const lobbyLevel = {
     form: lobby.rating,
     aim: lobby.aim,
-    utility: lobby.utilityPerRound,
+    utility: lobby.utility,
     impact: lobby.impact,
   }
 

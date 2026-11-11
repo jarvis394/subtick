@@ -1,4 +1,5 @@
 import type { PlayerStats } from './stats'
+import { utilityRating } from './utility-rating'
 
 export type MatchResult = 'win' | 'loss' | 'draw'
 
@@ -8,6 +9,8 @@ export interface LobbyTotals {
   ratingSum: number
   roundsPlayed: number
   utilityDamage: number
+  enemiesFlashed: number
+  flashAssists: number
   /** Only the players whose stats have them: older matches lack impact and aim. */
   impactSum: number
   impactPlayers: number
@@ -75,6 +78,12 @@ export const summarizeLobby = (lobbies: LobbyTotals[]) => {
   return {
     rating: players ? round(sum((l) => l.ratingSum) / players) : null,
     utilityPerRound: rounds ? round(sum((l) => l.utilityDamage) / rounds, 1) : null,
+    utility: utilityRating({
+      damage: sum((l) => l.utilityDamage),
+      enemiesFlashed: sum((l) => l.enemiesFlashed),
+      flashAssists: sum((l) => l.flashAssists),
+      rounds,
+    }),
     impact: impactPlayers ? round(sum((l) => l.impactSum) / impactPlayers, 1) : null,
     aim: aimPlayers ? round(sum((l) => l.aimSum) / aimPlayers, 0) : null,
   }
@@ -88,6 +97,8 @@ export const lobbyTotals = (stats: PlayerStats[]): LobbyTotals => {
     ratingSum: sum((s) => s.rating),
     roundsPlayed: sum((s) => s.roundsPlayed),
     utilityDamage: sum((s) => s.utilityDamage),
+    enemiesFlashed: sum((s) => s.enemiesFlashed),
+    flashAssists: sum((s) => s.flashAssists),
     impactSum: sum((s) => s.impact ?? 0),
     impactPlayers: stats.filter((s) => s.impact !== undefined).length,
     aimSum: sum((s) => s.aim?.rating ?? 0),

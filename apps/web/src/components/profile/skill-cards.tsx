@@ -1,6 +1,7 @@
 import { type SkillArea, type SkillMetric, type SkillStanding, skillSummary } from '@subtick/domain'
 import { ArrowDown, ArrowUp, ChevronUp, Minus } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
+import { BrandMark } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { Popover } from '@/components/ui/popover'
 import { Card } from '@/components/ui/surface'
@@ -14,29 +15,34 @@ const percent = (n: number) => `${Math.round(n)}%`
 
 const oneDecimal = (n: number) => n.toFixed(1)
 
-const AREAS: Record<SkillArea, { title: string; how: string }> = {
+const AREAS: Record<SkillArea, { title: string; how: string; icon?: ReactNode }> = {
   form: {
-    title: 'Form',
-    how: 'Average match rating, where 1.00 is an even game.',
+    title: 'Rating',
+    how: "The player's average match rating. 1.00 means an even game.",
   },
   aim: {
     title: 'Aim',
-    how: 'Out of 100, from accuracy, head hits, headshot kills and counter-strafing.',
+    how: 'A score out of 100 built from accuracy, head hits, headshot kills and counter-strafing.',
   },
   utility: {
     title: 'Utility',
-    how: 'Grenade damage per round. The stats below are per match.',
+    how: 'A score out of 100 built from grenade damage, enemies flashed and flash assists per round. The stats below are per match.',
   },
   impact: {
     title: 'Impact',
-    how: 'How much round win probability the player swung, on average. The stats below are per match.',
+    // Impact is subtick's own measure, so it carries the mark.
+    icon: <BrandMark className="size-5 rounded-md" />,
+    how: "How much the player changed their team's chance to win each round, on average. The stats below are per match.",
   },
 }
+
+const ORDER: SkillArea[] = ['impact', 'form', 'aim', 'utility']
 
 const METRICS: Record<SkillMetric, { label: string; format: (n: number) => string }> = {
   form: { label: 'Rating', format: (n) => n.toFixed(2) },
   aim: { label: 'Aim', format: (n) => String(Math.round(n)) },
-  utility: { label: 'Utility damage', format: oneDecimal },
+  utility: { label: 'Utility', format: (n) => String(Math.round(n)) },
+  utilityDamage: { label: 'Utility damage', format: oneDecimal },
   impact: { label: 'Impact', format: formatImpact },
   kd: { label: 'K/D', format: (n) => n.toFixed(2) },
   adr: { label: 'ADR', format: (n) => String(Math.round(n)) },
@@ -209,12 +215,12 @@ const AreaCard = ({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) => {
-  const { title } = AREAS[area.area]
+  const { title, icon } = AREAS[area.area]
   const { format } = METRICS[area.area]
 
   return (
     <div className="min-w-0 bg-surface p-4 pt-3">
-      <CardHeader title={title} level="h3" />
+      <CardHeader title={title} icon={icon} level="h3" />
       <div className="grid grid-cols-2 gap-1.5">
         <Well
           label={`Last ${size}`}
@@ -240,7 +246,9 @@ const AreaCard = ({
 export const SkillCards = ({ history }: { history: Played[] }) => {
   // One place for what's open: hover and click would otherwise each leave a popover up.
   const [openArea, setOpenArea] = useState<SkillArea | null>(null)
-  const { size, areas } = skillSummary(history)
+  const summary = skillSummary(history)
+  const { size } = summary
+  const areas = summary.areas.toSorted((a, b) => ORDER.indexOf(a.area) - ORDER.indexOf(b.area))
 
   return (
     <section>
