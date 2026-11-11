@@ -1,6 +1,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Clapperboard, PanelLeft, Swords } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 import { SessionsIcon } from '@/components/sessions/sessions-icon'
 import { Button, IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
@@ -46,25 +47,17 @@ export const SidebarContent = ({
   return (
     <div className="flex h-full w-full min-w-64 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-1.5 px-3">
-        {onToggle && (
-          <IconButton
-            size="sm"
-            label={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-            onClick={onToggle}
-          >
-            <PanelLeft />
-          </IconButton>
-        )}
         <Link
           to="/"
           onClick={onNavigate}
           viewTransition={viewTransition}
           tabIndex={collapsed ? -1 : undefined}
           className={cn(
-            'rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'mr-auto flex items-center gap-2 rounded-md px-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring',
             fade(collapsed),
           )}
         >
+          <BrandMark />
           <Wordmark />
         </Link>
         {!setUp && (
@@ -72,11 +65,26 @@ export const SidebarContent = ({
             size="xs"
             render={<Link to="/setup" onClick={onNavigate} viewTransition={viewTransition} />}
             tabIndex={collapsed ? -1 : undefined}
-            className={cn('ml-auto', fade(collapsed))}
+            className={fade(collapsed)}
           >
             <span aria-hidden className="size-1.5 rounded-full bg-accent" />
             Finish setup
           </Button>
+        )}
+        {onToggle && (
+          <IconButton
+            size="sm"
+            label={toggleLabel ?? (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+            onClick={onToggle}
+            className={cn(
+              'transition-[color,translate] duration-200 ease-out-quart motion-reduce:transition-none',
+              // Like the refresh button, it slides into the rail centered on x = 28px: the content
+              // stays w-64, so from 212px in (12px padding plus the 32px button) to 12px is 200px.
+              collapsed && '-translate-x-50',
+            )}
+          >
+            <PanelLeft />
+          </IconButton>
         )}
       </div>
 
