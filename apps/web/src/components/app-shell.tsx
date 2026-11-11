@@ -31,6 +31,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setDrawerOpen(false)
   }
   useMatchEvents()
+  const frameRect = cn(
+    'pointer-events-none fixed top-2 right-2 bottom-2 hidden rounded-2xl transition-[left] duration-200 ease-out-quart md:block motion-reduce:transition-none',
+    collapsed ? 'left-14' : 'left-64',
+  )
 
   return (
     <Drawer.Provider>
@@ -79,7 +83,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <aside
               className={cn(
                 '[view-transition-class:chrome] [view-transition-name:sidebar]',
-                'fixed top-0 left-0 h-dvh overflow-hidden border-r bg-background transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 motion-reduce:transition-none',
+                'fixed top-0 left-0 z-40 h-dvh overflow-hidden bg-background transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 motion-reduce:transition-none',
                 collapsed ? RAIL_WIDTH : 'w-64',
               )}
             >
@@ -87,7 +91,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </aside>
           </div>
 
-          <div className="@container min-w-0 flex-1">
+          {/* The inset frame on md+: a hairline-bordered rounded window whose spread shadow paints the
+              background around it, so the page keeps scrolling the document and only looks inset. */}
+          <div
+            aria-hidden
+            className={cn(
+              '[view-transition-class:chrome] [view-transition-name:app-frame]',
+              frameRect,
+              'z-30 border shadow-[0_0_0_100vmax_var(--color-background)]',
+            )}
+          />
+          {/* Behind the page, so overscroll inside the frame shows the surface, not the background. */}
+          <div aria-hidden className={cn(frameRect, '-z-10 bg-surface')} />
+
+          <div className="@container min-w-0 flex-1 md:py-2 md:pr-2">
             <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden">
               <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen} swipeDirection="left">
                 <Drawer.Trigger render={<IconButton size="lg" label="Open menu" tooltip={false} />}>

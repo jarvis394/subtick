@@ -186,6 +186,10 @@
     @media (width < 48rem) {
       scroll-padding-top: 3.5rem;
     }
+    /* From md the app shell's inset frame covers the top 0.5rem. */
+    @media (width >= 48rem) {
+      scroll-padding-top: 0.5rem;
+    }
   }
   body {
     background: var(--color-background);
@@ -197,6 +201,11 @@
   /* In the app shell the page is the surface color, so overscroll above and below continues it. */
   html:has([data-app-shell]) body {
     background: var(--color-surface);
+
+    /* From md the page sits in an inset frame on the background. */
+    @media (width >= 48rem) {
+      background: var(--color-background);
+    }
   }
   ::selection {
     background: var(--selection);

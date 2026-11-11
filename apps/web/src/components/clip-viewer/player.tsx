@@ -52,8 +52,9 @@ export const Player = ({
         onAutoplayChange={onAutoplayChange}
         onNext={onNext}
         className={cn(
-          // Under the phone header (the dialog's or the app's), at the very top from md.
-          'z-10 @max-3xl:sticky @max-3xl:top-14 md:@max-3xl:top-0',
+          // Under the phone header (the dialog's or the app's); from md at the top of the dialog or the app's inset frame.
+          'z-10 @max-3xl:sticky @max-3xl:top-14',
+          modal ? 'md:@max-3xl:top-0' : 'md:@max-3xl:top-2',
           modal
             ? VIDEO_FRAME
             : // Full-bleed in one column: out over the page's gutters (1rem, 2rem
