@@ -27,7 +27,7 @@ function MatchesPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="font-serif text-display tracking-tight">Matches</h1>
+        <h1 className="font-display text-display tracking-tight">Matches</h1>
         <Button size="sm" variant="secondary" onClick={refresh.mutate} disabled={refresh.isPending}>
           <RefreshIcon spinning={refresh.isPending} />
           <MorphLabel>{notice ?? 'Check for new'}</MorphLabel>

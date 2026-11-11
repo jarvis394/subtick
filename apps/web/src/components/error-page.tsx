@@ -55,7 +55,7 @@ export const ErrorPage = ({
   return (
     <div className={cn('grid min-h-[60dvh] place-items-center p-6 text-center', className)}>
       <div className="grid justify-items-center">
-        <p className="font-serif text-section">{title}</p>
+        <p className="font-display text-section">{title}</p>
         <p className="mt-2 max-w-sm text-body text-balance text-muted">{description}</p>
         {/* The message is for whoever is developing: users get the sentence above. */}
         {import.meta.env.DEV && error instanceof Error && kind === 'failed' && (

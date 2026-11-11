@@ -132,7 +132,7 @@ export function StorageCard({ report }: { report: StorageReport }) {
     <Card className="grid gap-6 p-5">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div>
-          <p className="font-serif text-display tracking-tight tabular-nums">
+          <p className="font-display text-display tracking-tight tabular-nums">
             {scope === 'disk' && disk ? formatBytes(disk.free) : formatBytes(used)}
           </p>
           <p className="text-body text-muted">

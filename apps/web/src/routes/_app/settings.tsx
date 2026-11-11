@@ -46,7 +46,7 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto grid gap-10 md:max-w-2xl @3xl:max-w-5xl">
-      <h1 className="font-serif text-display tracking-tight">Settings</h1>
+      <h1 className="font-display text-display tracking-tight">Settings</h1>
 
       {/* Sections sit side by side once the content area (not the viewport: the sidebar takes
         its share) has room for two readable columns. Account fills the right column on its own,

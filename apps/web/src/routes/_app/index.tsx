@@ -19,7 +19,7 @@ function HighlightsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-serif text-display tracking-tight">Highlights</h1>
+        <h1 className="font-display text-display tracking-tight">Highlights</h1>
         {processing > 0 && (
           <p className="mt-1.5 inline-flex items-center gap-1.5 text-body text-muted">
             <Spinner className="size-3" /> Processing {processing}{' '}

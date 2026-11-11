@@ -31,12 +31,12 @@ colors:
   dark-muted: '#8f8f8f'
 typography:
   hero:
-    fontFamily: "ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+    fontFamily: "'VK Sans Display', ui-sans-serif, system-ui, sans-serif"
     fontSize: '36px'
     lineHeight: '40px'
     letterSpacing: '-0.025em'
   display:
-    fontFamily: "ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+    fontFamily: "'VK Sans Display', ui-sans-serif, system-ui, sans-serif"
     fontSize: '30px'
     lineHeight: '36px'
     letterSpacing: '-0.025em'
@@ -188,7 +188,7 @@ Controls are soft and tactile. They have rounded corners, a background layer tha
 **Key Characteristics:**
 
 - Neutral greyscale chrome. Color only carries meaning: action, the game's moments, team sides, status.
-- A serif voice for the wordmark and page titles; system sans for everything you operate.
+- A display voice for the wordmark and page titles; system sans for everything you operate.
 - One theme-driven type scale and theme-driven radii. No raw sizes.
 - Flat surfaces with hairline borders. Recessed tracks below, floating shadows above.
 - Tactile controls: a pressable background layer, 150 ms color fades, quart/expo ease-outs.
@@ -230,16 +230,16 @@ A greyscale desk with three meaningful hues (action blue, CS2 orange, team sides
 
 ## Typography
 
-**Display Font:** system serif (ui-serif, with Iowan Old Style, Palatino, Georgia)
+**Display Font:** VK Sans Display (bundled, 400–700; system sans fallback)
 **Body Font:** system sans (ui-sans-serif, with system-ui, Segoe UI, Roboto)
 **Label/Mono Font:** system mono (ui-monospace, with SF Mono, Menlo)
 
-**Character:** A bookish serif for the name and the page titles, set against a plain, native sans that does the work. The serif says "this is your record"; the sans says "here is the data".
+**Character:** A confident display sans for the name and the page titles, set against a plain, native sans that does the work. The display face says "this is your record"; the sans says "here is the data".
 
 ### Hierarchy
 
-- **Hero / Display** (serif, 36/40 and 30/36, tight tracking): page titles ("Set up subtick"), empty and error states, auth screens.
-- **Section / Heading / Title** (sans 500, 24/32, 20/28, 18/26): section heads, card and dialog titles. The wordmark uses the serif at heading size.
+- **Hero / Display** (display face, 36/40 and 30/36, tight tracking): page titles ("Set up subtick"), empty and error states, auth screens.
+- **Section / Heading / Title** (sans 500, 24/32, 20/28, 18/26): section heads, card and dialog titles. The wordmark uses the display face at heading size.
 - **Lead** (15/22): input text, highlight card titles, large-button labels.
 - **Body** (14/20): the default for UI text and md buttons.
 - **Small** (13/20): secondary lines, field labels and descriptions, chips, sm buttons.
@@ -250,7 +250,7 @@ A greyscale desk with three meaningful hues (action blue, CS2 orange, team sides
 
 **The Scale-Only Rule.** Every text size comes from the theme scale. `subtick/tailwind-scale` rejects raw font sizes.
 
-**The Serif Is a Voice Rule.** The serif is for the wordmark, page titles and display moments only. Controls, data and body text are always sans.
+**The Display Face Is a Voice Rule.** The display face is for the wordmark, page titles and display moments only. Controls, data and body text are always sans.
 
 **The Steady Numbers Rule.** Numbers that sit in columns or update live (scores, counts, durations) use tabular numerals.
 
@@ -349,6 +349,6 @@ A 16:9 rounded-12 thumbnail on a well-grey placeholder. A black duration pill an
 
 - **Don't** put shadows on cards, rows or anything else in the page's flow. Shadows are only for floating surfaces.
 - **Don't** use CS2 orange for generic emphasis or calls to action that aren't about a game moment.
-- **Don't** set controls, data or body text in the serif.
+- **Don't** set controls, data or body text in the display face.
 - **Don't** hand-pick hover hexes. Derive them with `color-mix` from the palette.
 - **Don't** use raw font sizes or inline `style` for static values.

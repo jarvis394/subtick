@@ -73,7 +73,7 @@ function SessionsPage() {
           <ArrowLeft className="size-4" /> Profile
         </Link>
       )}
-      <h1 className="mb-6 truncate font-serif text-display tracking-tight">
+      <h1 className="mb-6 truncate font-display text-display tracking-tight">
         {other && profile.data ? `${profile.data.name}’s sessions` : 'Sessions'}
       </h1>
 

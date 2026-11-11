@@ -181,7 +181,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
             <div className="flex items-center gap-4">
               <MapIcon map={head.map} className="size-14 text-section" />
               <div>
-                <h1 className="font-serif text-hero tracking-tight">
+                <h1 className="font-display text-hero tracking-tight">
                   {matchName(head.map, head.status)}
                 </h1>
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-body text-muted">
@@ -304,7 +304,7 @@ function MatchBody({ data }: { data: MatchDetail }) {
       <section className="min-w-0">
         {/* Title, Create and the tabs don't fit a phone side by side: the actions wrap under. */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <h2 className="font-serif text-heading tracking-tight">Highlights</h2>
+          <h2 className="font-display text-heading tracking-tight">Highlights</h2>
           <div className="flex items-center gap-3">
             {canCreate && (
               <Button

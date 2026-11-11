@@ -52,7 +52,7 @@ export const Scoreboard = memo(function Scoreboard({
     // min-w-0: grid items default to their content's width, and the wide table would push the page.
     <section className="min-w-0">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-serif text-heading tracking-tight">Scoreboard</h2>
+        <h2 className="font-display text-heading tracking-tight">Scoreboard</h2>
         <Segmented label="Scoreboard view" value={view} options={VIEWS} onChange={setView} />
       </div>
       <ScrollTable>

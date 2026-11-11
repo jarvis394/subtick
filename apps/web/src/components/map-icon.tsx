@@ -60,7 +60,7 @@ export const MapIcon = ({ map, className }: { map: string | null; className?: st
     <span
       aria-hidden
       className={cn(
-        'grid size-9 shrink-0 place-items-center rounded-lg bg-surface-3 font-serif text-lead text-muted',
+        'grid size-9 shrink-0 place-items-center rounded-lg bg-surface-3 font-display text-lead text-muted',
         className,
       )}
     >

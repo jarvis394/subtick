@@ -103,7 +103,7 @@ function CreateHighlightsPage() {
       >
         <ArrowLeft className="size-4" /> Match
       </Link>
-      <h1 className="mb-6 font-serif text-display tracking-tight">Create highlights</h1>
+      <h1 className="mb-6 font-display text-display tracking-tight">Create highlights</h1>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
         <KindTabs

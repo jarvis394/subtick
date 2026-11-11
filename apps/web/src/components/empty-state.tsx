@@ -29,7 +29,7 @@ export const EmptyState = ({
       <span className="mb-4 grid size-11 place-items-center rounded-xl border bg-surface text-muted [&_svg]:size-5">
         {icon}
       </span>
-      <p className="font-serif text-heading">{title}</p>
+      <p className="font-display text-heading">{title}</p>
       <p className="mt-1.5 max-w-sm text-body text-balance text-muted">
         {setUp ? description : 'Finish setup to start picking up your matches.'}
       </p>

@@ -57,7 +57,7 @@ function SetupPage() {
   return (
     <div className="mx-auto grid max-w-xl gap-4">
       <div className="mb-2">
-        <h1 className="font-serif text-display tracking-tight">Set up subtick</h1>
+        <h1 className="font-display text-display tracking-tight">Set up subtick</h1>
         <p className="mt-1.5 text-muted">
           Two steps, then new matches are picked up and clipped automatically.
         </p>

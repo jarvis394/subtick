@@ -86,7 +86,7 @@ const QueueBody = ({
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
       <div>
-        <h1 className="font-serif text-display tracking-tight">Queue</h1>
+        <h1 className="font-display text-display tracking-tight">Queue</h1>
         <p className="mt-1.5 text-body text-muted">
           Matches being downloaded, analyzed and recorded on this instance.
         </p>

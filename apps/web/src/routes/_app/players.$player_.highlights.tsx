@@ -34,7 +34,7 @@ function PlayerHighlightsPage() {
         ) : (
           <Skeleton className="size-9 rounded-full" />
         )}
-        <h1 className="min-w-0 truncate font-serif text-display tracking-tight">
+        <h1 className="min-w-0 truncate font-display text-display tracking-tight">
           {player.data ? `${player.data.name}’s highlights` : 'Highlights'}
         </h1>
       </div>

@@ -31,7 +31,7 @@ export const MatchPerformance = ({ comparison }: { comparison: PerformanceCompar
 
   return (
     <section className="min-w-0">
-      <h2 className="mb-1 font-serif text-heading tracking-tight">Against your usual</h2>
+      <h2 className="mb-1 font-display text-heading tracking-tight">Against your usual</h2>
       <p className="mb-4 text-small text-muted">Median of your previous {sample} matches</p>
       {/* Edge to edge on phones (cancels the page's px-4), a card from md up. */}
       <div className="-mx-4 overflow-hidden border-y bg-surface md:mx-0 md:rounded-2xl md:border-x">

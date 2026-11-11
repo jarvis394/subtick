@@ -116,7 +116,7 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
           <h1 className="[view-transition-name:auth-logo] [view-transition-class:auth]">
             <Wordmark className="text-hero" />
           </h1>
-          <p className="font-serif text-heading tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
+          <p className="font-display text-heading tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
             {COPY[mode].subtitle}
           </p>
         </div>

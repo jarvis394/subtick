@@ -48,7 +48,7 @@ export const RoundTimeline = memo(function RoundTimeline({
 
   return (
     <section className="min-w-0">
-      <h2 className="mb-4 font-serif text-heading tracking-tight">Rounds</h2>
+      <h2 className="mb-4 font-display text-heading tracking-tight">Rounds</h2>
       {/* The scoreboard's scroller: edge to edge on phones, the strip inset to line up with the page. */}
       <div className="-my-2">
         <ScrollTable>

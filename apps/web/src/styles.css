@@ -4,6 +4,39 @@
 @custom-variant handheld (@media (width < 64rem), (pointer: coarse));
 @custom-variant desktop (@media (width >= 64rem) and (not (pointer: coarse)));
 
+/* Titles and the wordmark. */
+@font-face {
+  font-family: 'VK Sans Display';
+  src: url('./assets/fonts/vk-sans-display-regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'VK Sans Display';
+  src: url('./assets/fonts/vk-sans-display-medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'VK Sans Display';
+  src: url('./assets/fonts/vk-sans-display-demibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'VK Sans Display';
+  src: url('./assets/fonts/vk-sans-display-bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /*
  * subtick design tokens. Neutral greys, a blue accent for interactive UI, CS2 orange as the brand
  * color (the wordmark and the game's own moments: aces, MVPs, highlights), team colors for CT/T.
@@ -154,7 +187,7 @@
   --text-hero--line-height: 40px;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-display: 'VK Sans Display', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
