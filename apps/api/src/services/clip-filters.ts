@@ -30,6 +30,8 @@ export const clipFilterQuery = z.object({
   kinds: list,
   /** Played on any of these maps. */
   maps: list,
+  /** From any of these matches. */
+  matches: list,
   /** One player's plays, for their profile. */
   steamId: z.string().optional(),
   /** Any of these players, the signed-in user (`me`) or people they played with. */
@@ -67,6 +69,7 @@ export const clipFilterWhere = (db: Db, userId: string, query: ClipFilterQuery) 
   const tags = listParam(query.tags).filter(oneOf(KILL_TAGS))
   const moments = listParam(query.moments).filter(oneOf(MOMENT_TAGS))
   const maps = listParam(query.maps)
+  const matches = listParam(query.matches)
   const clutch = listParam(query.clutch).map(Number).filter(Number.isInteger)
   const players = listParam(query.players)
   const who = [
@@ -96,6 +99,7 @@ export const clipFilterWhere = (db: Db, userId: string, query: ClipFilterQuery) 
   return and(
     kinds.length ? inArray(highlight.kind, kinds) : undefined,
     maps.length ? inArray(match.map, maps) : undefined,
+    matches.length ? inArray(highlight.matchId, matches) : undefined,
     query.steamId ? eq(highlight.steamId, query.steamId) : undefined,
     who.length ? or(...who) : undefined,
     ...tags.map(killsHaveTag),

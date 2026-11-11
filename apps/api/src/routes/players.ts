@@ -15,6 +15,7 @@ import {
   teammates,
 } from '../services/player-stats'
 import { getProfiles, resolvePlayer } from '../services/profiles'
+import { sessionsOf } from '../services/sessions'
 import { authGuard } from './guard'
 
 const { match, matchPlayer, highlight, steamLink } = schema
@@ -163,6 +164,23 @@ export const playerRoutes = (ctx: Context) => {
         }
       },
       { auth: true, params: PlayerParams },
+    )
+    .get(
+      '/:steamId/sessions',
+      async ({ params, query, status }) => {
+        const steamId = await resolvePlayer(ctx, params.steamId)
+        if (!steamId) return status(404, { error: 'not_found' as const })
+
+        return sessionsOf(ctx, steamId, query)
+      },
+      {
+        auth: true,
+        params: PlayerParams,
+        query: z.object({
+          cursor: z.iso.datetime().optional(),
+          until: z.iso.datetime().optional(),
+        }),
+      },
     )
     .get(
       '/:steamId/matches',

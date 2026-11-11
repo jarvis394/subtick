@@ -47,7 +47,7 @@ export const NavItem = ({
   onNavigate,
   viewTransition,
 }: {
-  to: '/' | '/matches'
+  to: '/' | '/matches' | '/sessions'
   icon: ReactNode
   label: string
   collapsed: boolean

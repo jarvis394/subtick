@@ -1,6 +1,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Clapperboard, PanelLeft, Swords } from 'lucide-react'
+import { SessionsIcon } from '@/components/sessions/sessions-icon'
 import { Button, IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
 import { meQuery, queueQuery } from '@/lib/queries'
@@ -86,6 +87,14 @@ export const SidebarContent = ({
             to="/"
             icon={<Clapperboard />}
             label="Highlights"
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+            viewTransition={viewTransition}
+          />
+          <NavItem
+            to="/sessions"
+            icon={<SessionsIcon />}
+            label="Sessions"
             collapsed={collapsed}
             onNavigate={onNavigate}
             viewTransition={viewTransition}

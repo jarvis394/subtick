@@ -7,6 +7,7 @@ import { clearStoredMe, readStoredMe, writeStoredMe } from './stored-me'
 export interface ClipFilters {
   kinds?: HighlightKind[]
   maps?: string[]
+  matches?: string[]
   /** One player's plays. */
   steamId?: string
   /** Any of these players, the signed-in user's own plays or those of people they played with. */
@@ -46,6 +47,7 @@ const fetchClips = (offset: number, filters: ClipFilters) =>
         offset,
         kinds: joined(filters.kinds),
         maps: joined(filters.maps),
+        matches: joined(filters.matches),
         steamId: filters.steamId,
         players: joined(filters.players),
         me: filters.me || undefined,
@@ -65,6 +67,9 @@ const fetchPlayer = (steamId: string) => unwrap(api.players({ steamId }).get())
 const fetchPlayerMatches = (steamId: string, cursor?: string) =>
   unwrap(api.players({ steamId }).matches.get({ query: { cursor } }))
 
+const fetchSessions = (player: string, cursor?: string, until?: string) =>
+  unwrap(api.players({ steamId: player }).sessions.get({ query: { cursor, until } }))
+
 export type Me = Awaited<ReturnType<typeof fetchMe>>
 export type MatchListItem = Awaited<ReturnType<typeof fetchMatches>>['items'][number]
 export type MatchDetail = Awaited<ReturnType<typeof fetchMatch>>
@@ -72,6 +77,8 @@ export type Clip = Awaited<ReturnType<typeof fetchClips>>['items'][number]
 export type ClipFacets = Awaited<ReturnType<typeof fetchFacets>>
 export type QueueItem = Awaited<ReturnType<typeof fetchQueue>>['items'][number]
 export type Player = Awaited<ReturnType<typeof fetchPlayer>>
+export type Session = Awaited<ReturnType<typeof fetchSessions>>['items'][number]
+export type SessionPlayer = Session['players'][number]
 
 /** `/me` answering 401 (no session) or 403 (rejected) means the stored session is no good. */
 export const isSessionError = (error: unknown) =>
@@ -138,6 +145,15 @@ export const queueQuery = queryOptions({
 /** Everything a profile shows but its match list and clips, so switching tabs never loads. */
 export const playerQuery = (steamId: string) =>
   queryOptions({ queryKey: ['player', steamId], queryFn: () => fetchPlayer(steamId) })
+
+/** `until` makes the first page reach back to that date, for opening on an older session. */
+export const sessionsQuery = (player: string, until?: string) =>
+  infiniteQueryOptions({
+    queryKey: ['player', player, 'sessions', until ?? null],
+    queryFn: ({ pageParam }) => fetchSessions(player, pageParam, pageParam ? undefined : until),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  })
 
 export const playerMatchesQuery = (steamId: string) =>
   infiniteQueryOptions({

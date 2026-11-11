@@ -35,6 +35,7 @@ The core differences, all four confirmed:
   - Setup: connect Steam, then give access to match history.
   - The highlights feed, with kind tabs and highlight filters, including the player picker.
   - Match pages with the scoreboard and round timeline, plus creating highlights from a match.
+  - Sessions: matches grouped by sitting, viewed from any teammate's point of view.
   - The clip viewer, player profiles, and per-player highlights.
   - The recording queue.
   - Settings, and the admin pages.

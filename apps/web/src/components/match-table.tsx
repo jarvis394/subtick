@@ -1,3 +1,4 @@
+import type { PlayerStats } from '@subtick/domain'
 import { Link } from '@tanstack/react-router'
 import { Clapperboard } from 'lucide-react'
 import { useState } from 'react'
@@ -19,9 +20,16 @@ export type MatchRowData = Pick<
   | 'discoveredAt'
   | 'scoreStartedCt'
   | 'scoreStartedT'
-  | 'player'
   | 'highlightCount'
->
+> & {
+  player:
+    | (Pick<NonNullable<MatchListItem['player']>, 'startingSide' | 'rank'> & {
+        stats: Pick<PlayerStats, 'kills' | 'deaths' | 'assists' | 'rating' | 'adr' | 'hsPercent'>
+      })
+    | null
+  /** A session's match this player sat out: its row stays, so the gap shows. */
+  absent?: boolean
+}
 
 import { cn } from '@/lib/utils'
 
@@ -97,15 +105,17 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
       )}
     >
       <span className="flex min-w-0 items-center gap-3">
-        <MapIcon map={match.map} />
+        <MapIcon map={match.map} className={cn(match.absent && 'opacity-40')} />
         <span className="min-w-0">
           <span className="flex min-w-0 items-center">
-            <span className="truncate font-medium">{matchName(match.map, match.status)}</span>
+            <span className={cn('truncate font-medium', match.absent && 'text-muted')}>
+              {matchName(match.map, match.status)}
+            </span>
             <NewDot matchId={match.id} />
           </span>
           <span className="flex items-center gap-1 text-label whitespace-nowrap text-muted md:hidden">
             <span className="truncate">
-              {formatDate(match.playedAt ?? match.discoveredAt)}
+              {match.absent ? 'Didn’t play' : formatDate(match.playedAt ?? match.discoveredAt)}
               {s && ` · ${s.kills}/${s.deaths}/${s.assists}`}
             </span>
             {match.highlightCount > 0 && (
@@ -123,7 +133,11 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
         {formatDate(match.playedAt ?? match.discoveredAt)}
       </span>
       <span className="text-right font-mono md:text-left">
-        {score ? (
+        {match.absent ? (
+          <span className="text-muted">
+            {match.scoreStartedCt}:{match.scoreStartedT}
+          </span>
+        ) : score ? (
           <>
             <span
               className={cn(
@@ -140,7 +154,11 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
         )}
       </span>
       <span className={cn(WIDE, 'min-w-0')}>
-        <RankBadge rank={match.player?.rank} />
+        {match.absent ? (
+          <span className="text-small text-muted">Didn’t play</span>
+        ) : (
+          <RankBadge rank={match.player?.rank} />
+        )}
       </span>
       <span className={cn('text-right font-medium', s ? ratingTone(s.rating) : 'text-muted')}>
         {s ? s.rating.toFixed(2) : '–'}

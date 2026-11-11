@@ -1,11 +1,5 @@
-import { and, desc, eq, inArray, lt, lte, ne, schema, sql } from '@subtick/db'
-import {
-  BASELINE_MATCHES,
-  type PlayerStats,
-  comparePerformance,
-  isCancelled,
-  isShareCode,
-} from '@subtick/domain'
+import { and, desc, eq, inArray, lt, schema, sql } from '@subtick/db'
+import { comparePerformance, isCancelled, isShareCode } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
@@ -14,6 +8,7 @@ import { syncNow } from '../services/sync-now'
 import { withParties } from '../services/parties'
 import { getProfiles } from '../services/profiles'
 import { notOneKill, withClipUrls } from '../services/highlights'
+import { earlierStats } from '../services/baseline'
 import { authGuard } from './guard'
 
 const PAGE_SIZE = 20
@@ -30,8 +25,6 @@ const {
   user: account,
 } = schema
 
-const playedAtOf = sql<Date>`coalesce(${match.playedAt}, ${match.createdAt})`
-
 export const matchRoutes = (ctx: Context) => {
   const { db, auth } = ctx
 
@@ -39,37 +32,6 @@ export const matchRoutes = (ctx: Context) => {
   const playedOrDiscovered = sql`coalesce(${match.playedAt}, ${userMatch.discoveredAt})`
 
   /** Spending or stopping pipeline work is for people who have the match, and admins. */
-  /** Each player's stats in up to BASELINE_MATCHES matches played before `before`. */
-  const earlierStats = async (
-    steamIds: string[],
-    before: { id: string; playedAt: Date | null; createdAt: Date },
-  ) => {
-    if (!steamIds.length) return new Map<string, PlayerStats[]>()
-    const ranked = db
-      .select({
-        steamId: matchPlayer.steamId,
-        stats: matchPlayer.stats,
-        n: sql<number>`row_number() over (partition by ${matchPlayer.steamId} order by ${playedAtOf} desc)`.as(
-          'n',
-        ),
-      })
-      .from(matchPlayer)
-      .innerJoin(match, eq(match.id, matchPlayer.matchId))
-      .where(
-        and(
-          inArray(matchPlayer.steamId, steamIds),
-          ne(match.id, before.id),
-          lt(playedAtOf, before.playedAt ?? before.createdAt),
-        ),
-      )
-      .as('ranked')
-    const rows = await db.select().from(ranked).where(lte(ranked.n, BASELINE_MATCHES))
-
-    return new Map(
-      [...Map.groupBy(rows, (r) => r.steamId)].map(([id, list]) => [id, list.map((r) => r.stats)]),
-    )
-  }
-
   const canManage = async (user: { id: string; role?: string | null }, matchId: string) => {
     if (user.role === 'admin') return true
     const [own] = await db
@@ -190,6 +152,7 @@ export const matchRoutes = (ctx: Context) => {
         const requesterById = new Map(requesters.map((r) => [r.id, r]))
         const own = viewer && players.find((p) => p.steamId === viewer.steamId)
         const earlier = await earlierStats(
+          ctx,
           players.map((p) => p.steamId),
           row,
         )
