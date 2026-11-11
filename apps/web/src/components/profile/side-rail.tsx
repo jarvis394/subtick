@@ -1,3 +1,4 @@
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import { type MatchMode, decodeCrosshair, mapName, standingRank } from '@subtick/domain'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -155,7 +156,7 @@ const CopyMark = ({ copied }: { copied: boolean }) => (
   </span>
 )
 
-const CrosshairTile = ({ code, large }: { code: string; large?: boolean }) => {
+const CrosshairTile = ({ code }: { code: string }) => {
   const { copied, copy } = useCopied()
   const crosshair = decodeCrosshair(code)
   if (!crosshair) return null
@@ -168,7 +169,7 @@ const CrosshairTile = ({ code, large }: { code: string; large?: boolean }) => {
         size="lg"
         label={copied ? 'Copied' : 'Copy this crosshair'}
         onClick={() => copy(code)}
-        className={cn('[&_svg]:size-full', large && 'size-14')}
+        className="size-14 shrink-0 p-1.5 [&_svg]:size-full"
       >
         <CrosshairPreview
           crosshair={crosshair}
@@ -204,15 +205,27 @@ const CrosshairCard = ({ crosshairs, className }: { crosshairs: string[]; classN
       }
     >
       <div className="flex items-start gap-3">
-        <CrosshairTile code={latest} large />
+        <CrosshairTile code={latest} />
         {others.length > 0 && (
           <>
             <span aria-hidden className="w-px self-stretch bg-border" />
-            <div className="flex min-w-0 flex-wrap gap-1.5">
-              {others.map((code) => (
-                <CrosshairTile key={code} code={code} />
-              ))}
-            </div>
+            {/* Negative margins leave room for focus rings and the scrollbar without growing the
+              row, and let tiles scroll all the way to the divider and the card's edge. */}
+            <ScrollArea.Root className="relative -mt-1 -mr-4 -mb-2.5 -ml-3 min-w-0 flex-1">
+              <ScrollArea.Viewport className="overscroll-x-contain outline-none">
+                <ScrollArea.Content className="flex w-max gap-1.5 pt-1 pr-4 pb-2.5 pl-3">
+                  {others.map((code) => (
+                    <CrosshairTile key={code} code={code} />
+                  ))}
+                </ScrollArea.Content>
+              </ScrollArea.Viewport>
+              <ScrollArea.Scrollbar
+                orientation="horizontal"
+                className="absolute bottom-0 mr-4 ml-3 flex h-1.5 items-center rounded-full opacity-0 transition-opacity duration-150 data-hovering:opacity-100 data-scrolling:opacity-100 motion-reduce:transition-none"
+              >
+                <ScrollArea.Thumb className="h-full rounded-full bg-foreground/25" />
+              </ScrollArea.Scrollbar>
+            </ScrollArea.Root>
           </>
         )}
       </div>
