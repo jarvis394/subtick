@@ -1,6 +1,7 @@
 import { Clock, Hourglass } from 'lucide-react'
 import { useState } from 'react'
 import type { ReelSource } from '@/components/clip-viewer'
+import { FadeSwap } from '@/components/fade-swap'
 import { MatchTable } from '@/components/match-table'
 import { dayLabel } from '@/lib/format'
 import type { Session, SessionPlayer } from '@/lib/queries'
@@ -83,7 +84,9 @@ export const SessionSection = ({
       <header className="flex flex-col items-start gap-x-4 gap-y-2 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-title font-medium">{day}</h2>
-          <Record wins={player.wins} losses={player.losses} />
+          <FadeSwap swapKey={`${player.wins}-${player.losses}`} appear={false}>
+            <Record wins={player.wins} losses={player.losses} />
+          </FadeSwap>
         </div>
         <p className="flex flex-col items-start gap-2 text-small md:flex-row md:items-center md:gap-4 text-muted tabular-nums [&>span]:flex [&>span]:items-center [&>span]:gap-1 [&_svg]:size-3.5">
           <span>
@@ -101,14 +104,13 @@ export const SessionSection = ({
 
       <SessionRoster session={session} selected={player} label={day} onSelect={setPicked} />
 
-      <SessionReel
-        key={player.steamId}
-        filters={filters}
-        count={player.clips}
-        onOpen={() => onOpenReel(filters)}
-      />
-
-      <MatchTable matches={matchRows(session, player)} />
+      {/* The picked player's clips and matches crossfade in place; both keep their height. */}
+      <FadeSwap swapKey={player.steamId} appear={false}>
+        <div className="grid grid-cols-1 gap-4">
+          <SessionReel filters={filters} count={player.clips} onOpen={() => onOpenReel(filters)} />
+          <MatchTable matches={matchRows(session, player)} />
+        </div>
+      </FadeSwap>
     </section>
   )
 }
