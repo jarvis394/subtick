@@ -12,7 +12,7 @@
     "seed": "bun scripts/seed.ts"
   },
   "dependencies": {
-    "@laihoe/demoparser2": "^0.42.0",
+    "@laihoe/demoparser2": "^0.42.3",
     "@subtick/config": "workspace:*",
     "@subtick/db": "workspace:*",
     "@subtick/domain": "workspace:*",
