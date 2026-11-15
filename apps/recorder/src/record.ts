@@ -1,21 +1,22 @@
 /* oxlint-disable no-await-in-loop -- one game instance records clips (and their parts) one after another */
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { and, asc, eq, inArray, schema } from '@subtick/db'
-import { clipOffsetTicks, clipSegments, segmentsTicks, ticksToSeconds } from '@subtick/domain'
+import {
+  type RecorderClip,
+  clipOffsetTicks,
+  clipSegments,
+  segmentsTicks,
+  ticksToSeconds,
+} from '@subtick/domain'
 import type { ClipPhase, TypedJob } from '@subtick/queue'
-import { keys } from '@subtick/storage'
+import { download, upload } from './api'
 import type { Context } from './context'
 import { failureReason } from './failure'
 import { finishClip, joinParts, probe, thumbnail } from './post'
 import type { RecordedFile } from './recorder'
 
-const { match, highlight, matchPlayer, clip } = schema
-
 /** Bumped when clips should be re-rendered (look, resolution, capture changes). */
 export const RECORDER_VERSION = 4
-
-type Highlight = typeof highlight.$inferSelect
 
 /** Of a clip's time in the batch, the share spent capturing frames rather than encoding them. */
 const CAPTURE_SHARE = 0.85
@@ -29,44 +30,15 @@ const CAPTURE_ATTEMPTS = 2
  * Failing to load the demo at all fails the job, which BullMQ retries.
  */
 export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) => {
-  const { db, demos, recorder, env, log } = ctx
+  const { api, recorder, env, log } = ctx
   const { matchId, highlightIds } = job.data
-  const [row] = await db.select().from(match).where(eq(match.id, matchId))
-  if (!row) return
-  if (!row.demoKey) {
-    // Nothing to play back (e.g. a match seeded from a local file): its stats stand on their own.
-    await db
-      .update(highlight)
-      .set({ status: 'skipped' })
-      .where(and(inArray(highlight.id, highlightIds), eq(highlight.status, 'queued')))
-    log.warn({ matchId }, 'no stored demo, highlights skipped')
+  const batch = await api.startJob({ matchId, highlightIds, recorderVersion: RECORDER_VERSION })
+  if (!batch) {
+    log.info({ matchId }, 'nothing to record')
 
-    return finishMatch(ctx, matchId)
+    return
   }
-
-  const todo = await db
-    .select({
-      highlight,
-      playerName: matchPlayer.name,
-      recordedBy: clip.recorderVersion,
-    })
-    .from(highlight)
-    .leftJoin(
-      matchPlayer,
-      and(eq(matchPlayer.matchId, highlight.matchId), eq(matchPlayer.steamId, highlight.steamId)),
-    )
-    .leftJoin(clip, eq(clip.highlightId, highlight.id))
-    .where(inArray(highlight.id, highlightIds))
-    .orderBy(asc(highlight.startTick))
-  // A retried job skips what an earlier attempt already rendered, and nothing cancelled is recorded.
-  const pending = todo.filter(
-    (t) => t.highlight.status === 'queued' && (t.recordedBy ?? -1) < RECORDER_VERSION,
-  )
-  const current = todo
-    .filter((t) => (t.recordedBy ?? -1) >= RECORDER_VERSION)
-    .map((t) => t.highlight.id)
-  if (current.length)
-    await db.update(highlight).set({ status: 'recorded' }).where(inArray(highlight.id, current))
+  const pending = batch.clips
 
   const work = join(env.SCRATCH_DIR, 'recorder', matchId)
 
@@ -92,85 +64,69 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
 
   await mkdir(work, { recursive: true })
   try {
-    if (pending.length) {
-      await ctx.setStatus(matchId, 'recording')
-      await report(0, pending[0]!.highlight.id, 'loading')
-      const demoPath = join(work, 'demo.dem')
-      await Bun.write(demoPath, await Bun.zstdDecompress(await demos.bytes(keys.demo(matchId))))
+    await report(0, pending[0]!.id, 'loading')
+    const demoPath = join(work, 'demo.dem')
+    await Bun.write(demoPath, await Bun.zstdDecompress(await download(batch.demoUrl)))
 
-      for (const [index, { highlight: h, playerName }] of pending.entries()) {
-        // Cancelled while earlier clips recorded: it went back to being a candidate.
-        if (!(await stillQueued(ctx, h.id))) continue
-        let raw: RecordedFile | undefined
+    for (const [index, h] of pending.entries()) {
+      // Cancelled while earlier clips recorded: it went back to being a candidate.
+      if (!(await api.isQueued(h.id))) continue
+      let raw: RecordedFile | undefined
 
-        const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
-          const reason = failureReason(stage, error)
-          log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
-          ctx.status.failStreak++
-          ctx.status.lastError = reason
-          await db
-            .update(highlight)
-            .set({ status: 'failed', error: reason })
-            .where(eq(highlight.id, h.id))
-        }
-
-        const capture = async () => {
-          // The game keeps the previous job's demo loaded; never record this match's ticks from it.
-          if (recorder.loadedMatchId !== matchId) {
-            await report(index, h.id, 'loading')
-            await recorder.prepare({ matchId, demoPath, map: row.map ?? '' })
-          }
-          await report(index, h.id, 'recording', 0)
-
-          return recorder.record({
-            highlightId: h.id,
-            playerName: playerName ?? '',
-            segments: clipSegments(h),
-            onProgress: (progress) =>
-              void report(index, h.id, 'recording', progress).catch(() => {}),
-          })
-        }
-
-        for (let attempt = 1; !raw; attempt++) {
-          try {
-            raw = await capture()
-          } catch (error) {
-            // The game's state is unknown after a failed capture: start it fresh. A session that
-            // slowed down mid-clip times out, so the clip gets one more try in a new game.
-            await recorder.reset()
-            if (attempt >= CAPTURE_ATTEMPTS) {
-              await fail('capture', error)
-              break
-            }
-            log.warn({ matchId, highlightId: h.id, attempt }, 'capture failed, retrying', error)
-            if (!(await stillQueued(ctx, h.id))) break
-          }
-        }
-        if (!raw) continue
-        await report(index, h.id, 'rendering')
-        await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
-        // The takes are not needed either way.
-        await rm(raw.dir, { recursive: true, force: true })
+      const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
+        const reason = failureReason(stage, error)
+        log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
+        ctx.status.failStreak++
+        ctx.status.lastError = reason
+        await api.clipFailed(h.id, reason)
       }
+
+      const capture = async () => {
+        // The game keeps the previous job's demo loaded; never record this match's ticks from it.
+        if (recorder.loadedMatchId !== matchId) {
+          await report(index, h.id, 'loading')
+          await recorder.prepare({ matchId, demoPath, map: batch.map })
+        }
+        await report(index, h.id, 'recording', 0)
+
+        return recorder.record({
+          highlightId: h.id,
+          playerName: h.playerName,
+          segments: clipSegments(h),
+          onProgress: (progress) => void report(index, h.id, 'recording', progress).catch(() => {}),
+        })
+      }
+
+      for (let attempt = 1; !raw; attempt++) {
+        try {
+          raw = await capture()
+        } catch (error) {
+          // The game's state is unknown after a failed capture: start it fresh. A session that
+          // slowed down mid-clip times out, so the clip gets one more try in a new game.
+          await recorder.reset()
+          if (attempt >= CAPTURE_ATTEMPTS) {
+            await fail('capture', error)
+            break
+          }
+          log.warn({ matchId, highlightId: h.id, attempt }, 'capture failed, retrying', error)
+          if (!(await api.isQueued(h.id))) break
+        }
+      }
+      if (!raw) continue
+      await report(index, h.id, 'rendering')
+      await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
+      // The takes are not needed either way.
+      await rm(raw.dir, { recursive: true, force: true })
     }
   } finally {
     await rm(work, { recursive: true, force: true })
   }
-  await finishMatch(ctx, matchId)
-}
-
-const stillQueued = async ({ db }: Context, highlightId: string) => {
-  const [row] = await db
-    .select({ status: highlight.status })
-    .from(highlight)
-    .where(eq(highlight.id, highlightId))
-
-  return row?.status === 'queued'
+  await api.finishJob(matchId)
 }
 
 /** Encodes the capture for the web, uploads it with a poster, and records the clip row. */
-const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: string) => {
-  const { db, clips, log } = ctx
+const deliverClip = async (ctx: Context, h: RecorderClip, raw: RecordedFile, work: string) => {
+  const { api, log } = ctx
 
   const segments = clipSegments(h)
   if (raw.parts.length !== segments.length)
@@ -198,20 +154,10 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
   const peak = h.kills.at(-1)?.tick ?? (h.startTick + h.endTick) / 2
   await thumbnail(video, poster, ticksToSeconds(clipOffsetTicks(segments, peak)) + 0.25)
   const info = await probe(video)
-  await clips.put(keys.clip(h.id), Bun.file(video), 'video/mp4')
-  await clips.put(keys.thumbnail(h.id), Bun.file(poster), 'image/webp')
-  const values = {
-    videoKey: keys.clip(h.id),
-    thumbnailKey: keys.thumbnail(h.id),
-    ...info,
-    recorderVersion: RECORDER_VERSION,
-    createdAt: new Date(),
-  }
-  await db
-    .insert(clip)
-    .values({ highlightId: h.id, ...values })
-    .onConflictDoUpdate({ target: clip.highlightId, set: values })
-  await db.update(highlight).set({ status: 'recorded' }).where(eq(highlight.id, h.id))
+  const urls = await api.clipUploads(h.id)
+  await upload(urls.video, video, 'video/mp4')
+  await upload(urls.thumbnail, poster, 'image/webp')
+  await api.clipRecorded(h.id, { ...info, recorderVersion: RECORDER_VERSION })
   ctx.status.clipsRecorded++
   ctx.status.failStreak = 0
 
@@ -227,18 +173,4 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
     },
     'clip recorded',
   )
-}
-
-/** A match is ready once none of its highlights is still waiting to be recorded. */
-const finishMatch = async (ctx: Context, matchId: string) => {
-  const waiting = await ctx.db
-    .select({ id: highlight.id })
-    .from(highlight)
-    .where(and(eq(highlight.matchId, matchId), eq(highlight.status, 'queued')))
-    .limit(1)
-  const [row] = await ctx.db
-    .select({ status: match.status })
-    .from(match)
-    .where(eq(match.id, matchId))
-  if (!waiting.length && row?.status === 'recording') await ctx.setStatus(matchId, 'ready')
 }

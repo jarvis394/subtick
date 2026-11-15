@@ -87,12 +87,12 @@ export const RecorderEnv = {
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),
   /**
-   * Joins the instance's recorder fleet: the subtick origin (PUBLIC_URL) and the token an admin
-   * got when adding this machine. The machine then reports its health and takes its settings from
-   * there; without them it runs standalone.
+   * The subtick origin (PUBLIC_URL) and the token an admin got when adding this machine. The
+   * machine reports its health there, takes its settings from it, and reads and writes everything
+   * a recording touches through its api.
    */
-  SUBTICK_URL: z.url().optional(),
-  RECORDER_TOKEN: z.string().startsWith('strec_').optional(),
+  SUBTICK_URL: z.url(),
+  RECORDER_TOKEN: z.string().startsWith('strec_'),
   /**
    * 1: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the
    * `mirv_pov` fork of HLAE's AfxHookSource2.dll (installed by the bootstrap).

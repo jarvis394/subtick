@@ -8,6 +8,8 @@ export interface ObjectStorage {
   delete(key: string): Promise<void>
   /** Short-lived GET URL for browsers and the recorder. */
   presign(key: string, expiresInSeconds?: number): string
+  /** Short-lived PUT URL: lets a recorder upload one object without holding the bucket's keys. */
+  presignPut(key: string, expiresInSeconds?: number): string
   /** Every object in the bucket, a page at a time. */
   objects(): AsyncIterable<{ key: string; size: number }>
 }
@@ -56,6 +58,7 @@ export const createS3Storage = ({
     exists: (key) => client.exists(key),
     delete: (key) => client.delete(key),
     presign: (key, expiresIn = 3600) => presign(key, expiresIn),
+    presignPut: (key, expiresIn = 900) => publicClient.presign(key, { expiresIn, method: 'PUT' }),
     async *objects() {
       let continuationToken: string | undefined
       do {

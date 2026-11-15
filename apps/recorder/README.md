@@ -7,7 +7,7 @@ For each clip:
 1. Seek to five seconds before the clip and spectate the player.
 2. HLAE captures between two `mirv_cmd` tick triggers, offline at a fixed 60 fps: a slow GPU makes recording slower, never choppier.
 3. Mux in the game audio, trim to length, take a poster frame at the last kill.
-4. Upload to the `clips` bucket and write the `clip` row.
+4. Upload to the `clips` bucket and report the clip to subtick, which writes the `clip` row.
 
 ```
 ┌──────────────── recorder container (--runtime nvidia) ─────────────────┐
@@ -15,10 +15,10 @@ For each clip:
 │ Wine prefix: .NET 4.8 · HLAE · DXVK · gbe_fork (Steam emulator)        │
 │ CS2 cs2.exe ◄─ HLAE AfxHookSource2 ◄─ netcon :2121 ◄─ bun worker       │
 └────────────────────────────────────────────────────────────────────────┘
-          ▲ demos (S3)          clips (S3) ▼          jobs (Redis) / rows (Postgres)
+     ▲ demos (presigned GET)   clips (presigned PUT) ▼   jobs (Redis) · everything else (subtick api)
 ```
 
-It only talks to Postgres, Redis and S3 through URLs, so it can run on the same machine as everything else, or alone on whichever box has the GPU.
+It needs two things from the instance: Redis, where its jobs come from, and subtick's api, which it reaches with a recorder token. Through the api it learns what to record, gets short-lived URLs to download the demo and upload the clips, and reports each result. It holds no database or bucket credentials, so it can run on the same machine as everything else, or alone on whichever box has the GPU.
 
 ## Requirements
 
@@ -41,18 +41,18 @@ To update a running recorder to the latest `main`, run `apps/recorder/scripts/de
 
 ## Environment
 
-| variable                            | default     | what                                                                                                                                 |
-| ----------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`, `REDIS_URL`, `S3_*` |             | as for the other workers                                                                                                             |
-| `SUBTICK_URL`, `RECORDER_TOKEN`     |             | join the instance's recorder fleet (see below). Without them the machine runs standalone.                                            |
-| `CS2_SOURCE`                        | `download`  | where the game files come from, see below                                                                                            |
-| `CS2_DIR`                           | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                            |
-| `CS2_SERVER_DIR`                    |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                           |
-| `VNC_PASSWORD`                      |             | starts a VNC server on `127.0.0.1:5900` to watch the game                                                                            |
-| `DXVK_VERSION`                      | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                          |
-| `HLAE_VERSION`                      | `2.193.0`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
-| `HLAE_POV`                          | `0`         | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
-| `WINEPREFIX`                        | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                |
+| variable                        | default     | what                                                                                                                                 |
+| ------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `REDIS_URL`                     |             | as for the other workers: the queue its jobs come from                                                                               |
+| `SUBTICK_URL`, `RECORDER_TOKEN` |             | required: the instance and this machine's token (see below)                                                                          |
+| `CS2_SOURCE`                    | `download`  | where the game files come from, see below                                                                                            |
+| `CS2_DIR`                       | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                            |
+| `CS2_SERVER_DIR`                |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                           |
+| `VNC_PASSWORD`                  |             | starts a VNC server on `127.0.0.1:5900` to watch the game                                                                            |
+| `DXVK_VERSION`                  | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                          |
+| `HLAE_VERSION`                  | `2.193.0`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
+| `HLAE_POV`                      | `0`         | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
+| `WINEPREFIX`                    | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                |
 
 ### A fleet of recorders
 
@@ -68,7 +68,7 @@ The machine then reports its health every 15 s (online, what it's doing, GPU, la
 - **Pause**: a paused recorder finishes its current job and takes no new ones.
 - **New token / Remove**: the old token stops working at once.
 
-Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins see these pages; make the first admin with `bun run --filter @subtick/api grant-admin <email | steamId64>`, then grant others in **Manage instance → Users**.
+Every machine still needs `REDIS_URL`; on another machine than the instance's, reach it through an SSH tunnel or a private network, never an open port. The URLs it downloads demos from and uploads clips to are made for `S3_PUBLIC_ENDPOINT`, so that origin has to be reachable from the machine. Only admins see these pages; make the first admin with `bun run --filter @subtick/api grant-admin <email | steamId64>`, then grant others in **Manage instance → Users**.
 
 ### Game files: `CS2_SOURCE`
 

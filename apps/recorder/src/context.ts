@@ -1,10 +1,8 @@
 import { join } from 'node:path'
-import { DatabaseEnv, RecorderEnv, RedisEnv, S3Env, WorkerEnv, loadEnv } from '@subtick/config'
-import { and, createDb, eq, notCancelled, schema } from '@subtick/db'
-import type { MatchStatus } from '@subtick/domain'
+import { RecorderEnv, RedisEnv, WorkerEnv, loadEnv } from '@subtick/config'
 import { createLogger } from '@subtick/logger'
 import { type ClipProgress, type MatchEvent, createMatchEventPublisher } from '@subtick/queue'
-import { createS3Storage } from '@subtick/storage'
+import { createSubtickApi } from './api'
 import { Cs2Recorder } from './cs2/recorder'
 import { createWineGame } from './cs2/wine'
 import { createFleetLink, createStatus } from './fleet'
@@ -12,31 +10,17 @@ import { RECORDER_VERSION } from './record'
 
 /** Everything the recorder's jobs depend on, built once at startup. */
 export const createContext = () => {
-  const env = loadEnv({ ...DatabaseEnv, ...RedisEnv, ...S3Env, ...RecorderEnv, ...WorkerEnv })
+  const env = loadEnv({ ...RedisEnv, ...RecorderEnv, ...WorkerEnv })
   const log = createLogger('recorder')
-  const db = createDb(env.DATABASE_URL)
   const publish = createMatchEventPublisher(env.REDIS_URL)
-  const s3 = {
-    endpoint: env.S3_ENDPOINT,
-    region: env.S3_REGION,
-    accessKeyId: env.S3_ACCESS_KEY_ID,
-    secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-  }
-
-  if (Boolean(env.SUBTICK_URL) !== Boolean(env.RECORDER_TOKEN))
-    throw new Error('SUBTICK_URL and RECORDER_TOKEN go together: set both to join the fleet')
-
+  const api = createSubtickApi({ url: env.SUBTICK_URL, token: env.RECORDER_TOKEN })
   const health = createStatus()
-  const fleet =
-    env.SUBTICK_URL && env.RECORDER_TOKEN
-      ? createFleetLink({
-          url: env.SUBTICK_URL,
-          token: env.RECORDER_TOKEN,
-          version: `v${RECORDER_VERSION}`,
-          status: health,
-          log: log.getSubLogger({ name: 'fleet' }),
-        })
-      : null
+  const fleet = createFleetLink({
+    api,
+    version: `v${RECORDER_VERSION}`,
+    status: health,
+    log: log.getSubLogger({ name: 'fleet' }),
+  })
 
   /** HLAE's `USRLOCALCSGO`: our cfg folder, kept apart from the game's own settings. */
   const configDir = join(env.WINEPREFIX, 'drive_c/subtick')
@@ -56,30 +40,17 @@ export const createContext = () => {
     log,
   })
 
-  /** Moves a match to a pipeline status and tells subscribed browsers. */
-  const setStatus = async (matchId: string, status: MatchStatus, error: string | null = null) => {
-    const updated = await db
-      .update(schema.match)
-      .set({ status, error })
-      .where(and(eq(schema.match.id, matchId), notCancelled))
-      .returning({ id: schema.match.id })
-    if (updated.length) await publish({ matchId, status })
-  }
-
   return {
     env,
     log,
-    db,
+    api,
     recorder,
     game,
     fleet,
     status: health,
     configDir,
-    setStatus,
     progress: (matchId: string, progress: MatchEvent['progress'], clip?: ClipProgress) =>
       publish({ matchId, status: 'recording', progress, clip }),
-    demos: createS3Storage({ ...s3, bucket: env.S3_BUCKET_DEMOS }),
-    clips: createS3Storage({ ...s3, bucket: env.S3_BUCKET_CLIPS }),
   }
 }
 

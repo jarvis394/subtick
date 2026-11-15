@@ -3,7 +3,7 @@ name: subtick
 # Self-hosted production stack (homelab), deployed by Dokploy as a Compose service: its
 # Environment tab holds what .env.example lists, and Traefik routes web, /api and S3 by the labels
 # below on dokploy-network. The recorder runs separately (apps/recorder/README.md) with
-# --network host and reaches Postgres, Redis, S3 and the api on the loopback ports below.
+# --network host and reaches Redis and the api on the loopback ports below, and S3 at S3_HOST.
 #
 # Dokploy runs `docker compose` from inside its container, so relative bind mounts would point at
 # paths only it can see: everything mounted here is an absolute host path or inline.
@@ -42,7 +42,9 @@ services:
   redis:
     image: redis:7-alpine
     command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
-    ports: ['127.0.0.1:${REDIS_PORT:-56379}:6379']
+    # REDIS_BIND: a LAN or tailnet address of the host, for recorders on other machines. Redis has
+    # no password here, so never 0.0.0.0 on a host the internet can reach.
+    ports: ['${REDIS_BIND:-127.0.0.1}:${REDIS_PORT:-56379}:6379']
     volumes: ['${DATA_DIR}/redis:/data']
     restart: unless-stopped
 

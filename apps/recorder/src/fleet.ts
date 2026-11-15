@@ -1,6 +1,7 @@
 import { hostname } from 'node:os'
-import { type HlaeBuild, RECORDER_HEARTBEAT_MS, type RecorderState } from '@subtick/domain'
+import { RECORDER_HEARTBEAT_MS, type RecorderState } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
+import type { RecorderSettings, SubtickApi } from './api'
 
 /** What this machine reports in every heartbeat. Kept current by the worker as it goes. */
 export interface RecorderStatus {
@@ -13,14 +14,6 @@ export interface RecorderStatus {
   hlaeVersion: string | null
   hlaePovRelease: string | null
   startedAt: Date
-}
-
-/** What an admin set for this machine in subtick. */
-export interface RecorderSettings {
-  name: string
-  paused: boolean
-  /** The HLAE build to install between jobs. */
-  hlaeTarget: HlaeBuild | null
 }
 
 export const createStatus = (): RecorderStatus => ({
@@ -54,39 +47,25 @@ const gpuName = async () => {
 }
 
 /**
- * Links a recorder machine to subtick's api with its token: heartbeats report `status`, and the
- * replies carry the admin's settings (name, paused, HLAE build).
+ * Links a recorder machine to subtick: heartbeats report `status`, and the replies carry the
+ * admin's settings (name, paused, HLAE build).
  */
 export const createFleetLink = (options: {
-  url: string
-  token: string
+  api: SubtickApi
   version: string
   status: RecorderStatus
   log: Logger<unknown>
 }) => {
-  const { url, token, version, status, log } = options
-  const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' }
+  const { api, version, status, log } = options
   const listeners = new Set<(settings: RecorderSettings) => void>()
   let settings: RecorderSettings | null = null
   let gpu: string | null = null
   let timer: Timer | undefined
   let failing = false
 
-  const request = async <T>(path: string, init: RequestInit = {}) => {
-    const response = await fetch(new URL(`/api/recorder${path}`, url), { ...init, headers })
-    if (response.status === 401)
-      throw new Error('subtick rejected RECORDER_TOKEN (revoked or mistyped?)')
-    if (!response.ok) throw new Error(`subtick api ${path}: HTTP ${response.status}`)
-
-    return (await response.json()) as T
-  }
-
   const heartbeat = async () => {
     try {
-      const reply = await request<RecorderSettings>('/heartbeat', {
-        method: 'POST',
-        body: JSON.stringify({ ...status, hostname: hostname(), gpu, version }),
-      })
+      const reply = await api.heartbeat({ ...status, hostname: hostname(), gpu, version })
       if (failing) log.info('subtick api reachable again')
       failing = false
       settings = { name: reply.name, paused: reply.paused, hlaeTarget: reply.hlaeTarget ?? null }

@@ -30,7 +30,12 @@ export const createContext = async (env: Env) => {
     steamApi,
     log: createLogger('api'),
     secrets: await createSecretBox(env.SECRETS_KEY),
-    demos: createS3Storage({ ...s3, bucket: env.S3_BUCKET_DEMOS }),
+    // Recorders on other machines download demos through presigned URLs, like browsers do clips.
+    demos: createS3Storage({
+      ...s3,
+      bucket: env.S3_BUCKET_DEMOS,
+      publicEndpoint: env.S3_PUBLIC_ENDPOINT,
+    }),
     clips,
     queues: {
       syncUser: createQueue('steam.sync-user', env.REDIS_URL),

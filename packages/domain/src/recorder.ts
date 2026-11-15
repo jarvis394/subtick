@@ -1,3 +1,5 @@
+import type { ClipSegment, HighlightKill } from './highlight'
+
 /** Who may do what: `admin`s manage recorders and other users' roles. */
 export const USER_ROLES = ['user', 'admin'] as const
 export type UserRole = (typeof USER_ROLES)[number]
@@ -59,3 +61,29 @@ export const HLAE_BUILD_PATTERNS = {
   povAsset: /^[\w.-]{1,120}\.zip$/,
   povSha256: /^[0-9a-f]{64}$/,
 } satisfies Record<keyof HlaeBuild, RegExp>
+
+/** A highlight as a recorder needs it to capture and cut its clip. */
+export interface RecorderClip {
+  id: string
+  matchId: string
+  playerName: string
+  startTick: number
+  endTick: number
+  segments: ClipSegment[]
+  kills: HighlightKill[]
+}
+
+/** What subtick hands a recorder for a `clip.record` job: the demo and the clips still to render. */
+export interface RecorderJob {
+  map: string
+  /** Short-lived GET URL of the zstd-compressed demo. */
+  demoUrl: string
+  /** In demo order. */
+  clips: RecorderClip[]
+}
+
+/** Short-lived PUT URLs for one clip's video and poster. */
+export interface RecorderClipUploads {
+  video: string
+  thumbnail: string
+}
