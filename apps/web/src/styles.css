@@ -292,6 +292,20 @@
   mix-blend-mode: normal;
 }
 /*
+ * The mobile header is sticky, so where it sits depends on the scroll position, and the router
+ * resets that mid-transition: a scrolled page lost it. Fixed for the transition, it holds still;
+ * the page keeps its room.
+ */
+@media (width < 48rem) {
+  html:active-view-transition [data-mobile-header] {
+    position: fixed;
+    inset-inline: 0;
+  }
+  html:active-view-transition [data-mobile-header] + main {
+    margin-top: 3.5rem;
+  }
+}
+/*
  * Modals portal to the end of <body>, so captured on their own they stack above the chrome; in the
  * root snapshot the sidebar and mobile header would cover them. `match-element` names each one
  * uniquely, so a dialog over a dialog still works. A modal the navigation closes fades out with the

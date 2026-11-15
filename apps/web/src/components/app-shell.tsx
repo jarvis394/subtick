@@ -107,7 +107,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           <div aria-hidden className={cn(frameRect, '-z-10 bg-surface')} />
 
           <div className="@container min-w-0 flex-1 md:py-2 md:pr-2">
-            <header className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden">
+            {/* styles.css pins it in place during page transitions (data-mobile-header). */}
+            <header
+              data-mobile-header=""
+              className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden"
+            >
               <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen} swipeDirection="left">
                 <Drawer.Trigger render={<IconButton size="lg" label="Open menu" tooltip={false} />}>
                   <MenuIcon />
