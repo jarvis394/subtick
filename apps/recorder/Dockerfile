@@ -19,12 +19,12 @@ RUN curl -fsSLo /tmp/gbe.7z "https://github.com/Detanup01/gbe_fork/releases/down
  && cp /tmp/gbe/release/regular/x64/steam_api64.dll /tmp/gbe/release/CREDITS.md /out/gbe/ \
  && echo "$GBE_RELEASE" > /out/gbe/.release
 # The mirv_pov fork of HLAE's AfxHookSource2.dll (AGPL-3.0, source in the same release:
-# https://github.com/WangChuDi/advancedfx), built on HLAE 2.192.8: the player's own HUD in CS2
+# https://github.com/WangChuDi/advancedfx), built on HLAE 2.193.0: the player's own HUD in CS2
 # demos (HLAE_POV=1). Must match the HLAE_VERSION the bootstrap installs.
-ARG HLAE_POV_RELEASE=prerelease-97-7d666a293a730f5d2421665f3605e837322ff545
-ARG HLAE_POV_ASSET=AfxHookSource2-7d666a293a73-windows-x64.zip
-ARG HLAE_POV_SHA256=0e3fa91e11bbf3720f780d882a1402e9878832a500af57d9b9e6be304a903516
-ARG HLAE_POV_HLAE_VERSION=2.192.8
+ARG HLAE_POV_RELEASE=prerelease-103-b8e51e77933dfc11bab1d2a3a4fde16ab36f03b5
+ARG HLAE_POV_ASSET=AfxHookSource2-b8e51e77933d-windows-x64.zip
+ARG HLAE_POV_SHA256=65eb85d70be9c1ea02bc54344550ebceaa6040a3f2722470672824a9932315fe
+ARG HLAE_POV_HLAE_VERSION=2.193.0
 RUN curl -fsSLo /tmp/pov.zip "https://github.com/WangChuDi/advancedfx/releases/download/$HLAE_POV_RELEASE/$HLAE_POV_ASSET" \
  && echo "$HLAE_POV_SHA256  /tmp/pov.zip" | sha256sum -c - \
  && mkdir -p /out/hlae-pov && unzip -q /tmp/pov.zip -d /out/hlae-pov \

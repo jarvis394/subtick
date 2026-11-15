@@ -104,10 +104,13 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
         let raw: RecordedFile | undefined
 
         const fail = async (stage: 'capture' | 'delivery', error: unknown) => {
+          const reason = failureReason(stage, error)
           log.error({ matchId, highlightId: h.id, stage }, 'clip failed', error)
+          ctx.status.failStreak++
+          ctx.status.lastError = reason
           await db
             .update(highlight)
-            .set({ status: 'failed', error: failureReason(stage, error) })
+            .set({ status: 'failed', error: reason })
             .where(eq(highlight.id, h.id))
         }
 
@@ -210,6 +213,7 @@ const deliverClip = async (ctx: Context, h: Highlight, raw: RecordedFile, work: 
     .onConflictDoUpdate({ target: clip.highlightId, set: values })
   await db.update(highlight).set({ status: 'recorded' }).where(eq(highlight.id, h.id))
   ctx.status.clipsRecorded++
+  ctx.status.failStreak = 0
 
   log.info(
     {

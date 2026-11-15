@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { MomentBadge } from '@/components/moment-badge'
+import { type FleetHealth, RecorderHealthBanner } from '@/components/recorder-health-banner'
 import { type MomentTarget, QueueMomentDialog } from '@/components/queue-moment-dialog'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
@@ -22,7 +23,7 @@ import { Badge, Skeleton } from '@/components/ui/surface'
 import { useCancelMatch, useCancelMoment } from '@/hooks/use-match-actions'
 import { type ClipProgress, percent } from '@/hooks/use-match-events'
 import { clipLength, shortAge } from '@/lib/format'
-import { type QueueItem, matchQuery, queueQuery } from '@/lib/queries'
+import { type QueueItem, matchQuery, meQuery, queueQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/queue')({
@@ -74,11 +75,12 @@ const QueueBody = ({
   refetch,
   recordingAhead,
 }: {
-  data: { items: QueueItem[] } | undefined
+  data: { items: QueueItem[]; recorders: FleetHealth } | undefined
   isError: boolean
   refetch: () => unknown
   recordingAhead: (item: QueueItem) => number
 }) => {
+  const isAdmin = useQuery(meQuery).data?.user.isAdmin
   const items = data?.items ?? []
   const running = items.filter((item) => item.state === 'active')
   const waiting = items.filter((item) => item.state !== 'active')
@@ -91,6 +93,7 @@ const QueueBody = ({
           Matches being downloaded, analyzed and recorded on this instance.
         </p>
       </div>
+      <RecorderHealthBanner fleet={data?.recorders} manageLink={isAdmin} />
       <FadeSwap swapKey={data ? (items.length ? 'items' : 'empty') : isError ? 'error' : 'loading'}>
         {data ? (
           items.length === 0 ? (

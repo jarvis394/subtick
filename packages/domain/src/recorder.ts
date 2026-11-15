@@ -23,3 +23,39 @@ export const isRecorderOnline = (lastSeenAt: Date | string | null, now = Date.no
 
 /** Tokens are shown once; the prefix makes them recognisable in config files and secret scanners. */
 export const RECORDER_TOKEN_PREFIX = 'strec_'
+
+/** Clips a recorder fails in a row before it counts as failing; a recorded clip resets it. */
+export const RECORDER_FAILING_AFTER = 3
+
+export type RecorderHealth = 'healthy' | 'failing' | 'paused' | 'offline'
+
+export const recorderHealth = (
+  row: { lastSeenAt: Date | string | null; paused: boolean; failStreak: number },
+  now = Date.now(),
+): RecorderHealth =>
+  !isRecorderOnline(row.lastSeenAt, now)
+    ? 'offline'
+    : row.paused
+      ? 'paused'
+      : row.failStreak >= RECORDER_FAILING_AFTER
+        ? 'failing'
+        : 'healthy'
+
+/**
+ * An HLAE release and the mirv_pov fork build made on it, as the recorder's bootstrap installs
+ * them. Names only: the bootstrap builds the GitHub URLs itself.
+ */
+export interface HlaeBuild {
+  hlae: string
+  povRelease: string
+  povAsset: string
+  /** sha256 of the fork's zip, hex. */
+  povSha256: string
+}
+
+export const HLAE_BUILD_PATTERNS = {
+  hlae: /^\d+\.\d+\.\d+$/,
+  povRelease: /^[\w.-]{1,120}$/,
+  povAsset: /^[\w.-]{1,120}\.zip$/,
+  povSha256: /^[0-9a-f]{64}$/,
+} satisfies Record<keyof HlaeBuild, RegExp>

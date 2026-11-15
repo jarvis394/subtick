@@ -1,4 +1,4 @@
-import { RECORDER_TOKEN_PREFIX, isRecorderOnline } from '@subtick/domain'
+import { RECORDER_TOKEN_PREFIX, isRecorderOnline, recorderHealth } from '@subtick/domain'
 import type { schema } from '@subtick/db'
 
 const TOKEN_HINT_LENGTH = RECORDER_TOKEN_PREFIX.length + 6
@@ -26,6 +26,11 @@ export const recorderView = (row: RecorderRow) => ({
   tokenHint: row.tokenHint,
   paused: row.paused,
   online: isRecorderOnline(row.lastSeenAt),
+  health: recorderHealth(row),
+  failStreak: row.failStreak,
+  hlaeVersion: row.hlaeVersion,
+  hlaePovRelease: row.hlaePovRelease,
+  hlaeTarget: row.hlaeTarget,
   state: row.state,
   currentMatchId: row.currentMatchId,
   lastError: row.lastError,
@@ -36,4 +41,16 @@ export const recorderView = (row: RecorderRow) => ({
   startedAt: row.startedAt,
   lastSeenAt: row.lastSeenAt,
   createdAt: row.createdAt,
+})
+
+/**
+ * Whether anything can record right now, for banners. Only registered recorders count: with none,
+ * a standalone one may be running unseen.
+ */
+export const recorderFleetHealth = (
+  rows: Pick<RecorderRow, 'lastSeenAt' | 'paused' | 'failStreak'>[],
+) => ({
+  registered: rows.length,
+  healthy: rows.filter((row) => recorderHealth(row) === 'healthy').length,
+  failing: rows.filter((row) => recorderHealth(row) === 'failing').length,
 })

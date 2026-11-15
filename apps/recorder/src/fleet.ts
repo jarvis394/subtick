@@ -1,5 +1,5 @@
 import { hostname } from 'node:os'
-import { RECORDER_HEARTBEAT_MS, type RecorderState } from '@subtick/domain'
+import { type HlaeBuild, RECORDER_HEARTBEAT_MS, type RecorderState } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
 
 /** What this machine reports in every heartbeat. Kept current by the worker as it goes. */
@@ -8,6 +8,10 @@ export interface RecorderStatus {
   currentMatchId: string | null
   lastError: string | null
   clipsRecorded: number
+  /** Clips failed in a row; subtick shows the machine as failing after a few. */
+  failStreak: number
+  hlaeVersion: string | null
+  hlaePovRelease: string | null
   startedAt: Date
 }
 
@@ -15,6 +19,8 @@ export interface RecorderStatus {
 export interface RecorderSettings {
   name: string
   paused: boolean
+  /** The HLAE build to install between jobs. */
+  hlaeTarget: HlaeBuild | null
 }
 
 export const createStatus = (): RecorderStatus => ({
@@ -22,6 +28,9 @@ export const createStatus = (): RecorderStatus => ({
   currentMatchId: null,
   lastError: null,
   clipsRecorded: 0,
+  failStreak: 0,
+  hlaeVersion: null,
+  hlaePovRelease: null,
   startedAt: new Date(),
 })
 
@@ -46,7 +55,7 @@ const gpuName = async () => {
 
 /**
  * Links a recorder machine to subtick's api with its token: heartbeats report `status`, and the
- * replies carry the admin's settings (name, paused).
+ * replies carry the admin's settings (name, paused, HLAE build).
  */
 export const createFleetLink = (options: {
   url: string
@@ -80,7 +89,7 @@ export const createFleetLink = (options: {
       })
       if (failing) log.info('subtick api reachable again')
       failing = false
-      settings = { name: reply.name, paused: reply.paused }
+      settings = { name: reply.name, paused: reply.paused, hlaeTarget: reply.hlaeTarget ?? null }
       for (const listener of listeners) listener(settings)
     } catch (error) {
       if (!failing) log.warn('heartbeat failed; recording goes on with the last settings', error)

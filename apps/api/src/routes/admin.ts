@@ -3,6 +3,7 @@ import { USER_ROLES } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
+import { latestHlaeBuild } from '../services/hlae'
 import { newRecorderToken, recorderView } from '../services/recorders'
 import { createStorageReport } from '../services/storage'
 import {
@@ -137,6 +138,33 @@ export const adminRoutes = (ctx: Context) => {
           params: Id,
           body: z.object({ name: Name.optional(), paused: z.boolean().optional() }),
         },
+      )
+      .get(
+        '/recorders/hlae',
+        async ({ status }) => {
+          try {
+            return await latestHlaeBuild()
+          } catch (error) {
+            return status(502, { error: 'github' as const, message: (error as Error).message })
+          }
+        },
+        { admin: true },
+      )
+      .post(
+        '/recorders/:id/hlae',
+        async ({ params, status }) => {
+          // The latest build, looked up here: a recorder installs only what GitHub lists.
+          const { publishedAt: _, ...build } = await latestHlaeBuild()
+          const [row] = await db
+            .update(recorder)
+            .set({ hlaeTarget: build })
+            .where(eq(recorder.id, params.id))
+            .returning({ id: recorder.id })
+          if (!row) return status(404, { error: 'not_found' as const })
+
+          return build
+        },
+        { admin: true, params: Id },
       )
       .post(
         '/recorders/:id/token',

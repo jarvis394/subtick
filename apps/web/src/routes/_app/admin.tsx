@@ -1,5 +1,8 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useLocation } from '@tanstack/react-router'
+import { RecorderHealthBanner } from '@/components/recorder-health-banner'
 import { Tab, Tabs, TabsList } from '@/components/ui/tabs'
+import { recordersQuery } from '@/lib/admin'
 import { meQuery } from '@/lib/queries'
 
 /** Instance administration; only for users with the admin role (the api enforces it too). */
@@ -20,6 +23,12 @@ const TABS = [
 function AdminLayout() {
   const pathname = useLocation({ select: (location) => location.pathname })
   const active = TABS.find((tab) => pathname.startsWith(tab.to))?.to ?? null
+  const recorders = useQuery(recordersQuery).data
+  const fleet = recorders && {
+    registered: recorders.length,
+    healthy: recorders.filter((r) => r.health === 'healthy').length,
+    failing: recorders.filter((r) => r.health === 'failing').length,
+  }
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
@@ -42,6 +51,7 @@ function AdminLayout() {
           </TabsList>
         </Tabs>
       </div>
+      <RecorderHealthBanner fleet={fleet} manageLink={active !== '/admin/recorders'} />
       <Outlet />
     </div>
   )

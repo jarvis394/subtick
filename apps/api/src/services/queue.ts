@@ -4,6 +4,7 @@ import type { Context } from '../context'
 import { type Actor, jobMatchId } from './matches'
 import { devToolsEnabled } from './dev-flag'
 import { getProfiles } from './profiles'
+import { recorderFleetHealth } from './recorders'
 
 /** Pipeline stages in order; a match's row shows the furthest one it has work in. */
 const STAGES = ['resolving', 'downloading', 'parsing', 'recording'] as const
@@ -128,6 +129,15 @@ export const listQueue = async (
   const { db } = ctx
   const { match, userMatch, highlight, matchPlayer, user } = schema
   const jobs = await readJobs(ctx)
+  const recorders = recorderFleetHealth(
+    await db
+      .select({
+        lastSeenAt: schema.recorder.lastSeenAt,
+        paused: schema.recorder.paused,
+        failStreak: schema.recorder.failStreak,
+      })
+      .from(schema.recorder),
+  )
 
   const rows = new Map<string, MatchRow>()
   for (const job of jobs) {
@@ -153,7 +163,7 @@ export const listQueue = async (
   }
 
   const ids = [...rows.keys()]
-  if (!ids.length) return { items: [] }
+  if (!ids.length) return { items: [], recorders }
   const clipIds = [...rows.values()].flatMap((row) => [...row.clipIds])
   const [matches, mine, clips] = await Promise.all([
     db
@@ -297,5 +307,5 @@ export const listQueue = async (
       }
     })
 
-  return { items }
+  return { items, recorders }
 }

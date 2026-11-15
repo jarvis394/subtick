@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { Check, Copy, Plus } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
+import { RecorderHlae } from '@/components/recorder-hlae'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { Badge, Card, Skeleton } from '@/components/ui/surface'
@@ -218,6 +219,7 @@ function RecorderCard({
           </p>
         </div>
         {recorder.paused && <Badge>Paused</Badge>}
+        {recorder.health === 'failing' && <Badge tone="danger">Failing</Badge>}
         <Badge tone={tone}>{state ? STATE_LABEL[state] : 'Offline'}</Badge>
       </div>
 
@@ -245,10 +247,15 @@ function RecorderCard({
         </Detail>
         <Detail label="GPU">{recorder.gpu ?? 'Unknown'}</Detail>
         <Detail label="Version">{recorder.version ?? 'Unknown'}</Detail>
+        <Detail label="Failed in a row">
+          {recorder.online ? `${recorder.failStreak} clips` : 'Offline'}
+        </Detail>
         <Detail label="Token">
           <span className="font-mono text-small">{recorder.tokenHint}…</span>
         </Detail>
       </dl>
+
+      <RecorderHlae recorder={recorder} />
 
       {recorder.lastError && (
         <p className="rounded-lg bg-danger/8 px-3 py-2 text-body text-danger select-text">

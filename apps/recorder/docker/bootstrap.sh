@@ -20,12 +20,38 @@ set -euo pipefail
 : "${CS2_DIR:=/cs2}"
 : "${CS2_SOURCE:=download}"
 : "${DXVK_VERSION:=2.7.1}"
-: "${HLAE_VERSION:=2.192.8}"
+: "${HLAE_VERSION:=2.193.0}"
 : "${STEAMCMD_DIR:=/steamcmd}"
 : "${HLAE_POV:=0}"
 : "${GBE_SETTINGS:=$(dirname "$0")/../gbe/steam_settings}"
 
 log() { echo "[bootstrap] $*"; }
+
+# The mirv_pov fork baked into the image, unless an admin picked a newer HLAE build in subtick
+# (Recorders): the worker writes it to HLAE_TARGET and restarts, and it is downloaded here.
+POV_DIR=/opt/hlae-pov
+HLAE_TARGET="$(dirname "$WINEPREFIX")/hlae-target"
+use_hlae_target() {
+  [ -f "$HLAE_TARGET" ] || return 0
+  local hlae release asset sha dir
+  hlae=$(sed -n 's/^hlae=//p' "$HLAE_TARGET")
+  release=$(sed -n 's/^povRelease=//p' "$HLAE_TARGET")
+  asset=$(sed -n 's/^povAsset=//p' "$HLAE_TARGET")
+  sha=$(sed -n 's/^povSha256=//p' "$HLAE_TARGET")
+  local image="$HLAE_VERSION/$(cat "$POV_DIR/.release" 2>/dev/null)"
+  [ "$(printf '%s\n' "$image" "$hlae/$release" | sort -V | tail -1)" = "$hlae/$release" ] || return 0
+  dir="$(dirname "$WINEPREFIX")/hlae-pov/$release"
+  if [ ! -f "$dir/AfxHookSource2.dll" ]; then
+    log "downloading mirv_pov $release"
+    curl -fsSLo /tmp/pov.zip "https://github.com/WangChuDi/advancedfx/releases/download/$release/$asset"
+    echo "$sha  /tmp/pov.zip" | sha256sum -c - >/dev/null || { log "mirv_pov $release: checksum mismatch"; return 0; }
+    rm -rf "$dir" && mkdir -p "$dir" && unzip -q /tmp/pov.zip -d "$dir"
+    echo "$release" > "$dir/.release"
+    echo "$hlae" > "$dir/.hlae-version"
+  fi
+  HLAE_VERSION=$hlae
+  POV_DIR=$dir
+}
 export WINEDEBUG=-all
 
 steamcmd() {
@@ -101,22 +127,24 @@ setup_prefix() {
 # kept to switch back. A fresh HLAE install above drops both; the fork is laid over it again.
 setup_hlae_pov() {
   local dll="$1/AfxHookSource2.dll" official="$1/AfxHookSource2.official.dll"
-  local fork=/opt/hlae-pov/AfxHookSource2.dll
+  local fork="$POV_DIR/AfxHookSource2.dll" release="$1/../.pov-release"
   if [ "$HLAE_POV" = 1 ]; then
     local base
-    base=$(cat /opt/hlae-pov/.hlae-version)
+    base=$(cat "$POV_DIR/.hlae-version")
     if [ "$base" != "$HLAE_VERSION" ]; then
       log "mirv_pov is built for HLAE $base, not $HLAE_VERSION: keeping HLAE's own hook (spectator HUD)"
+      rm -f "$release"
       return
     fi
     [ -f "$official" ] || cp "$dll" "$official"
     if ! cmp -s "$fork" "$dll"; then
-      log "installing mirv_pov ($(cat /opt/hlae-pov/.release))"
+      log "installing mirv_pov ($(cat "$POV_DIR/.release"))"
       cp "$fork" "$dll"
     fi
+    cp "$POV_DIR/.release" "$release"
   elif [ -f "$official" ]; then
     log "restoring HLAE's own AfxHookSource2.dll"
-    cp "$official" "$dll" && rm "$official"
+    cp "$official" "$dll" && rm -f "$official" "$release"
   fi
 }
 
@@ -164,6 +192,10 @@ setup_game() {
       cp -rs "$CS2_SERVER_DIR/game" "$CS2_DIR/game"
       # Real copies of the Windows binaries over the links (they replace any same-named file).
       cp -r --remove-destination "$bins/game/." "$CS2_DIR/game/"
+      # Panel eggs add Metamod to the server's gameinfo.gi on every boot, and its plugins ship
+      # Windows DLLs too: loaded into the game, they crash it. Keep the server's mods out.
+      rm -rf "$CS2_DIR/game/csgo/addons" "$CS2_DIR/game/csgo/gameinfo.gi"
+      grep -v -i 'csgo/addons/' "$CS2_SERVER_DIR/game/csgo/gameinfo.gi" > "$CS2_DIR/game/csgo/gameinfo.gi"
       ;;
     *)
       log "unknown CS2_SOURCE '$CS2_SOURCE' (download, path or server)"
@@ -177,6 +209,7 @@ setup_game() {
   setup_steam_api
 }
 
+use_hlae_target
 setup_prefix
 setup_game
 log "ready"

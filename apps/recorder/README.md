@@ -50,7 +50,7 @@ To update a running recorder to the latest `main`, run `apps/recorder/scripts/de
 | `CS2_SERVER_DIR`                    |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                           |
 | `VNC_PASSWORD`                      |             | starts a VNC server on `127.0.0.1:5900` to watch the game                                                                            |
 | `DXVK_VERSION`                      | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                          |
-| `HLAE_VERSION`                      | `2.192.8`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
+| `HLAE_VERSION`                      | `2.193.0`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
 | `HLAE_POV`                          | `0`         | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
 | `WINEPREFIX`                        | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                |
 
@@ -74,7 +74,7 @@ Every machine still needs `DATABASE_URL`, `REDIS_URL` and `S3_*`. Only admins se
 
 - **`download`**: steamcmd installs the Windows build into `CS2_DIR` anonymously (no login needed) and updates it on every start. Simplest; costs ~75 GB.
 - **`path`**: `CS2_DIR` already holds a Windows CS2 install, e.g. a mounted Steam library folder. Nothing is downloaded or updated.
-- **`server`**: you already run a CS2 dedicated server (e.g. from a game panel). Mount its install read-only at `CS2_SERVER_DIR`; the recorder downloads only the Windows binaries (~5 GB) and builds `CS2_DIR` as symlinks into the server install plus those binaries. The server is never written to. Both must be on the same CS2 build. When the server updates, the recorder notices before its next job, puts the job back and exits; the container's restart policy reruns the bootstrap, which downloads the matching binaries (until the server has updated to CS2's current build, the bootstrap exits and Docker retries). With `scripts/deploy.sh`, set `RECORDER_CS2_SERVER` to the server's install to mount it read-only.
+- **`server`**: you already run a CS2 dedicated server (e.g. from a game panel). Mount its install read-only at `CS2_SERVER_DIR`; the recorder downloads only the Windows binaries (~5 GB) and builds `CS2_DIR` as symlinks into the server install plus those binaries. The server is never written to, and its mods are left out: `CS2_DIR` gets a copy of its `gameinfo.gi` without the `csgo/addons/` search paths (game panels add Metamod there, and its plugins' Windows DLLs crash the game) and no `addons` folder. Both must be on the same CS2 build. When the server updates, the recorder notices before its next job, puts the job back and exits; the container's restart policy reruns the bootstrap, which downloads the matching binaries (until the server has updated to CS2's current build, the bootstrap exits and Docker retries). With `scripts/deploy.sh`, set `RECORDER_CS2_SERVER` to the server's install to mount it read-only.
 
 ### Steam: emulated
 
@@ -83,6 +83,8 @@ CS2 won't start without Steam. The bootstrap lays [gbe_fork](https://github.com/
 ### The player's HUD (`HLAE_POV`)
 
 CS2 draws demo playback with the spectator HUD, even in first person. Official HLAE's `mirv_pov` (the player's own HUD in a demo) is for CS:GO only; [WangChuDi/advancedfx](https://github.com/WangChuDi/advancedfx) ports it to CS2 as a drop-in `AfxHookSource2.dll`. The image pins a release by checksum (`Dockerfile`), and with `HLAE_POV=1` the bootstrap puts it over HLAE's own hook, which is kept to switch back. It must be built for the same HLAE version as `HLAE_VERSION`; otherwise the bootstrap keeps HLAE's hook. When a CS2 update breaks the fork's HUD hooks, the recorder notices on the first clip and records the spectator HUD until the game restarts.
+
+In a fleet, **Manage instance → Recorders** shows each machine's HLAE build and offers an **Update** to the newest fork release with the HLAE release it's built on (looked up on GitHub). The machine writes the build next to its Wine prefix (`hlae-target`) and restarts between jobs; the bootstrap downloads it, checks the sha256 GitHub lists for it, and uses it over the image's pins while it's the newer of the two.
 
 ## The look of a clip
 

@@ -15,6 +15,10 @@ const Heartbeat = z.object({
   gpu: z.string().max(255).nullable(),
   version: z.string().max(64).nullable(),
   clipsRecorded: z.number().int().min(0),
+  // Optional: recorders older than these fields still report.
+  failStreak: z.number().int().min(0).default(0),
+  hlaeVersion: z.string().max(32).nullable().default(null),
+  hlaePovRelease: z.string().max(128).nullable().default(null),
   startedAt: z.coerce.date(),
 })
 
@@ -47,7 +51,7 @@ export const recorderAgentRoutes = ({ db }: Context) =>
           .set({ ...body, lastSeenAt: new Date() })
           .where(eq(recorder.id, self.id))
 
-        return { name: self.name, paused: self.paused }
+        return { name: self.name, paused: self.paused, hlaeTarget: self.hlaeTarget }
       },
       { recorderToken: true, body: Heartbeat },
     )

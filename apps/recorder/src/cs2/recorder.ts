@@ -49,8 +49,8 @@ const PROGRESS_POLL_MS = 1000
  */
 const CAPTURE_FFMPEG = [
   '-c:v libx264 -preset faster -crf 20 -pix_fmt yuv420p',
-  '-progress {QUOTE}{AFX_STREAM_PATH}\\\\progress.txt{QUOTE}',
-  '{QUOTE}{AFX_STREAM_PATH}\\\\video.mp4{QUOTE}',
+  '-progress {QUOTE}{AFX_STREAM_PATH}\\progress.txt{QUOTE}',
+  '{QUOTE}{AFX_STREAM_PATH}\\video.mp4{QUOTE}',
 ].join(' ')
 
 /** Demos are copied here, relative to `game/csgo`, as `playdemo` only reads from the game tree. */

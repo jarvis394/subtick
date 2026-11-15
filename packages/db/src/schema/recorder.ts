@@ -1,5 +1,6 @@
-import { RECORDER_STATES } from '@subtick/domain'
+import { type HlaeBuild, RECORDER_STATES } from '@subtick/domain'
 import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { jsonb } from '../jsonb'
 import { user } from './auth'
 
 /**
@@ -32,8 +33,16 @@ export const recorder = pgTable('recorder', {
   gpu: text(),
   version: text(),
   clipsRecorded: integer().notNull().default(0),
+  /** Clips failed in a row; a recorded clip resets it. */
+  failStreak: integer().notNull().default(0),
+  hlaeVersion: text(),
+  /** The mirv_pov fork release in use; null on HLAE's own hook. */
+  hlaePovRelease: text(),
   startedAt: at(),
   lastSeenAt: at(),
+
+  /** The HLAE build an admin asked this machine to install; it does so between jobs. */
+  hlaeTarget: jsonb().$type<HlaeBuild>(),
 
   createdBy: text().references(() => user.id, { onDelete: 'set null' }),
   createdAt: at().notNull().defaultNow(),
