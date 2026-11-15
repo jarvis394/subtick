@@ -302,6 +302,7 @@ export const buildTimeline = (input: {
   for (const b of events.blinds) {
     const r = roundIndexAt(rounds, b.tick)
     if (r === -1 || !b.attacker.steamId || !b.victim.steamId) continue
+    const attackerSide = sideAt(r, b.attacker.steamId, b.attacker.teamNum)
     blinds.push({
       round: r + 1,
       tick: b.tick,
@@ -309,8 +310,7 @@ export const buildTimeline = (input: {
       victim: b.victim.steamId,
       duration: b.duration,
       isTeamFlash:
-        sideAt(r, b.attacker.steamId, b.attacker.teamNum) ===
-        sideAt(r, b.victim.steamId, b.victim.teamNum),
+        attackerSide !== null && attackerSide === sideAt(r, b.victim.steamId, b.victim.teamNum),
     })
   }
 
