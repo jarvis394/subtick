@@ -5,7 +5,7 @@ import { type ClipSegment, segmentsTicks } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
 import type { ClipPlan, MatchToRecord, RecordedFile, RecordedPart, Recorder } from '../recorder'
 import type { NetCon } from './netcon'
-import { type WineGame, findProcesses, windowsPath } from './wine'
+import type { Game } from './game'
 
 const TICKRATE = 64
 /**
@@ -72,10 +72,9 @@ const capturedFrames = async (dir: string) => {
 }
 
 export interface Cs2RecorderOptions {
-  game: WineGame
+  game: Game
   cs2Dir: string
-  prefix: string
-  /** Where HLAE writes takes; must be inside the prefix so the Windows side can reach it. */
+  /** Where HLAE writes takes; must be where the Windows side can reach it. */
   takesDir: string
   /**
    * Render the player's own HUD instead of CS2's spectator HUD, with `mirv_pov` from the
@@ -205,12 +204,12 @@ export class Cs2Recorder implements Recorder {
     segment: ClipSegment,
     onFrames: (frames: number) => void,
   ): Promise<RecordedPart & { renderMs: number }> {
-    const { prefix } = this.options
+    const { host } = this.options.game
     await mkdir(dir, { recursive: true })
     const take = ++this.#takes
 
     netcon.send(
-      `mirv_streams record name "${windowsPath(prefix, dir)}"`,
+      `mirv_streams record name "${host.windowsPath(dir)}"`,
       'mirv_cmd clear',
       `mirv_cmd addAtTick ${segment.startTick} "echo subtick_start_${take}; mirv_streams record start"`,
       `mirv_cmd addAtTick ${segment.endTick} "mirv_streams record end; demo_pause; echo subtick_done_${take}"`,
@@ -250,10 +249,10 @@ export class Cs2Recorder implements Recorder {
     const renderMs = Math.round(performance.now() - renderStart)
 
     // HLAE reports the end before its ffmpeg.exe has encoded the tail and closed the file.
-    const takeDir = windowsPath(prefix, dir)
-    for (let i = 0; i < FFMPEG_EXIT_POLLS && (await findProcesses(takeDir)).length; i++)
+    const takeDir = host.windowsPath(dir)
+    for (let i = 0; i < FFMPEG_EXIT_POLLS && (await host.processes(takeDir)).length; i++)
       await Bun.sleep(1000)
-    if ((await findProcesses(takeDir)).length)
+    if ((await host.processes(takeDir)).length)
       throw new Error(`HLAE's ffmpeg is still writing ${dir}`)
 
     // If the trigger fired twice anyway, the last take is the complete one.

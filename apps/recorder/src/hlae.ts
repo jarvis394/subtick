@@ -8,9 +8,7 @@ const read = (path: string) =>
     .catch(() => null)
 
 /** What the bootstrap installed: HLAE's version, and the mirv_pov release laid over it if any. */
-export const installedHlae = async (prefix: string) => {
-  const dir = join(prefix, 'drive_c/hlae')
-
+export const installedHlae = async (dir: string) => {
   return {
     hlaeVersion: await read(join(dir, '.version')),
     hlaePovRelease: await read(join(dir, '.pov-release')),

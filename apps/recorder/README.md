@@ -54,6 +54,20 @@ To update a running recorder to the latest `main`, run `apps/recorder/scripts/de
 | `HLAE_POV`                      | `0`         | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
 | `WINEPREFIX`                    | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                |
 
+### On a Windows machine, from WSL
+
+With `GAME_HOST=windows` the worker runs in WSL and the game runs on Windows itself: no Docker, Wine or Xorg, and the machine's own GPU driver. `scripts/setup-wsl.sh` installs HLAE into `WINDOWS_DIR` (`/mnt/c/subtick`) and builds `CS2_DIR` from an existing Steam install: a copy of `game/bin`, where gbe_fork goes, and junctions to the rest. The install Steam knows is left as it is, apart from a `game/csgo/subtick` folder the demos are copied to.
+
+```sh
+CS2_INSTALL="/mnt/c/.../Counter-Strike Global Offensive" apps/recorder/scripts/setup-wsl.sh
+GAME_HOST=windows CS2_DIR=/mnt/c/subtick/cs2 bun apps/recorder/src/main.ts
+```
+
+- WSL needs mirrored networking (`networkingMode=mirrored` in `.wslconfig`): the worker reaches the game's console on `127.0.0.1`.
+- Windows Defender takes gbe_fork for a threat and blocks the download, so `WINDOWS_DIR` needs an exclusion.
+- The game opens a window on the desktop while it records. Rerun the setup after a CS2 update.
+- HLAE builds picked in **Manage instance → Recorders** aren't installed here; set `HLAE_VERSION` and rerun the setup. `HLAE_POV` isn't set up by the script yet.
+
 ### A fleet of recorders
 
 Recorders can run on several machines, like CI runners. In subtick, an admin opens **Manage instance → Recorders** (in the account menu), adds a recorder and gets a token, shown once. Put it in that machine's `recorder.env`:

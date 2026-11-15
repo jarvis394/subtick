@@ -16,7 +16,7 @@ await cp(new URL('../cfg', import.meta.url).pathname, join(ctx.configDir, 'cfg')
   recursive: true,
 })
 
-Object.assign(status, await installedHlae(env.WINEPREFIX))
+Object.assign(status, await installedHlae(ctx.hlaeDir))
 
 const worker = createWorker(
   'clip.record',
@@ -60,6 +60,8 @@ let hlaeUpdateRefused = false
 
 /** Writes the HLAE build an admin picked for the bootstrap, when it isn't what's installed. */
 async function pendingHlaeUpdate() {
+  // Only the container's bootstrap installs a staged build; in WSL, rerun scripts/setup-wsl.sh.
+  if (env.GAME_HOST !== 'wine') return false
   const target = fleet.settings?.hlaeTarget
   if (!needsHlaeUpdate(target, status, env.HLAE_POV)) return false
   try {

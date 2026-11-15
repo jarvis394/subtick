@@ -15,6 +15,8 @@ export interface NetCon {
 }
 
 const TAIL_LINES = 40
+/** A closed port refuses at once on Linux; from WSL to Windows the connection hangs for minutes. */
+const CONNECT_TIMEOUT_MS = 5000
 
 export class NetConTimeoutError extends Error {
   override name = 'NetConTimeoutError'
@@ -59,7 +61,7 @@ export const connectNetCon = async (
     waiters.clear()
   }
 
-  const socket: Socket = await Bun.connect({
+  const connecting = Bun.connect({
     hostname: host,
     port,
     socket: {
@@ -72,6 +74,17 @@ export const connectNetCon = async (
       error: onClose,
     },
   })
+  const socket: Socket | null = await Promise.race([
+    connecting,
+    Bun.sleep(CONNECT_TIMEOUT_MS).then(() => null),
+  ])
+  if (!socket) {
+    void connecting.then(
+      (late) => late.end(),
+      () => {},
+    )
+    throw new Error(`no answer on netcon port ${port}`)
+  }
 
   return {
     send(...commands) {

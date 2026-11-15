@@ -7,8 +7,10 @@
 import { cp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createLogger } from '@subtick/logger'
+import { createGame } from '../src/cs2/game'
 import { Cs2Recorder } from '../src/cs2/recorder'
-import { createWineGame } from '../src/cs2/wine'
+import { createWindowsHost } from '../src/cs2/windows'
+import { createWineHost } from '../src/cs2/wine'
 
 const [demoPath, tick = '20000', playerName = ''] = process.argv.slice(2)
 if (!demoPath) throw new Error('usage: bun smoke.ts <demo.dem> [startTick] [player name]')
@@ -17,15 +19,23 @@ const startTick = Number(tick)
 const log = createLogger('smoke')
 const prefix = process.env.WINEPREFIX ?? '/wine/pfx'
 const cs2Dir = process.env.CS2_DIR ?? '/cs2'
-const configDir = join(prefix, 'drive_c/subtick')
+const windows = process.env.GAME_HOST === 'windows'
+const root = windows ? (process.env.WINDOWS_DIR ?? '/mnt/c/subtick') : join(prefix, 'drive_c')
+const configDir = join(root, 'subtick')
 await cp(new URL('../cfg', import.meta.url).pathname, join(configDir, 'cfg'), { recursive: true })
 
-const game = createWineGame({ cs2Dir, prefix, netconPort: 2121, configDir, log })
+const game = createGame({
+  host: windows ? createWindowsHost([root, cs2Dir]) : createWineHost(prefix),
+  cs2Dir,
+  hlaeDir: join(root, 'hlae'),
+  netconPort: 2121,
+  configDir,
+  log,
+})
 
 const recorder = new Cs2Recorder({
   game,
   cs2Dir,
-  prefix,
   takesDir: join(configDir, 'takes'),
   mirvPov: process.env.HLAE_POV === '1',
   log,

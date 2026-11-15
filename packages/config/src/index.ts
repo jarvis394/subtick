@@ -87,6 +87,13 @@ export const RecorderEnv = {
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),
   /**
+   * `wine`: the recorder's container on Linux. `windows`: a worker in WSL that runs the game on
+   * Windows itself (apps/recorder/scripts/setup-wsl.sh); CS2_DIR is then on a Windows drive.
+   */
+  GAME_HOST: z.enum(['wine', 'windows']).default('wine'),
+  /** GAME_HOST=windows: the folder on a Windows drive that holds HLAE and the recorder's config. */
+  WINDOWS_DIR: z.string().default('/mnt/c/subtick'),
+  /**
    * The subtick origin (PUBLIC_URL) and the token an admin got when adding this machine. The
    * machine reports its health there, takes its settings from it, and reads and writes everything
    * a recording touches through its api.
