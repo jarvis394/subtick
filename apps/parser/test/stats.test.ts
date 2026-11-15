@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { detectClutches } from '../src/clutches'
 import { computeStats } from '../src/stats'
-import { buildTestTimeline } from './builders'
+import { buildTestTimeline, roundTick } from './builders'
 
 const stats = (timeline: ReturnType<typeof buildTestTimeline>) =>
   computeStats(timeline, detectClutches(timeline))
@@ -46,5 +46,66 @@ describe('computeStats', () => {
     )
     expect(tk.get('ct1')!.kills).toBe(0)
     expect(tk.get('ct2')!.deaths).toBe(1)
+  })
+
+  test('post-round kills, damage and flashes stay out of round stats', () => {
+    const t = buildTestTimeline([
+      {
+        winner: 'CT',
+        endsAt: 10,
+        kills: [{ at: 20, attacker: 'ct1', victim: 't1', afterRoundEnd: true }],
+      },
+    ])
+    t.damages.push(
+      {
+        round: 1,
+        tick: roundTick(1, 5),
+        attacker: 'ct1',
+        victim: 't2',
+        weapon: 'ak47',
+        amount: 50,
+        isTeamDamage: false,
+        hitgroup: 'chest',
+      },
+      {
+        round: 1,
+        tick: roundTick(1, 21),
+        attacker: 'ct1',
+        victim: 't1',
+        weapon: 'ak47',
+        amount: 100,
+        isTeamDamage: false,
+        hitgroup: 'chest',
+      },
+    )
+    t.blinds.push(
+      {
+        round: 1,
+        tick: roundTick(1, 6),
+        attacker: 'ct1',
+        victim: 't2',
+        duration: 2,
+        isTeamFlash: false,
+      },
+      {
+        round: 1,
+        tick: roundTick(1, 22),
+        attacker: 'ct1',
+        victim: 't3',
+        duration: 2,
+        isTeamFlash: false,
+      },
+    )
+    const after = stats(t)
+
+    expect(after.get('ct1')).toMatchObject({
+      kills: 0,
+      damage: 50,
+      enemiesFlashed: 1,
+      multiKills: [0, 0, 0, 0, 0],
+      kastRounds: 1,
+    })
+    expect(after.get('t1')).toMatchObject({ deaths: 0, kastRounds: 1 })
+    expect(after.get('t2')).toMatchObject({ kastRounds: 1 })
   })
 })

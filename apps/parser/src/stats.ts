@@ -84,8 +84,15 @@ export const computeStats = (
 ): Map<string, PlayerStats> => {
   const stats = new Map([...timeline.players.keys()].map((id) => [id, emptyStats()]))
 
-  const killsByRound = Map.groupBy(timeline.kills, (k) => k.round)
+  // Exit frags happen after `round_end`, so they count for neither side's round stats.
+  const killsByRound = Map.groupBy(
+    timeline.kills.filter((k) => !k.afterRoundEnd),
+    (k) => k.round,
+  )
+  const roundEndTicks = new Map(timeline.rounds.map((r) => [r.number, r.endTick]))
 
+  const inRound = (e: { round: number; tick: number }) =>
+    e.tick <= (roundEndTicks.get(e.round) ?? 0)
   const get = (id: string | null) => (id ? stats.get(id) : undefined)
 
   for (const round of timeline.rounds) {
@@ -136,6 +143,7 @@ export const computeStats = (
   }
 
   for (const d of timeline.damages) {
+    if (!inRound(d)) continue
     const attacker = get(d.attacker)
     if (!attacker || d.isTeamDamage || d.attacker === d.victim) continue
     attacker.damage += d.amount
@@ -143,6 +151,7 @@ export const computeStats = (
   }
 
   for (const b of timeline.blinds) {
+    if (!inRound(b)) continue
     const attacker = get(b.attacker)
     if (attacker && !b.isTeamFlash && b.duration >= MIN_FLASH_SECONDS) attacker.enemiesFlashed++
   }

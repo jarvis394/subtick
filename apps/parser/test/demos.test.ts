@@ -101,12 +101,13 @@ for (const demo of DEMOS) {
 
     test('stats are consistent with the kill feed', () => {
       const stats = [...a.stats.values()]
+      const counted = a.timeline.kills.filter((k) => !k.afterRoundEnd)
 
       const sum = (pick: (s: (typeof stats)[number]) => number) =>
         stats.reduce((n, s) => n + pick(s), 0)
 
-      expect(sum((s) => s.deaths)).toBe(a.timeline.kills.length)
-      expect(sum((s) => s.kills)).toBe(a.timeline.kills.filter(isEnemyKill).length)
+      expect(sum((s) => s.deaths)).toBe(counted.length)
+      expect(sum((s) => s.kills)).toBe(counted.filter(isEnemyKill).length)
       expect(sum((s) => s.openingKills)).toBe(demo.rounds)
       for (const s of stats) {
         expect(s.roundsPlayed).toBe(demo.rounds)
