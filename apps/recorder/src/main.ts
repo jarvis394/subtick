@@ -1,8 +1,7 @@
-import { cp } from 'node:fs/promises'
-import { join } from 'node:path'
 import { DelayedError } from 'bullmq'
 import { closeOnSignal, createWorker } from '@subtick/queue'
 import { staleWindowsBinaries } from './cs2/build'
+import { installConfig } from './cs2/config'
 import { createContext } from './context'
 import { failureReason } from './failure'
 import { installedHlae, needsHlaeUpdate, writeHlaeTarget } from './hlae'
@@ -12,9 +11,7 @@ const ctx = createContext()
 const { env, log, api, recorder, fleet, status } = ctx
 
 // The look of every clip (HUD, demo UI, video settings) ships with the code, not the prefix.
-await cp(new URL('../cfg', import.meta.url).pathname, join(ctx.configDir, 'cfg'), {
-  recursive: true,
-})
+await installConfig(ctx.configDir, ctx.resolution)
 
 Object.assign(status, await installedHlae(ctx.hlaeDir))
 

@@ -5,7 +5,8 @@
 #
 #   CS2_INSTALL="/mnt/c/.../Counter-Strike Global Offensive" apps/recorder/scripts/setup-wsl.sh
 #
-#   1. HLAE and its ffmpeg.exe in WINDOWS_DIR/hlae.
+#   1. HLAE and its ffmpeg.exe in WINDOWS_DIR/hlae, and with HLAE_POV=1 the mirv_pov fork of its
+#      hook over HLAE's own (kept as AfxHookSource2.official.dll to switch back).
 #   2. CS2_DIR: a copy of the install's game/bin (where gbe_fork replaces Steam's DLL) and
 #      junctions to the rest of it, so the install Steam knows stays as it is. The one thing
 #      written there is game/csgo/subtick, where demos are copied for playback.
@@ -17,9 +18,14 @@ set -euo pipefail
 : "${CS2_DIR:=$WINDOWS_DIR/cs2}"
 : "${HLAE_VERSION:=2.193.0}"
 : "${FFMPEG_DIR:=$HOME/.local/share/subtick-recorder/ffmpeg}"
-# Same pin as the Dockerfile.
+: "${HLAE_POV:=0}"
+# Same pins as the Dockerfile.
 GBE_RELEASE=release-2026_09_27
 GBE_SHA256=300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85
+HLAE_POV_RELEASE=prerelease-103-b8e51e77933dfc11bab1d2a3a4fde16ab36f03b5
+HLAE_POV_ASSET=AfxHookSource2-b8e51e77933d-windows-x64.zip
+HLAE_POV_SHA256=65eb85d70be9c1ea02bc54344550ebceaa6040a3f2722470672824a9932315fe
+HLAE_POV_HLAE_VERSION=2.193.0
 
 here=$(cd "$(dirname "$0")" && pwd)
 system32=/mnt/c/Windows/System32
@@ -41,6 +47,36 @@ if [ "$(cat "$hlae/.version" 2>/dev/null)" != "$HLAE_VERSION" ]; then
   unzip -qo "$tmp/ff.zip" -d "$tmp/ff"
   cp "$tmp"/ff/*/bin/ffmpeg.exe "$hlae/ffmpeg/bin/"
   echo "$HLAE_VERSION" > "$hlae/.version"
+fi
+
+pov=0
+hook="$hlae/x64/AfxHookSource2.dll" official="$hlae/x64/AfxHookSource2.official.dll"
+if [ "$HLAE_POV" = 1 ]; then
+  if [ "$HLAE_POV_HLAE_VERSION" != "$HLAE_VERSION" ]; then
+    log "mirv_pov is built for HLAE $HLAE_POV_HLAE_VERSION, not $HLAE_VERSION: keeping HLAE's own hook (spectator HUD)"
+    rm -f "$hlae/.pov-release"
+  else
+    fork="$WINDOWS_DIR/hlae-pov"
+    if [ "$(cat "$fork/.release" 2>/dev/null)" != "$HLAE_POV_RELEASE" ]; then
+      log "downloading mirv_pov $HLAE_POV_RELEASE"
+      rm -rf "$fork" && mkdir -p "$fork"
+      curl -fsSLo "$tmp/pov.zip" "https://github.com/WangChuDi/advancedfx/releases/download/$HLAE_POV_RELEASE/$HLAE_POV_ASSET"
+      echo "$HLAE_POV_SHA256  $tmp/pov.zip" | sha256sum -c - >/dev/null
+      unzip -qo "$tmp/pov.zip" -d "$fork"
+      [ -f "$fork/AfxHookSource2.dll" ] || { log "no AfxHookSource2.dll in $HLAE_POV_ASSET"; exit 1; }
+      echo "$HLAE_POV_RELEASE" > "$fork/.release"
+    fi
+    [ -f "$official" ] || cp "$hook" "$official"
+    if ! cmp -s "$fork/AfxHookSource2.dll" "$hook"; then
+      log "installing mirv_pov ($HLAE_POV_RELEASE)"
+      cp "$fork/AfxHookSource2.dll" "$hook"
+    fi
+    echo "$HLAE_POV_RELEASE" > "$hlae/.pov-release"
+    pov=1
+  fi
+elif [ -f "$official" ]; then
+  log "restoring HLAE's own AfxHookSource2.dll"
+  cp "$official" "$hook" && rm -f "$official" "$hlae/.pov-release"
 fi
 
 gbe="$WINDOWS_DIR/gbe"
@@ -97,3 +133,4 @@ log "ready. In the recorder's environment:"
 log "  GAME_HOST=windows"
 log "  WINDOWS_DIR=$WINDOWS_DIR"
 log "  CS2_DIR=$CS2_DIR"
+[ "$pov" = 0 ] || log "  HLAE_POV=1"

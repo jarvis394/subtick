@@ -108,6 +108,11 @@ export const RecorderEnv = {
     .enum(['0', '1'])
     .default('0')
     .transform((v) => v === '1'),
+  /** Capture size: the game's window and its video settings. */
+  RECORD_WIDTH: z.coerce.number().int().positive().default(1280),
+  RECORD_HEIGHT: z.coerce.number().int().positive().default(720),
+  /** HLAE's offline capture rate (`mirv_streams record fps`). */
+  RECORD_FPS: z.coerce.number().int().positive().default(60),
 }
 
 export const WorkerEnv = {

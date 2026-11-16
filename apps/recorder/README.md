@@ -4,7 +4,7 @@ Turns highlights into video clips. It runs CS2 (the Windows build) with [HLAE](h
 
 For each clip:
 
-1. Seek to five seconds before the clip and spectate the player.
+1. Seek to five seconds before the clip and spectate the player (again 2.5 s before the start: CS2 can ignore a `spec_player` sent right after a seek).
 2. HLAE captures between two `mirv_cmd` tick triggers, offline at a fixed 60 fps: a slow GPU makes recording slower, never choppier.
 3. Mux in the game audio, trim to length, take a poster frame at the last kill.
 4. Upload to the `clips` bucket and report the clip to subtick, which writes the `clip` row.
@@ -41,18 +41,20 @@ To update a running recorder to the latest `main`, run `apps/recorder/scripts/de
 
 ## Environment
 
-| variable                        | default     | what                                                                                                                                 |
-| ------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `REDIS_URL`                     |             | as for the other workers: the queue its jobs come from                                                                               |
-| `SUBTICK_URL`, `RECORDER_TOKEN` |             | required: the instance and this machine's token (see below)                                                                          |
-| `CS2_SOURCE`                    | `download`  | where the game files come from, see below                                                                                            |
-| `CS2_DIR`                       | `/cs2`      | the CS2 install (the folder with `game/`)                                                                                            |
-| `CS2_SERVER_DIR`                |             | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                           |
-| `VNC_PASSWORD`                  |             | starts a VNC server on `127.0.0.1:5900` to watch the game                                                                            |
-| `DXVK_VERSION`                  | `2.7.1`     | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                          |
-| `HLAE_VERSION`                  | `2.193.0`   | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
-| `HLAE_POV`                      | `0`         | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
-| `WINEPREFIX`                    | `/wine/pfx` | the prefix, inside the `/wine` volume                                                                                                |
+| variable                        | default       | what                                                                                                                                 |
+| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `REDIS_URL`                     |               | as for the other workers: the queue its jobs come from                                                                               |
+| `SUBTICK_URL`, `RECORDER_TOKEN` |               | required: the instance and this machine's token (see below)                                                                          |
+| `CS2_SOURCE`                    | `download`    | where the game files come from, see below                                                                                            |
+| `CS2_DIR`                       | `/cs2`        | the CS2 install (the folder with `game/`)                                                                                            |
+| `CS2_SERVER_DIR`                |               | `CS2_SOURCE=server` only: a Linux dedicated-server install                                                                           |
+| `VNC_PASSWORD`                  |               | starts a VNC server on `127.0.0.1:5900` to watch the game                                                                            |
+| `DXVK_VERSION`                  | `2.7.1`       | `1.10.3` for GPUs or drivers without Vulkan 1.3 (e.g. Kepler on driver 470)                                                          |
+| `HLAE_VERSION`                  | `2.193.0`     | HLAE release; HLAE follows CS2 updates closely, so bump it when CS2 updates break the hook                                           |
+| `HLAE_POV`                      | `0`           | `1`: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the `mirv_pov` fork of HLAE's hook (see below) |
+| `WINEPREFIX`                    | `/wine/pfx`   | the prefix, inside the `/wine` volume                                                                                                |
+| `RECORD_WIDTH`, `RECORD_HEIGHT` | `1280`, `720` | capture size: the game's window and `cs2_video.txt`'s resolution                                                                     |
+| `RECORD_FPS`                    | `60`          | HLAE's offline capture rate; render time grows with it                                                                               |
 
 ### On a Windows machine, from WSL
 
@@ -66,7 +68,8 @@ GAME_HOST=windows CS2_DIR=/mnt/c/subtick/cs2 bun apps/recorder/src/main.ts
 - WSL needs mirrored networking (`networkingMode=mirrored` in `.wslconfig`): the worker reaches the game's console on `127.0.0.1`.
 - Windows Defender takes gbe_fork for a threat and blocks the download, so `WINDOWS_DIR` needs an exclusion.
 - The game opens a window on the desktop while it records. Rerun the setup after a CS2 update.
-- HLAE builds picked in **Manage instance → Recorders** aren't installed here; set `HLAE_VERSION` and rerun the setup. `HLAE_POV` isn't set up by the script yet.
+- HLAE builds picked in **Manage instance → Recorders** aren't installed here; set `HLAE_VERSION` and rerun the setup.
+- For the player's HUD, run the setup with `HLAE_POV=1` and start the worker with it too. The setup installs the same pinned mirv_pov release as the image (below); rerunning it without `HLAE_POV=1` puts HLAE's own hook back.
 
 ### A fleet of recorders
 
@@ -106,7 +109,9 @@ In a fleet, **Manage instance → Recorders** shows each machine's HLAE build an
 
 - `subtick.cfg`: HUD and overlays (player HUD on; demo UI, build watermark, x-ray off).
 - `subtick.cfg`: the team bar shows "N alive" counts, not a spectator's card per player.
-- `cs2_video.txt`: resolution and quality: 1280×720, lowest details, FSR off. On the 1 GB GTX 650 FSR off renders correctly but about 30% slower than FSR performance mode (`setting.videocfg_fsr_detail` `3`), which earlier tests needed to avoid magenta (missing) materials.
+- `subtick.cfg`: game volume pinned to 1, so a clip's audio level doesn't depend on the machine.
+- `subtick.cfg`: the recorded player's own crosshair (`cl_show_observer_crosshair 2`), as the demo reports it. Demos from before CS2's September 2026 crosshair-code change keep the default crosshair.
+- `cs2_video.txt`: resolution and quality: 1280×720 (`RECORD_WIDTH`/`RECORD_HEIGHT` rewrite it on copy), lowest details, FSR off. On the 1 GB GTX 650 FSR off renders correctly but about 30% slower than FSR performance mode (`setting.videocfg_fsr_detail` `3`), which earlier tests needed to avoid magenta (missing) materials.
 
 After a deploy, `scripts/smoke.ts` records one clip without the database or the queue (usage in the file).
 
@@ -114,7 +119,7 @@ Bump `RECORDER_VERSION` in `src/record.ts` when the look changes; clips from old
 
 ## Performance
 
-On the GTX 650: ~23 s from CS2 start to a loaded demo, then about 6–7 s of rendering per second of clip (a 10 s clip takes ~70 s). A typical match with six highlights takes 10–15 minutes. One CS2 session slows down as it records (15–30× after five clips), so the recorder restarts the game every four clips and after any clip slower than 12×.
+On the GTX 650: ~23 s from CS2 start to a loaded demo, then about 6–7 s of rendering per second of clip (a 10 s clip takes ~70 s). A typical match with six highlights takes 10–15 minutes. A CS2 session there can slow down as it records (15–30× after five clips), so the recorder restarts the game after any clip slower than 8× (scaled to 60 fps). Later matches load into the running game. Each segment is preceded by a 5 s lead-in that plays at 4× speed.
 
 ## Dev
 

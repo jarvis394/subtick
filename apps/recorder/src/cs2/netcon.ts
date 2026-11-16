@@ -1,4 +1,4 @@
-import type { Socket } from 'bun'
+import { type Socket, createConnection } from 'node:net'
 
 /**
  * CS2's netcon console (`-netconport`): a plain TCP stream, one command per line in, every console
@@ -22,25 +22,47 @@ export class NetConTimeoutError extends Error {
   override name = 'NetConTimeoutError'
 }
 
+interface Waiter {
+  pattern: RegExp
+  resolve: (line: string) => void
+  reject: (error: Error) => void
+  timer?: Timer
+}
+
 export interface NetConOptions {
   host?: string
   /** Sees every console line, e.g. to log the game's console. */
   onLine?: (line: string) => void
 }
 
+/** Destroyed on timeout, not abandoned: a pending connect keeps the process alive until the OS gives up. */
+const open = (host: string, port: number) =>
+  new Promise<Socket>((resolve, reject) => {
+    const socket = createConnection({ host, port })
+    const timer = setTimeout(() => {
+      socket.destroy()
+      reject(new Error(`no answer on netcon port ${port}`))
+    }, CONNECT_TIMEOUT_MS)
+    socket.once('connect', () => {
+      clearTimeout(timer)
+      resolve(socket)
+    })
+    socket.once('error', (error) => {
+      clearTimeout(timer)
+      reject(error)
+    })
+  })
+
 export const connectNetCon = async (
   port: number,
   { host = '127.0.0.1', onLine: watch }: NetConOptions = {},
 ): Promise<NetCon> => {
-  const waiters = new Set<{
-    pattern: RegExp
-    resolve: (line: string) => void
-    reject: (error: Error) => void
-  }>()
+  const waiters = new Set<Waiter>()
   const recent: string[] = []
   let partial = ''
   let closed = false
   const decoder = new TextDecoder()
+  const socket = await open(host, port)
 
   const onLine = (line: string) => {
     watch?.(line)
@@ -49,6 +71,7 @@ export const connectNetCon = async (
     for (const waiter of waiters) {
       if (!waiter.pattern.test(line)) continue
       waiters.delete(waiter)
+      clearTimeout(waiter.timer)
       waiter.resolve(line)
     }
   }
@@ -57,34 +80,20 @@ export const connectNetCon = async (
   const onClose = () => {
     if (closed) return
     closed = true
-    for (const waiter of waiters) waiter.reject(new Error('netcon closed: CS2 exited or crashed'))
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer)
+      waiter.reject(new Error('netcon closed: CS2 exited or crashed'))
+    }
     waiters.clear()
   }
 
-  const connecting = Bun.connect({
-    hostname: host,
-    port,
-    socket: {
-      data(_, chunk) {
-        const lines = (partial + decoder.decode(chunk, { stream: true })).split('\n')
-        partial = lines.pop() ?? ''
-        for (const line of lines) onLine(line.replace(/\r$/, ''))
-      },
-      close: onClose,
-      error: onClose,
-    },
+  socket.on('data', (chunk: Buffer) => {
+    const lines = (partial + decoder.decode(chunk, { stream: true })).split('\n')
+    partial = lines.pop() ?? ''
+    for (const line of lines) onLine(line.replace(/\r$/, ''))
   })
-  const socket: Socket | null = await Promise.race([
-    connecting,
-    Bun.sleep(CONNECT_TIMEOUT_MS).then(() => null),
-  ])
-  if (!socket) {
-    void connecting.then(
-      (late) => late.end(),
-      () => {},
-    )
-    throw new Error(`no answer on netcon port ${port}`)
-  }
+  socket.on('close', onClose)
+  socket.on('error', onClose)
 
   return {
     send(...commands) {
@@ -94,9 +103,9 @@ export const connectNetCon = async (
     waitFor(pattern, timeoutMs) {
       return new Promise((resolve, reject) => {
         if (closed) return reject(new Error('netcon closed: CS2 exited or crashed'))
-        const waiter = { pattern, resolve, reject }
+        const waiter: Waiter = { pattern, resolve, reject }
         waiters.add(waiter)
-        setTimeout(() => {
+        waiter.timer = setTimeout(() => {
           if (!waiters.delete(waiter)) return
           const last = recent.slice(-5).join(' | ')
           reject(
@@ -113,7 +122,7 @@ export const connectNetCon = async (
     },
     close() {
       onClose()
-      socket.end()
+      socket.destroy()
     },
   }
 }

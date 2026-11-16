@@ -16,7 +16,7 @@ import { finishClip, joinParts, probe, thumbnail } from './post'
 import type { RecordedFile } from './recorder'
 
 /** Bumped when clips should be re-rendered (look, resolution, capture changes). */
-export const RECORDER_VERSION = 4
+export const RECORDER_VERSION = 5
 
 /** Of a clip's time in the batch, the share spent capturing frames rather than encoding them. */
 const CAPTURE_SHARE = 0.85

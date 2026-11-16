@@ -1,6 +1,8 @@
 /* oxlint-disable no-await-in-loop -- polling loops: each check waits for the game */
-import { join } from 'node:path'
+import { readdir, stat } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import type { Logger } from '@subtick/logger'
+import type { Resolution } from './config'
 import type { GameHost } from './host'
 import { type NetCon, connectNetCon } from './netcon'
 
@@ -13,6 +15,7 @@ export interface GameOptions {
   netconPort: number
   /** Folder HLAE hands to CS2 as `USRLOCALCSGO`: our cfg and video settings live here. */
   configDir: string
+  resolution: Resolution
   log: Logger<unknown>
 }
 
@@ -27,27 +30,50 @@ class GameExitedError extends Error {}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** The newest `*.mdmp` in `dir` written after `since`: CS2 leaves one next to cs2.exe when it crashes. */
+export const findCrashDump = async (dir: string, since: number) => {
+  const names = (await readdir(dir).catch(() => [])).filter((name) => name.endsWith('.mdmp'))
+  const dumps = await Promise.all(
+    names.map(async (name) => ({
+      name,
+      mtime: await stat(join(dir, name)).then(
+        (s) => s.mtimeMs,
+        () => 0,
+      ),
+    })),
+  )
+
+  return dumps.filter((d) => d.mtime > since).toSorted((a, b) => b.mtime - a.mtime)[0]?.name ?? null
+}
+
 /**
  * Starts and stops CS2 through HLAE's loader. The game files carry gbe_fork's steam_api64.dll
  * (laid over them at setup), so no Steam client runs and no account signs in.
  */
 export const createGame = (options: GameOptions) => {
-  const { host, cs2Dir, hlaeDir, netconPort, configDir, log } = options
+  const { host, cs2Dir, hlaeDir, netconPort, configDir, resolution, log } = options
   const cs2Exe = join(cs2Dir, 'game/bin/win64/cs2.exe')
   const hook = join(hlaeDir, 'x64/AfxHookSource2.dll')
   /** HLAE's own hook, kept here when the mirv_pov fork is laid over it. */
   const officialHook = join(hlaeDir, 'x64/AfxHookSource2.official.dll')
 
   const consoleLog = { onLine: (line: string) => line && log.trace(line) }
+  let since = Date.now()
+
+  /** A minidump CS2 wrote since this game was started or connected to, if any (Wine may write none). */
+  const crashDump = () => findCrashDump(dirname(cs2Exe), since)
 
   /** Starts CS2 through HLAE with `hook` and waits for its console. */
   const start = async (hookDll: string): Promise<NetCon> => {
     log.info({ hook: hookDll }, 'starting CS2 through HLAE')
+    since = Date.now()
     host.spawn(
       join(hlaeDir, 'HLAE.exe'),
       [
         '-customLoader',
         '-noGui',
+        // A config HLAE saved on this machine would otherwise apply to the launch.
+        '-noConfig',
         '-autoStart',
         '-hookDllPath',
         host.windowsPath(hookDll),
@@ -55,7 +81,7 @@ export const createGame = (options: GameOptions) => {
         host.windowsPath(cs2Exe),
         '-cmdLine',
         [
-          '-steam -insecure +sv_lan 1 -console -sw -w 1280 -h 720 -novid -nojoy',
+          `-steam -insecure +sv_lan 1 -console -sw -w ${resolution.width} -h ${resolution.height} -novid -nojoy`,
           `-netconport ${netconPort} -afxDisableSteamStorage +exec subtick`,
         ].join(' '),
       ],
@@ -69,8 +95,11 @@ export const createGame = (options: GameOptions) => {
       // HLAE's own command line names cs2.exe too.
       const alive = (await host.processes('cs2.exe', 'HLAE.exe')).length > 0
       if (spawned && !alive) {
+        const dump = await crashDump()
         throw new GameExitedError(
-          'CS2 exited while starting (a CS2 update can break HLAE: bump HLAE_VERSION)',
+          dump
+            ? `CS2 crashed while starting (minidump ${dump}; a CS2 update can break HLAE: bump HLAE_VERSION)`
+            : 'CS2 exited while starting (a CS2 update can break HLAE: bump HLAE_VERSION)',
         )
       }
       spawned ||= alive
@@ -104,7 +133,11 @@ export const createGame = (options: GameOptions) => {
    */
   const connect = async (): Promise<NetCon> => {
     const running = await connectNetCon(netconPort, consoleLog).catch(() => null)
-    if (running) return running
+    if (running) {
+      since = Date.now()
+
+      return running
+    }
     try {
       return await start(hook)
     } catch (error) {
@@ -135,7 +168,7 @@ export const createGame = (options: GameOptions) => {
     await host.stopAll()
   }
 
-  return { connect, kill, host }
+  return { connect, kill, crashDump, host }
 }
 
 export type Game = ReturnType<typeof createGame>

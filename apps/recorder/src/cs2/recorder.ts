@@ -14,18 +14,33 @@ const TICKRATE = 64
  * crosses the start tick and fires it twice.
  */
 const PREROLL_TICKS = 5 * TICKRATE
+/**
+ * The lead-in plays this many times faster. Outside a recording Panorama's clock runs on wall time,
+ * so `mirv_fix time` speeds it up too; otherwise HUD chat lines fade too late and linger into the clip.
+ */
+const LEAD_IN_SPEED = 4
+/**
+ * The lead-in's last second plays at real time: a sped-up slow GPU steps over many ticks per frame,
+ * and the start trigger fires on the first frame past its tick, so the capture would start late.
+ */
+const REAL_TIME_TICKS = TICKRATE
+const REAL_TIME = 'demo_timescale 1; mirv_fix time mode auto'
+/**
+ * The spectate is sent again this long before the start, still inside the sped-up part: CS2 can
+ * ignore a `spec_player` that lands on the seek's tick.
+ */
+const RESPECTATE_TICKS = (5 * TICKRATE) / 2
 const DEMO_LOAD_TIMEOUT_MS = 3 * 60_000
 const PLAYDEMO_ACK_TIMEOUT_MS = 15_000
 const PLAYDEMO_ATTEMPTS = 3
 const SEEK_TIMEOUT_MS = 60_000
 const FFMPEG_EXIT_POLLS = 120
 /**
- * CS2 renders slower the longer one session records (on a 1 GB GPU, 4–6× real time fresh; one
- * session went 4× → 11× → 60× over four clips). A restart costs about half a minute, so the game
- * is restarted after a slow clip and, regardless, every few clips.
+ * A session can slow down as it records (on a 1 GB GPU, 4–6× real time fresh; one session went
+ * 4× → 11× → 60× over four clips). A restart costs about half a minute, so the game is restarted
+ * once a clip renders slower than this.
  */
 const SLOW_RENDER_RATIO = 8
-const CLIPS_PER_SESSION = 4
 
 /**
  * What the mirv_pov fork prints when its HUD hooks don't match the CS2 build, or what CS2 prints
@@ -38,8 +53,8 @@ const POV_FAILURE =
 const POV_CHECK_MS = 1500
 /** Offline rendering on a weak GPU runs well below real time; scale the timeout with the clip. */
 const RENDER_TIMEOUT_PER_DEMO_SECOND_MS = 30_000
-/** HLAE's offline capture rate (`mirv_streams record fps`). */
-const FPS = 60
+/** The render-time limits are for this capture rate; each frame costs about the same at any rate. */
+const BASE_FPS = 60
 /** How often the frame count is read while a segment captures. */
 const PROGRESS_POLL_MS = 1000
 
@@ -56,8 +71,8 @@ const CAPTURE_FFMPEG = [
 /** Demos are copied here, relative to `game/csgo`, as `playdemo` only reads from the game tree. */
 const DEMO_NAME = 'subtick/demo'
 
-const segmentFrames = (segment: ClipSegment) =>
-  Math.max(1, Math.round(((segment.endTick - segment.startTick) / TICKRATE) * FPS))
+const segmentFrames = (segment: ClipSegment, fps: number) =>
+  Math.max(1, Math.round(((segment.endTick - segment.startTick) / TICKRATE) * fps))
 
 /** Frames HLAE's ffmpeg has encoded so far in the segment's latest take, from its `-progress` file. */
 const capturedFrames = async (dir: string) => {
@@ -82,25 +97,24 @@ export interface Cs2RecorderOptions {
    * bootstrap installs the fork when HLAE_POV=1).
    */
   mirvPov?: boolean
+  /** HLAE's offline capture rate (`mirv_streams record fps`). */
+  fps: number
   log: Logger<unknown>
 }
 
 /**
  * Records clips with CS2 + HLAE: `playdemo`, then for each clip seek, spectate the player and let
- * HLAE capture between two `mirv_cmd` tick triggers. HLAE renders offline at a fixed 60 fps, so a
- * slow GPU makes recording slower, never choppier.
+ * HLAE capture between two `mirv_cmd` tick triggers. HLAE renders offline at a fixed frame rate, so
+ * a slow GPU makes recording slower, never choppier.
  */
 export class Cs2Recorder implements Recorder {
   #netcon: NetCon | null = null
   #matchId: string | null = null
   #takes = 0
-  #sessionClips = 0
   /** `mirv_pov` failed in this game session; tried again after a restart. */
   #povBroken = false
   /** `mirv_pov 1` was sent in this game session. */
   #povOn = false
-  /** A demo was loaded in this game session. */
-  #demoLoaded = false
 
   constructor(private readonly options: Cs2RecorderOptions) {}
 
@@ -111,10 +125,6 @@ export class Cs2Recorder implements Recorder {
   async prepare(match: MatchToRecord) {
     const { game, cs2Dir, log } = this.options
     this.#matchId = null
-    // A second demo in one game session starts on the wrong player: the first clip showed whoever
-    // the camera held after `playdemo` until that player died, though `spec_player` was sent as
-    // usual. Each match gets a fresh game instead, the state every first clip is recorded from.
-    if (this.#demoLoaded) await this.reset()
     const netcon = (this.#netcon =
       this.#netcon?.closed === false ? this.#netcon : await game.connect())
 
@@ -128,7 +138,8 @@ export class Cs2Recorder implements Recorder {
       queued.catch(() => {})
       loaded.catch(() => {})
       // No `disconnect` first: it reloads the menu map, and playdemo disconnects anyway.
-      netcon.send('exec subtick', `playdemo ${DEMO_NAME}`)
+      // The previous demo's tick triggers would fire again in this one.
+      netcon.send('exec subtick', 'mirv_cmd clear', `playdemo ${DEMO_NAME}`)
       try {
         await queued
       } catch (error) {
@@ -143,7 +154,7 @@ export class Cs2Recorder implements Recorder {
     netcon.send(
       'demo_pause',
       'mirv_streams record screen enabled 1',
-      `mirv_streams record fps ${FPS}`,
+      `mirv_streams record fps ${this.options.fps}`,
       // Game audio as a WAV next to the video, rendered in step with the frames.
       'mirv_streams record startMovieWav 1',
       // The delivery encode happens here, once: browsers play it as is after a trim.
@@ -151,7 +162,6 @@ export class Cs2Recorder implements Recorder {
       'mirv_streams settings edit afxDefault settings subtick',
     )
     this.#matchId = match.matchId
-    this.#demoLoaded = true
     log.info({ matchId: match.matchId, map: match.map }, 'demo loaded')
   }
 
@@ -162,11 +172,12 @@ export class Cs2Recorder implements Recorder {
       throw new Error(`can't spectate "${clip.playerName}" by name`)
     if (!clip.segments.length) throw new Error(`${clip.highlightId} has no segments`)
 
+    const { fps } = this.options
     const dir = join(this.options.takesDir, clip.highlightId)
     await rm(dir, { recursive: true, force: true })
     const parts: RecordedPart[] = []
     let renderMs = 0
-    const total = clip.segments.reduce((sum, s) => sum + segmentFrames(s), 0)
+    const total = clip.segments.reduce((sum, s) => sum + segmentFrames(s, fps), 0)
     let before = 0
     // Segments are in demo order, so each seek is a short skip forward.
     for (const [index, segment] of clip.segments.entries()) {
@@ -177,19 +188,19 @@ export class Cs2Recorder implements Recorder {
         clip.playerName,
         segment,
         (frames) => clip.onProgress?.(Math.min((base + frames) / total, 1)),
-      )
-      before += segmentFrames(segment)
+      ).catch(async (error) => {
+        const dump = netcon.closed && (await this.options.game.crashDump())
+        throw dump ? new Error(`CS2 crashed mid-clip (minidump ${dump})`, { cause: error }) : error
+      })
+      before += segmentFrames(segment, fps)
       parts.push(part)
       renderMs += part.renderMs
     }
 
     const demoSeconds = segmentsTicks(clip.segments) / TICKRATE
-    const ratio = renderMs / 1000 / demoSeconds
-    if (++this.#sessionClips >= CLIPS_PER_SESSION || ratio > SLOW_RENDER_RATIO) {
-      this.options.log.info(
-        { clips: this.#sessionClips, ratio: +ratio.toFixed(1) },
-        'restarting CS2',
-      )
+    const ratio = ((renderMs / 1000 / demoSeconds) * BASE_FPS) / fps
+    if (ratio > SLOW_RENDER_RATIO) {
+      this.options.log.info({ ratio: +ratio.toFixed(1) }, 'restarting CS2 after a slow clip')
       await this.reset()
     }
 
@@ -207,11 +218,24 @@ export class Cs2Recorder implements Recorder {
     const { host } = this.options.game
     await mkdir(dir, { recursive: true })
     const take = ++this.#takes
+    // Some demos leave the camera in free mode, where `spec_player` does nothing.
+    const spectate = ['spec_mode 1', `spec_player "${playerName}"`]
 
+    // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
+    // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
+    const marker = (name: string) => new RegExp(`(?:^|\\W)${name}_${take}(?!\\d)`)
+
+    // The name can't be quoted inside mirv_cmd's quoted command, so the trigger only echoes.
+    netcon.waitFor(marker('subtick_respectate'), 2 * SEEK_TIMEOUT_MS).then(
+      () => netcon.closed || netcon.send(...spectate),
+      () => {},
+    )
     netcon.send(
       `mirv_streams record name "${host.windowsPath(dir)}"`,
       'mirv_cmd clear',
-      `mirv_cmd addAtTick ${segment.startTick} "echo subtick_start_${take}; mirv_streams record start"`,
+      `mirv_cmd addAtTick ${segment.startTick - RESPECTATE_TICKS} "echo subtick_respectate_${take}"`,
+      `mirv_cmd addAtTick ${segment.startTick - REAL_TIME_TICKS} "${REAL_TIME}"`,
+      `mirv_cmd addAtTick ${segment.startTick} "${REAL_TIME}; echo subtick_start_${take}; mirv_streams record start"`,
       `mirv_cmd addAtTick ${segment.endTick} "mirv_streams record end; demo_pause; echo subtick_done_${take}"`,
     )
     const seeked = netcon.waitFor(/Demo Skipping finished/, SEEK_TIMEOUT_MS)
@@ -219,22 +243,24 @@ export class Cs2Recorder implements Recorder {
     netcon.send(`demo_gototick ${Math.max(0, segment.startTick - PREROLL_TICKS)}`)
     await seeked
     // After the seek: a seek resets the spectated player.
-    netcon.send(`spec_player "${playerName}"`)
+    netcon.send(...spectate)
     await this.#enablePov(netcon)
 
     const demoSeconds = (segment.endTick - segment.startTick) / TICKRATE
 
-    // CS2 sometimes prints an echo onto the end of another line ("…059 ]subtick_start_7"), so
-    // the markers aren't anchored to the line; `(?!\d)` keeps take 1 from matching take 10.
-    const marker = (name: string) => new RegExp(`(?:^|\\W)${name}_${take}(?!\\d)`)
-
     const started = netcon.waitFor(marker('subtick_start'), SEEK_TIMEOUT_MS)
     const done = netcon.waitFor(
       marker('subtick_done'),
-      SEEK_TIMEOUT_MS + demoSeconds * RENDER_TIMEOUT_PER_DEMO_SECOND_MS,
+      SEEK_TIMEOUT_MS +
+        (demoSeconds * RENDER_TIMEOUT_PER_DEMO_SECOND_MS * this.options.fps) / BASE_FPS,
     )
     done.catch(() => {})
-    netcon.send('demo_resume')
+    netcon.send(
+      `demo_timescale ${LEAD_IN_SPEED}`,
+      'mirv_fix time mode user',
+      `mirv_fix time factor ${LEAD_IN_SPEED}`,
+      'demo_resume',
+    )
     await started
     const renderStart = performance.now()
     const watching = setInterval(() => {
@@ -245,7 +271,7 @@ export class Cs2Recorder implements Recorder {
     } finally {
       clearInterval(watching)
     }
-    onFrames(segmentFrames(segment))
+    onFrames(segmentFrames(segment, this.options.fps))
     const renderMs = Math.round(performance.now() - renderStart)
 
     // HLAE reports the end before its ffmpeg.exe has encoded the tail and closed the file.
@@ -290,10 +316,8 @@ export class Cs2Recorder implements Recorder {
 
   async reset() {
     this.#povOn = false
-    this.#demoLoaded = false
     this.#povBroken = false
     this.#matchId = null
-    this.#sessionClips = 0
     this.#netcon?.close()
     this.#netcon = null
     await this.options.game.kill()

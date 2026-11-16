@@ -30,12 +30,14 @@ export const createContext = () => {
   const hlaeDir = join(root, 'hlae')
   /** HLAE's `USRLOCALCSGO`: our cfg folder, kept apart from the game's own settings. */
   const configDir = join(root, 'subtick')
+  const resolution = { width: env.RECORD_WIDTH, height: env.RECORD_HEIGHT }
   const game = createGame({
     host: windows ? createWindowsHost([root, env.CS2_DIR]) : createWineHost(env.WINEPREFIX),
     cs2Dir: env.CS2_DIR,
     hlaeDir,
     netconPort: env.CS2_NETCON_PORT,
     configDir,
+    resolution,
     log: log.getSubLogger({ name: 'cs2' }),
   })
   const recorder = new Cs2Recorder({
@@ -43,6 +45,7 @@ export const createContext = () => {
     cs2Dir: env.CS2_DIR,
     takesDir: join(configDir, 'takes'),
     mirvPov: env.HLAE_POV,
+    fps: env.RECORD_FPS,
     log,
   })
 
@@ -55,6 +58,7 @@ export const createContext = () => {
     fleet,
     status: health,
     configDir,
+    resolution,
     hlaeDir,
     progress: (matchId: string, progress: MatchEvent['progress'], clip?: ClipProgress) =>
       publish({ matchId, status: 'recording', progress, clip }),

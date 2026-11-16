@@ -4,9 +4,9 @@
  *   docker run --rm ... --env-file recorder.env -v <demos>:/demos:ro subtick-recorder bun apps/recorder/scripts/smoke.ts /demos/match.dem 20000 "player name"
  * Captures stay in the prefix (drive_c/subtick/takes/smoke*).
  */
-import { cp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createLogger } from '@subtick/logger'
+import { installConfig } from '../src/cs2/config'
 import { createGame } from '../src/cs2/game'
 import { Cs2Recorder } from '../src/cs2/recorder'
 import { createWindowsHost } from '../src/cs2/windows'
@@ -22,7 +22,13 @@ const cs2Dir = process.env.CS2_DIR ?? '/cs2'
 const windows = process.env.GAME_HOST === 'windows'
 const root = windows ? (process.env.WINDOWS_DIR ?? '/mnt/c/subtick') : join(prefix, 'drive_c')
 const configDir = join(root, 'subtick')
-await cp(new URL('../cfg', import.meta.url).pathname, join(configDir, 'cfg'), { recursive: true })
+
+const resolution = {
+  width: Number(process.env.RECORD_WIDTH ?? 1280),
+  height: Number(process.env.RECORD_HEIGHT ?? 720),
+}
+
+await installConfig(configDir, resolution)
 
 const game = createGame({
   host: windows ? createWindowsHost([root, cs2Dir]) : createWineHost(prefix),
@@ -30,6 +36,7 @@ const game = createGame({
   hlaeDir: join(root, 'hlae'),
   netconPort: 2121,
   configDir,
+  resolution,
   log,
 })
 
@@ -38,6 +45,7 @@ const recorder = new Cs2Recorder({
   cs2Dir,
   takesDir: join(configDir, 'takes'),
   mirvPov: process.env.HLAE_POV === '1',
+  fps: Number(process.env.RECORD_FPS ?? 60),
   log,
 })
 
