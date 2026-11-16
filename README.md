@@ -56,7 +56,7 @@ bun run dev
 
 ## Configuration
 
-Everything except the recorder reads the repo-root `.env`; [`.env.example`](.env.example) lists every variable with a comment. The defaults match `infra/compose.yml`. If a port is taken, change `POSTGRES_PORT`, `REDIS_PORT`, `S3_PORT` or `API_PORT` and the URLs that use them. Without `STEAM_API_KEY`, everything that calls the Steam Web API (Steam sign-in, player profiles, match-history sync) fails when used, with `STEAM_API_KEY is not set` in the logs, and the rest works.
+Everything except the recorder reads the repo-root `.env`; [`.env.example`](.env.example) lists every variable with a comment. The defaults match `infra/compose.yml`. If a port is taken, change `POSTGRES_PORT`, `REDIS_PORT`, `S3_PORT` or `API_PORT` and the URLs that use them. Without `STEAM_API_KEY`, everything that calls the Steam Web API (Steam sign-in, player profiles, match-history sync) fails when used, with `STEAM_API_KEY is not set` in the logs, and the rest works. Production (`NODE_ENV=production`, set by the server image) refuses to start without it.
 
 ## Commands
 

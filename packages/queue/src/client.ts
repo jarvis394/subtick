@@ -1,21 +1,40 @@
 import { type Job, Queue, Worker, type WorkerOptions, createBunRedisClient } from 'bullmq'
-import { RedisClient } from 'bun'
+import { createLogger } from '@subtick/logger'
+import { createRedisClient, isConnectionError, reportDown, watchConnection } from './connection'
 import { defaultJobOptions, type JobPayload, type QueueName, queues } from './registry'
 
 export type TypedQueue<N extends QueueName> = Queue<JobPayload<N>, void, N>
 export type TypedJob<N extends QueueName> = Job<JobPayload<N>, void, N>
 
+const log = createLogger('queue')
+
 /**
  * BullMQ over Bun's Redis client, one connection per queue/worker. It must be wrapped: BullMQ otherwise
  * treats the object as connection options and silently falls back to ioredis on 127.0.0.1:6379.
- * Bun stops after 20 reconnects, leaving a worker deaf to its queue, and Redis can be gone for hours
- * (the recorder reaches it over an SSH tunnel), so retry forever with backoff.
  */
-const connect = (redisUrl: string) =>
-  createBunRedisClient(new RedisClient(redisUrl, { maxRetries: 1_000_000 }))
+const connect = (redisUrl: string) => {
+  const raw = createRedisClient(redisUrl)
+  const client = createBunRedisClient(raw)
+  client.once('end', watchConnection(raw, redisUrl))
 
-export const createQueue = <N extends QueueName>(name: N, redisUrl: string): TypedQueue<N> =>
-  new Queue(name, { connection: connect(redisUrl), defaultJobOptions: defaultJobOptions(name) })
+  return client
+}
+
+/** Without a listener BullMQ prints every error, once per retry while Redis is gone. */
+const reportError = (redisUrl: string, queue: string) => (error: Error) =>
+  isConnectionError(error)
+    ? reportDown(redisUrl, error)
+    : log.error({ queue }, 'queue error', error)
+
+export const createQueue = <N extends QueueName>(name: N, redisUrl: string): TypedQueue<N> => {
+  const queue: TypedQueue<N> = new Queue(name, {
+    connection: connect(redisUrl),
+    defaultJobOptions: defaultJobOptions(name),
+  })
+  queue.on('error', reportError(redisUrl, name))
+
+  return queue
+}
 
 /** States of a job no worker has picked up yet, which can be removed outright. */
 export const PENDING_STATES = ['waiting', 'prioritized', 'delayed'] as const
@@ -70,8 +89,12 @@ export const createWorker = <N extends QueueName>(
   redisUrl: string,
   processor: (job: TypedJob<N>, token?: string) => Promise<void>,
   options: Omit<WorkerOptions, 'connection'> = {},
-): Worker<JobPayload<N>, void, N> =>
-  new Worker(name, processor, { ...options, connection: connect(redisUrl) })
+): Worker<JobPayload<N>, void, N> => {
+  const worker = new Worker(name, processor, { ...options, connection: connect(redisUrl) })
+  worker.on('error', reportError(redisUrl, name))
+
+  return worker
+}
 
 /** Closes workers/queues on SIGINT/SIGTERM so in-flight jobs finish instead of stalling. */
 export const closeOnSignal = (...closables: { close(): Promise<void> }[]) => {

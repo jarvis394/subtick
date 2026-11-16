@@ -18,6 +18,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2.0.2
         with:
           bun-version-file: package.json
+      - name: Images match the pinned versions
+        run: |
+          bun=$(bun -p "require('./package.json').packageManager.replace('bun@', '')")
+          stray=$(grep -rhoE 'oven/bun:[^ ]+' --include='*Dockerfile' --exclude-dir=node_modules infra apps \
+            | grep -vxE "oven/bun:${bun}(-[a-z]+)?" || true)
+          [ -z "$stray" ] || { echo "::error::bun images other than bun@$bun: $stray"; exit 1; }
+          images() { grep -oE 'image: [a-z][^ ]+' "$1" | grep -v subtick- | sort -u; }
+          diff <(images infra/compose.yml) <(images infra/deploy/compose.yml) \
+            || { echo "::error::infra/compose.yml and infra/deploy/compose.yml use different images"; exit 1; }
       - run: bun install --frozen-lockfile
       - run: bun run fmt:check
       - run: bun run lint

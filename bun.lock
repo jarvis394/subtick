@@ -48,6 +48,7 @@
     },
     "apps/recorder": {
       "name": "@subtick/recorder-worker",
+      "version": "0.1.0",
       "dependencies": {
         "@subtick/config": "workspace:*",
         "@subtick/db": "workspace:*",
@@ -180,6 +181,7 @@
       "name": "@subtick/queue",
       "dependencies": {
         "@subtick/domain": "workspace:*",
+        "@subtick/logger": "workspace:*",
         "bullmq": "^6.3.15",
       },
       "devDependencies": {

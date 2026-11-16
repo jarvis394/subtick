@@ -1,5 +1,5 @@
 import type { MatchStatus } from '@subtick/domain'
-import { RedisClient } from 'bun'
+import { createRedisClient } from './connection'
 
 export const MATCH_EVENTS_CHANNEL = 'subtick:match-events'
 
@@ -24,7 +24,7 @@ export interface ClipProgress {
 
 /** Pipeline progress, fanned out to browsers by the api over SSE. */
 export const createMatchEventPublisher = (redisUrl: string) => {
-  const redis = new RedisClient(redisUrl)
+  const redis = createRedisClient(redisUrl)
 
   return (event: MatchEvent) => redis.publish(MATCH_EVENTS_CHANNEL, JSON.stringify(event))
 }
@@ -36,7 +36,7 @@ export const createMatchEventPublisher = (redisUrl: string) => {
 export const createMatchEventHub = (redisUrl: string) => {
   const listeners = new Set<(event: MatchEvent) => void>()
   let subscribed: Promise<unknown> | null = null
-  const redis = new RedisClient(redisUrl)
+  const redis = createRedisClient(redisUrl)
 
   return (listener: (event: MatchEvent) => void) => {
     listeners.add(listener)

@@ -24,7 +24,7 @@ services:
 
   # master + volume + filer + S3 gateway in one process
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.12
     command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
     # 8080 is the volume server; its /status reports the disk for the admin Storage page.
     ports: ['${S3_PORT:-8333}:8333', '127.0.0.1:${S3_STATUS_PORT:-58080}:8080']
@@ -34,7 +34,7 @@ services:
 
   # creates buckets and sets demo retention (filer path TTL) on startup
   seaweedfs-init:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.12
     depends_on: [seaweedfs]
     entrypoint: ['/bin/sh', '/init.sh']
     volumes: [./seaweedfs/init.sh:/init.sh:ro]

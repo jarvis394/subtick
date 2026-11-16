@@ -9,6 +9,12 @@ import { z } from 'zod'
 config({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true })
 
 /**
+ * Variables development may leave unset that production must have. Production is
+ * NODE_ENV=production, which infra/deploy/server.Dockerfile sets.
+ */
+const REQUIRED_IN_PRODUCTION = ['STEAM_API_KEY']
+
+/**
  * Validates `env` against a shape: applies defaults, coerces numbers and throws a readable error
  * listing every invalid variable. Call once at process start.
  *
@@ -19,7 +25,16 @@ export const loadEnv = <T extends z.ZodRawShape>(
   env: NodeJS.ProcessEnv = process.env,
 ) => {
   const result = z.object(shape).safeParse(env)
-  if (!result.success) throw new Error(`Invalid environment:\n${z.prettifyError(result.error)}`)
+  const missingInProduction =
+    env.NODE_ENV === 'production'
+      ? REQUIRED_IN_PRODUCTION.filter((key) => key in shape && !env[key]).map((key) => ({
+          path: [key],
+          message: 'Required when NODE_ENV=production',
+        }))
+      : []
+  const issues = [...(result.error?.issues ?? []), ...missingInProduction]
+  if (!result.success || issues.length)
+    throw new Error(`Invalid environment:\n${z.prettifyError({ issues })}`)
 
   return result.data
 }
@@ -60,8 +75,8 @@ const optionalString = z
 
 export const SteamEnv = {
   /**
-   * https://steamcommunity.com/dev/apikey. Unset: Steam sign-in, profiles and match-history sync
-   * fail when used, and everything else works (local development without a Steam account).
+   * https://steamcommunity.com/dev/apikey. Required in production. Unset in development: Steam
+   * sign-in, profiles and match-history sync fail when used, and everything else works.
    */
   STEAM_API_KEY: optionalString,
 }

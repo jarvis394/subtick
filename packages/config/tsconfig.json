@@ -1,4 +1,4 @@
 {
   "extends": "@subtick/tsconfig/base.json",
-  "include": ["src"]
+  "include": ["src", "test"]
 }
