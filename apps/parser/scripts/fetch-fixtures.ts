@@ -7,6 +7,11 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_DIR, FIXTURE_URLS } from '../test/fixtures'
 
+if (!Bun.which('bunzip2')) {
+  console.error('bunzip2 is not installed: install bzip2 (apt install bzip2, brew install bzip2).')
+  process.exit(1)
+}
+
 await mkdir(FIXTURE_DIR, { recursive: true })
 
 await Promise.all(

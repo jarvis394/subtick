@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# For a machine that builds the recorder image from its own checkout of main (the owner's homelab).
+# Everyone else runs the published image with docker/compose.yml; see the README.
+#
 # Rebuilds the recorder from the pushed main branch and restarts it once it is between jobs, so
 # no clip is cut off mid-capture.
 #

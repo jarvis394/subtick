@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 import { z } from 'zod'
@@ -50,9 +52,18 @@ export const S3Env = {
     .or(z.literal('').transform(() => undefined)),
 }
 
+/** Empty is unset, so a blank `KEY=` line in .env counts as not configured. */
+const optionalString = z
+  .string()
+  .optional()
+  .transform((v) => v || undefined)
+
 export const SteamEnv = {
-  /** https://steamcommunity.com/dev/apikey */
-  STEAM_API_KEY: z.string().min(1),
+  /**
+   * https://steamcommunity.com/dev/apikey. Unset: Steam sign-in, profiles and match-history sync
+   * fail when used, and everything else works (local development without a Steam account).
+   */
+  STEAM_API_KEY: optionalString,
 }
 
 /**
@@ -62,22 +73,23 @@ export const SteamEnv = {
  * STEAM_BOT_GUARD_CODE and the refresh token saved after login is reused from then on.
  */
 export const SteamBotEnv = {
-  STEAM_BOT_USERNAME: z.string().min(1).optional(),
-  STEAM_BOT_PASSWORD: z.string().min(1).optional(),
-  STEAM_BOT_SHARED_SECRET: z.string().min(1).optional(),
-  STEAM_BOT_GUARD_CODE: z.string().min(1).optional(),
+  STEAM_BOT_USERNAME: optionalString,
+  STEAM_BOT_PASSWORD: optionalString,
+  STEAM_BOT_SHARED_SECRET: optionalString,
+  STEAM_BOT_GUARD_CODE: optionalString,
 }
 
 /** 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts stored match auth codes. */
 export const SecretsEnv = { SECRETS_KEY: z.base64().length(44) }
 
 /**
- * The recorder runs CS2 (Windows build) under Wine on gbe_fork's Steam emulator, injects HLAE and
- * drives it over the netcon console. Paths are as seen from the recorder's container.
+ * The recorder's game side: CS2 (Windows build) with HLAE on gbe_fork's Steam emulator, under Wine
+ * in its container or on Windows itself. Paths are as the worker sees them; on Windows the
+ * recorder accepts `C:\...` paths from WSL too.
  */
-export const RecorderEnv = {
-  /** CS2 install root, the folder that holds `game/`. */
-  CS2_DIR: z.string().default('/cs2'),
+export const RecorderGameEnv = {
+  /** CS2 install root, the folder that holds `game/`. Default: `/cs2`, or `WINDOWS_DIR\cs2`. */
+  CS2_DIR: z.string().min(1).optional(),
   /**
    * CS2_SOURCE=server: the dedicated-server install the game files link into. The recorder
    * restarts when it updates past the Windows binaries, so the bootstrap fetches matching ones.
@@ -87,22 +99,17 @@ export const RecorderEnv = {
   WINEPREFIX: z.string().default('/wine/pfx'),
   CS2_NETCON_PORT: z.coerce.number().int().default(2121),
   /**
-   * `wine`: the recorder's container on Linux. `windows`: a worker in WSL that runs the game on
-   * Windows itself (apps/recorder/scripts/setup-wsl.sh); CS2_DIR is then on a Windows drive.
+   * `wine`: the recorder's container on Linux. `windows`: the game runs on Windows itself, from
+   * the Windows build of the recorder or a worker in WSL. Default: `windows` on Windows.
    */
-  GAME_HOST: z.enum(['wine', 'windows']).default('wine'),
-  /** GAME_HOST=windows: the folder on a Windows drive that holds HLAE and the recorder's config. */
-  WINDOWS_DIR: z.string().default('/mnt/c/subtick'),
-  /**
-   * The subtick origin (PUBLIC_URL) and the token an admin got when adding this machine. The
-   * machine reports its health there, takes its settings from it, and reads and writes everything
-   * a recording touches through its api.
-   */
-  SUBTICK_URL: z.url(),
-  RECORDER_TOKEN: z.string().startsWith('strec_'),
+  GAME_HOST: z.enum(['wine', 'windows']).optional(),
+  /** GAME_HOST=windows: the folder `setup` installs HLAE and the game folder into (`C:\subtick`). */
+  WINDOWS_DIR: z.string().min(1).optional(),
+  /** The HLAE release to install; defaults to the recorder's pinned one. */
+  HLAE_VERSION: z.string().min(1).optional(),
   /**
    * 1: clips show the recorded player's own HUD instead of CS2's spectator HUD, through the
-   * `mirv_pov` fork of HLAE's AfxHookSource2.dll (installed by the bootstrap).
+   * `mirv_pov` fork of HLAE's AfxHookSource2.dll (installed by the bootstrap or `setup`).
    */
   HLAE_POV: z
     .enum(['0', '1'])
@@ -115,7 +122,18 @@ export const RecorderEnv = {
   RECORD_FPS: z.coerce.number().int().positive().default(60),
 }
 
+export const RecorderEnv = {
+  ...RecorderGameEnv,
+  /**
+   * The subtick origin (PUBLIC_URL) and the token an admin got when adding this machine. The
+   * machine reports its health there, takes its settings from it, and reads and writes everything
+   * a recording touches through its api.
+   */
+  SUBTICK_URL: z.url(),
+  RECORDER_TOKEN: z.string().startsWith('strec_'),
+}
+
 export const WorkerEnv = {
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(1),
-  SCRATCH_DIR: z.string().default('/tmp/subtick'),
+  SCRATCH_DIR: z.string().default(join(tmpdir(), 'subtick')),
 }

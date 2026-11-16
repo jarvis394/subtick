@@ -20,7 +20,7 @@ set -euo pipefail
 : "${CS2_DIR:=/cs2}"
 : "${CS2_SOURCE:=download}"
 : "${DXVK_VERSION:=2.7.1}"
-: "${HLAE_VERSION:=2.193.0}"
+: "${HLAE_VERSION:=$(cat /opt/hlae-version 2>/dev/null || echo 2.193.0)}"
 : "${STEAMCMD_DIR:=/steamcmd}"
 : "${HLAE_POV:=0}"
 : "${GBE_SETTINGS:=$(dirname "$0")/../gbe/steam_settings}"

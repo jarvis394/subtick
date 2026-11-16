@@ -37,6 +37,7 @@ export const recorderView = (row: RecorderRow) => ({
   hostname: row.hostname,
   gpu: row.gpu,
   version: row.version,
+  buildVersion: row.buildVersion,
   clipsRecorded: row.clipsRecorded,
   startedAt: row.startedAt,
   lastSeenAt: row.lastSeenAt,

@@ -1,0 +1,26 @@
+# A recorder on a Linux machine with an NVIDIA GPU and the NVIDIA Container Toolkit. Next to this
+# file, put recorder.env (SUBTICK_URL, RECORDER_TOKEN, REDIS_URL; see the README), then:
+#   docker compose up -d                        # start, and start again after reboots
+#   docker compose pull && docker compose up -d # update to the newest release
+#   docker compose exec recorder subtick-recorder doctor
+services:
+  recorder:
+    image: ghcr.io/jarvis394/subtick-recorder:${RECORDER_TAG:-latest}
+    init: true
+    restart: unless-stopped
+    runtime: nvidia
+    # The worker reaches the game's console on 127.0.0.1, and Redis through a host tunnel if any.
+    network_mode: host
+    env_file: recorder.env
+    volumes:
+      - cs2:/cs2
+      - wine:/wine
+    # On an update the running batch finishes first: the worker stops taking jobs on SIGTERM.
+    stop_grace_period: 30m
+
+volumes:
+  # The names scripts/deploy.sh used, so a machine set up with it keeps its game files and prefix.
+  cs2:
+    name: subtick-cs2
+  wine:
+    name: subtick-wine

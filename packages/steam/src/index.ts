@@ -69,11 +69,14 @@ const vanityOf = (profileUrl?: string) => profileUrl?.match(/\/id\/([^/]+)\/?$/)
 
 const NextMatchSharingCode = z.object({ result: z.object({ nextcode: z.string() }) })
 
-export const createSteamWebApi = (apiKey: string) => {
-  const get = (path: string, params: Record<string, string>) =>
-    fetch(`${BASE_URL}${path}?${new URLSearchParams({ key: apiKey, ...params })}`, {
+export const createSteamWebApi = (apiKey: string | undefined) => {
+  const get = async (path: string, params: Record<string, string>) => {
+    if (!apiKey) throw new Error(`Steam Web API ${path}: STEAM_API_KEY is not set`)
+
+    return fetch(`${BASE_URL}${path}?${new URLSearchParams({ key: apiKey, ...params })}`, {
       signal: AbortSignal.timeout(10_000),
     })
+  }
 
   /** Public profiles for any number of players (batched 100 per request, Valve's limit). */
   const getProfiles = async (steamIds: string[]): Promise<SteamProfile[]> => {

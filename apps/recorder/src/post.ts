@@ -1,4 +1,5 @@
 /** Turns a raw capture into what the web app plays: a small faststart MP4 and a WebP poster. */
+import { tool } from './tools'
 
 const run = async (command: string[]) => {
   const proc = Bun.spawn(command, { stdout: 'pipe', stderr: 'pipe' })
@@ -14,7 +15,7 @@ const run = async (command: string[]) => {
 }
 
 const ffmpeg = (...args: string[]) =>
-  run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...args])
+  run([tool('ffmpeg'), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...args])
 
 export interface VideoInfo {
   durationMs: number
@@ -24,7 +25,7 @@ export interface VideoInfo {
 
 export const probe = async (path: string): Promise<VideoInfo> => {
   const out = await run([
-    'ffprobe',
+    tool('ffprobe'),
     '-v',
     'error',
     '-select_streams',

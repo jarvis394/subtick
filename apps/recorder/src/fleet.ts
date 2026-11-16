@@ -2,6 +2,7 @@ import { hostname } from 'node:os'
 import { RECORDER_HEARTBEAT_MS, type RecorderState } from '@subtick/domain'
 import type { Logger } from '@subtick/logger'
 import type { RecorderSettings, SubtickApi } from './api'
+import { VERSION } from './self'
 
 /** What this machine reports in every heartbeat. Kept current by the worker as it goes. */
 export interface RecorderStatus {
@@ -27,7 +28,7 @@ export const createStatus = (): RecorderStatus => ({
   startedAt: new Date(),
 })
 
-const gpuName = async () => {
+export const gpuName = async () => {
   try {
     const proc = Bun.spawn(
       ['nvidia-smi', '--query-gpu=name,driver_version', '--format=csv,noheader'],
@@ -65,7 +66,13 @@ export const createFleetLink = (options: {
 
   const heartbeat = async () => {
     try {
-      const reply = await api.heartbeat({ ...status, hostname: hostname(), gpu, version })
+      const reply = await api.heartbeat({
+        ...status,
+        hostname: hostname(),
+        gpu,
+        version,
+        buildVersion: VERSION,
+      })
       if (failing) log.info('subtick api reachable again')
       failing = false
       settings = { name: reply.name, paused: reply.paused, hlaeTarget: reply.hlaeTarget ?? null }

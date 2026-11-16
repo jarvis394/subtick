@@ -247,6 +247,7 @@ function RecorderCard({
         </Detail>
         <Detail label="GPU">{recorder.gpu ?? 'Unknown'}</Detail>
         <Detail label="Version">{recorder.version ?? 'Unknown'}</Detail>
+        <Detail label="Build">{recorder.buildVersion ?? 'Unknown'}</Detail>
         <Detail label="Failed in a row">
           {recorder.online ? `${recorder.failStreak} clips` : 'Offline'}
         </Detail>

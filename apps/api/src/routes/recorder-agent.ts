@@ -20,6 +20,7 @@ const Heartbeat = z.object({
   failStreak: z.number().int().min(0).default(0),
   hlaeVersion: z.string().max(32).nullable().default(null),
   hlaePovRelease: z.string().max(128).nullable().default(null),
+  buildVersion: z.string().max(64).nullable().default(null),
   startedAt: z.coerce.date(),
 })
 
@@ -50,6 +51,10 @@ export const recorderAgentRoutes = (ctx: Context) =>
           return { recorder: row }
         },
       },
+    })
+    // Read-only, so `doctor` can check a token without overwriting a running machine's status.
+    .get('/whoami', ({ recorder: self }) => ({ name: self.name, paused: self.paused }), {
+      recorderToken: true,
     })
     .post(
       '/heartbeat',

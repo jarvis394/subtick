@@ -80,3 +80,4 @@ closeOnSignal(...workers, ...(resolver ? [resolver] : []), ...Object.values(queu
 })
 
 log.info({ gc: Boolean(gc), downloadConcurrency: env.WORKER_CONCURRENCY }, 'steam worker started')
+if (!env.STEAM_API_KEY) log.warn('STEAM_API_KEY is not set: match-history syncs will fail')

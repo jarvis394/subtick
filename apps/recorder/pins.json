@@ -1,0 +1,21 @@
+{
+  "hlae": {
+    "version": "2.193.0",
+    "sha256": "ac1f6740551cba7a72ba8437b84097d6f9a95d922ae05f333417bac6d1b746c2"
+  },
+  "gbe": {
+    "release": "release-2026_09_27",
+    "asset": "emu-win-release-vs22.7z",
+    "sha256": "300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85"
+  },
+  "hlaePov": {
+    "release": "prerelease-103-b8e51e77933dfc11bab1d2a3a4fde16ab36f03b5",
+    "asset": "AfxHookSource2-b8e51e77933d-windows-x64.zip",
+    "sha256": "65eb85d70be9c1ea02bc54344550ebceaa6040a3f2722470672824a9932315fe",
+    "hlaeVersion": "2.193.0"
+  },
+  "ffmpeg": {
+    "windows": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-gpl-8.1.zip",
+    "linux": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz"
+  }
+}

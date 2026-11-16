@@ -1,0 +1,1 @@
+ALTER TABLE "recorder" ADD COLUMN "build_version" text;

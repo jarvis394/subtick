@@ -31,7 +31,9 @@ export const recorder = pgTable('recorder', {
   lastError: text(),
   hostname: text(),
   gpu: text(),
+  /** The clip look's version (`v5`); the program's own is `buildVersion`. */
   version: text(),
+  buildVersion: text(),
   clipsRecorded: integer().notNull().default(0),
   /** Clips failed in a row; a recorded clip resets it. */
   failStreak: integer().notNull().default(0),

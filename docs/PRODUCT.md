@@ -43,7 +43,7 @@ The core differences, all four confirmed:
 
 ## Capabilities and Constraints
 
-- Monorepo apps: `web` (React, TanStack Router, Tailwind), `api`, `parser` (demo parsing and highlight detection), `steam` (match-history worker), and `recorder` (CS2 + HLAE under Wine on an NVIDIA GPU).
+- Monorepo apps: `web` (React, TanStack Router, Tailwind), `api`, `parser` (demo parsing and highlight detection), `steam` (match-history worker), and `recorder` (CS2 + HLAE, natively on Windows or under Wine in Docker on an NVIDIA GPU).
 - Clip throughput depends on the GPU. The reference recorder is a GTX 650 (1 GB), so clips can take a while to appear. The UI must handle queued, in-progress, and failed states well.
 - Accounts use email sign-up and sign-in. Steam is linked as a separate step.
 - Terms: highlight / moment, clip, match, round, kill tag, recorder, instance.

@@ -1,10 +1,13 @@
 {
   "name": "@subtick/recorder-worker",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/main.ts",
-    "start": "bun src/main.ts",
+    "dev": "bun --watch src/cli.ts run",
+    "start": "bun src/cli.ts run",
+    "compile": "bun scripts/compile.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "enqueue": "bun scripts/enqueue.ts"
   },

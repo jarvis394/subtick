@@ -1,36 +1,43 @@
 # subtick recorder: CS2 (Windows build) + HLAE under Wine on a headless NVIDIA Xorg, driven by the
-# clip.record worker. Build from the repo root:
+# clip.record worker. Published as ghcr.io/jarvis394/subtick-recorder; to build it, from the repo root:
 #   docker build -f apps/recorder/Dockerfile -t subtick-recorder .
-# Run with the NVIDIA runtime; see apps/recorder/README.md for volumes and environment. On start,
-# docker/bootstrap.sh sets up the Wine prefix and the game files, then the worker runs.
+# Run with the NVIDIA runtime (docker/compose.yml); see apps/recorder/README.md. On start,
+# docker/bootstrap.sh sets up the Wine prefix and the game files, then `subtick-recorder run`.
 
 # Pinned third-party binaries the bootstrap lays over the game and HLAE when their toggles are on.
-# A changed release fails the checksum and the build: bumping one is an edit of version and hash.
+# The pins live in pins.json, shared with the Windows `setup`: bumping one is an edit there, and a
+# changed release fails the checksum and the build.
 FROM alpine:3.20 AS binaries
-RUN apk add --no-cache curl 7zip
+RUN apk add --no-cache curl 7zip jq
+COPY apps/recorder/pins.json /pins.json
 # gbe_fork (LGPL-3.0, https://github.com/Detanup01/gbe_fork): a Steam API emulator, so CS2 runs
 # without the Steam client or an account. Only its regular x64 steam_api64.dll is kept.
-ARG GBE_RELEASE=release-2026_09_27
-ARG GBE_SHA256=300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85
-RUN curl -fsSLo /tmp/gbe.7z "https://github.com/Detanup01/gbe_fork/releases/download/$GBE_RELEASE/emu-win-release-vs22.7z" \
- && echo "$GBE_SHA256  /tmp/gbe.7z" | sha256sum -c - \
+RUN release=$(jq -r .gbe.release /pins.json) \
+ && curl -fsSLo /tmp/gbe.7z "https://github.com/Detanup01/gbe_fork/releases/download/$release/$(jq -r .gbe.asset /pins.json)" \
+ && echo "$(jq -r .gbe.sha256 /pins.json)  /tmp/gbe.7z" | sha256sum -c - \
  && 7z x -y -o/tmp/gbe /tmp/gbe.7z >/dev/null \
  && mkdir -p /out/gbe \
  && cp /tmp/gbe/release/regular/x64/steam_api64.dll /tmp/gbe/release/CREDITS.md /out/gbe/ \
- && echo "$GBE_RELEASE" > /out/gbe/.release
+ && echo "$release" > /out/gbe/.release
 # The mirv_pov fork of HLAE's AfxHookSource2.dll (AGPL-3.0, source in the same release:
-# https://github.com/WangChuDi/advancedfx), built on HLAE 2.193.0: the player's own HUD in CS2
-# demos (HLAE_POV=1). Must match the HLAE_VERSION the bootstrap installs.
-ARG HLAE_POV_RELEASE=prerelease-103-b8e51e77933dfc11bab1d2a3a4fde16ab36f03b5
-ARG HLAE_POV_ASSET=AfxHookSource2-b8e51e77933d-windows-x64.zip
-ARG HLAE_POV_SHA256=65eb85d70be9c1ea02bc54344550ebceaa6040a3f2722470672824a9932315fe
-ARG HLAE_POV_HLAE_VERSION=2.193.0
-RUN curl -fsSLo /tmp/pov.zip "https://github.com/WangChuDi/advancedfx/releases/download/$HLAE_POV_RELEASE/$HLAE_POV_ASSET" \
- && echo "$HLAE_POV_SHA256  /tmp/pov.zip" | sha256sum -c - \
+# https://github.com/WangChuDi/advancedfx): the player's own HUD in CS2 demos (HLAE_POV=1). Built
+# on the HLAE version the bootstrap installs by default.
+RUN release=$(jq -r .hlaePov.release /pins.json) \
+ && curl -fsSLo /tmp/pov.zip "https://github.com/WangChuDi/advancedfx/releases/download/$release/$(jq -r .hlaePov.asset /pins.json)" \
+ && echo "$(jq -r .hlaePov.sha256 /pins.json)  /tmp/pov.zip" | sha256sum -c - \
  && mkdir -p /out/hlae-pov && unzip -q /tmp/pov.zip -d /out/hlae-pov \
  && test -f /out/hlae-pov/AfxHookSource2.dll \
- && echo "$HLAE_POV_RELEASE" > /out/hlae-pov/.release \
- && echo "$HLAE_POV_HLAE_VERSION" > /out/hlae-pov/.hlae-version
+ && echo "$release" > /out/hlae-pov/.release \
+ && jq -r .hlaePov.hlaeVersion /pins.json > /out/hlae-pov/.hlae-version \
+ && jq -r .hlae.version /pins.json > /out/hlae-version
+
+# The worker: the same subtick-recorder executable as the Windows release, built for Linux.
+FROM oven/bun:1.4.4 AS worker
+ARG VERSION
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile --filter '@subtick/recorder-worker' \
+ && VERSION=${VERSION:-} bun apps/recorder/scripts/compile.ts linux
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
@@ -61,14 +68,16 @@ RUN for v in 1.10.3 2.7.1; do \
 
 COPY --from=binaries /out/gbe /opt/gbe
 COPY --from=binaries /out/hlae-pov /opt/hlae-pov
+COPY --from=binaries /out/hlae-version /opt/hlae-version
 
-COPY --from=oven/bun:1.3.14 /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=worker /app/apps/recorder/dist/subtick-recorder-linux-x64 /usr/local/bin/subtick-recorder
 WORKDIR /app
-COPY . .
-RUN bun install --frozen-lockfile --production --filter '@subtick/recorder-worker'
+COPY apps/recorder/docker apps/recorder/docker
+COPY apps/recorder/gbe apps/recorder/gbe
 
 COPY apps/recorder/docker/xorg.conf /etc/X11/xorg.conf
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=all \
     DISPLAY=:0 WINEPREFIX=/wine/pfx WINEDEBUG=-all PULSE_SERVER=unix:/tmp/pulse.sock
-ENTRYPOINT ["/app/apps/recorder/docker/entrypoint.sh"]
-CMD ["bun", "apps/recorder/src/main.ts"]
+# `docker run <image> doctor` (or smoke, version) runs another command after the same bootstrap.
+ENTRYPOINT ["/app/apps/recorder/docker/entrypoint.sh", "subtick-recorder"]
+CMD ["run"]

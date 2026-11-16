@@ -5,22 +5,37 @@ import { installConfig } from './cs2/config'
 import { createContext } from './context'
 import { failureReason } from './failure'
 import { installedHlae, needsHlaeUpdate, writeHlaeTarget } from './hlae'
+import { checkRedis, checkSubtick, redactUrl } from './reachability'
 import { RECORDER_VERSION, recordMatch } from './record'
 
 const ctx = createContext()
 const { env, log, api, recorder, fleet, status } = ctx
 
-// The look of every clip (HUD, demo UI, video settings) ships with the code, not the prefix.
-await installConfig(ctx.configDir, ctx.resolution)
+await checkRedis(env.REDIS_URL).catch((error: Error) => {
+  log.fatal(
+    `Redis at ${redactUrl(env.REDIS_URL)}: ${error.message}. This machine must reach the instance's Redis (see \`doctor\`)`,
+  )
+  process.exit(1)
+})
 
-Object.assign(status, await installedHlae(ctx.hlaeDir))
+// Unreachable is waited out like any heartbeat; a token subtick refuses won't get better.
+await checkSubtick(env.SUBTICK_URL, env.RECORDER_TOKEN).catch((error: Error) => {
+  if (!error.message.includes('RECORDER_TOKEN')) return
+  log.fatal(error.message)
+  process.exit(1)
+})
+
+// The look of every clip (HUD, demo UI, video settings) ships with the code, not the prefix.
+await installConfig(ctx.layout.configDir, ctx.resolution)
+
+Object.assign(status, await installedHlae(ctx.layout.hlaeDir))
 
 const worker = createWorker(
   'clip.record',
   env.REDIS_URL,
   async (job, token) => {
     const stale =
-      env.CS2_SERVER_DIR && (await staleWindowsBinaries(env.CS2_DIR, env.CS2_SERVER_DIR))
+      env.CS2_SERVER_DIR && (await staleWindowsBinaries(ctx.layout.cs2Dir, env.CS2_SERVER_DIR))
     const update = await pendingHlaeUpdate()
     if (stale || update) {
       // Back in the queue without using up an attempt; the container's restart policy reruns the
@@ -57,8 +72,8 @@ let hlaeUpdateRefused = false
 
 /** Writes the HLAE build an admin picked for the bootstrap, when it isn't what's installed. */
 async function pendingHlaeUpdate() {
-  // Only the container's bootstrap installs a staged build; in WSL, rerun scripts/setup-wsl.sh.
-  if (env.GAME_HOST !== 'wine') return false
+  // Only the container's bootstrap installs a staged build; on Windows, rerun `setup`.
+  if (ctx.layout.gameHost !== 'wine') return false
   const target = fleet.settings?.hlaeTarget
   if (!needsHlaeUpdate(target, status, env.HLAE_POV)) return false
   try {

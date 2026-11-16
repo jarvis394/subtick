@@ -8,6 +8,16 @@ export interface RecorderSettings {
   hlaeTarget?: HlaeBuild | null
 }
 
+/** A failed call, with the HTTP status when subtick answered. */
+export class SubtickApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number | null,
+  ) {
+    super(message)
+  }
+}
+
 interface ClipInfo {
   durationMs: number
   width: number
@@ -34,11 +44,12 @@ export const createSubtickApi = ({ url, token }: { url: string; token: string })
     }).catch(() => null)
     if (response?.ok) return (await response.json()) as T
     if (response?.status === 401)
-      throw new Error('subtick rejected RECORDER_TOKEN (revoked or mistyped?)')
+      throw new SubtickApiError('subtick rejected RECORDER_TOKEN (revoked or mistyped?)', 401)
     const transient = !response || response.status >= 500
     if (!transient || retries <= 0)
-      throw new Error(
+      throw new SubtickApiError(
         `subtick api ${path}: ${response ? `HTTP ${response.status}` : 'unreachable'}`,
+        response?.status ?? null,
       )
     await Bun.sleep(1000 * 2 ** (RETRIES - retries))
 
@@ -46,6 +57,8 @@ export const createSubtickApi = ({ url, token }: { url: string; token: string })
   }
 
   return {
+    /** Checks the token without writing anything. Servers older than this route answer 404. */
+    whoami: () => request<Pick<RecorderSettings, 'name' | 'paused'>>('/whoami', undefined, 0),
     /** Not retried: the next heartbeat is the retry. */
     heartbeat: (status: object) => request<RecorderSettings>('/heartbeat', status, 0),
     /** The demo and the clips still to render; `null` when nothing is left to record. */

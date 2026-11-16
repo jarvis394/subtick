@@ -1,0 +1,55 @@
+# A recorder release: push a tag `recorder-v1.2.3`. Publishes the Windows and Linux executables
+# with their SHA256SUMS (what `subtick-recorder update` downloads) and the Docker image.
+name: recorder release
+
+on:
+  push:
+    tags: ['recorder-v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  executables:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile --filter '@subtick/recorder-worker'
+      - run: bun test
+        working-directory: apps/recorder
+      - name: Build
+        run: VERSION="${GITHUB_REF_NAME#recorder-v}" bun apps/recorder/scripts/compile.ts
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" apps/recorder/dist/* \
+            --title "Recorder ${GITHUB_REF_NAME#recorder-v}" --generate-notes
+
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: docker/setup-buildx-action@v3.10.0
+      - uses: docker/login-action@v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Tags
+        id: tags
+        run: |
+          image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/subtick-recorder
+          echo "version=${GITHUB_REF_NAME#recorder-v}" >> "$GITHUB_OUTPUT"
+          echo "tags=$image:${GITHUB_REF_NAME#recorder-v},$image:latest" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: apps/recorder/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: VERSION=${{ steps.tags.outputs.version }}
