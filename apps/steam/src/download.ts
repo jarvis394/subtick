@@ -88,6 +88,7 @@ export const downloadDemo = async (
       .update(schema.match)
       .set({
         demoKey: key,
+        demoStoredAt: new Date(),
         playedAt,
         demoExpiresAt: playedAt ? new Date(playedAt.getTime() + VALVE_RETENTION_MS) : null,
       })

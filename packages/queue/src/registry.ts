@@ -11,6 +11,8 @@ export interface JobPayloads {
   'steam.resolve-match': { shareCode: string; userId?: string; steamId?: string }
   'demo.download': { matchId: string }
   'demo.parse': { matchId: string }
+  /** Repeatable tick: deletes stored demos past their retention. */
+  'demo.prune': Record<string, never>
   /** Refreshes player stats of a finished match; the version keeps a later bump from deduping. */
   'demo.reanalyze': { matchId: string; parserVersion: number }
   'clip.record': { matchId: string; highlightIds: string[] }
@@ -55,6 +57,10 @@ export const queues: { [N in QueueName]: QueueDefinition<N> } = {
   'demo.parse': {
     jobId: ({ matchId }) => `parse-${matchId}`,
     options: { attempts: 2, backoff: exponential(10_000) },
+  },
+  'demo.prune': {
+    jobId: () => 'prune',
+    options: { removeOnComplete: true, removeOnFail: true },
   },
   'demo.reanalyze': {
     jobId: ({ matchId, parserVersion }) => `reanalyze-${matchId}-v${parserVersion}`,

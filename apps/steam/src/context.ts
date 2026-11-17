@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import {
   DatabaseEnv,
+  DemoRetentionEnv,
   RedisEnv,
   S3Env,
   SecretsEnv,
@@ -27,6 +28,7 @@ export const createContext = async () => {
     ...SteamBotEnv,
     ...SecretsEnv,
     ...WorkerEnv,
+    ...DemoRetentionEnv,
   })
   const log = createLogger('steam')
   const db = createDb(env.DATABASE_URL)
@@ -69,6 +71,7 @@ export const createContext = async () => {
       syncUser: createQueue('steam.sync-user', env.REDIS_URL),
       resolveMatch: createQueue('steam.resolve-match', env.REDIS_URL),
       download: createQueue('demo.download', env.REDIS_URL),
+      prune: createQueue('demo.prune', env.REDIS_URL),
       parse: createQueue('demo.parse', env.REDIS_URL),
     },
   }

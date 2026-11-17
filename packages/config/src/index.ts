@@ -67,6 +67,11 @@ export const S3Env = {
     .or(z.literal('').transform(() => undefined)),
 }
 
+/** Days a stored demo is kept for re-parsing and recording before the steam worker deletes it. */
+export const DemoRetentionEnv = {
+  DEMO_RETENTION_DAYS: z.coerce.number().int().positive().default(7),
+}
+
 /** Empty is unset, so a blank `KEY=` line in .env counts as not configured. */
 const optionalString = z
   .string()

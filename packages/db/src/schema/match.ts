@@ -53,6 +53,7 @@ export const match = pgTable(
      */
     parties: jsonb().$type<Record<string, string>>(),
     demoKey: text(),
+    demoStoredAt: timestamp({ withTimezone: true }),
     demoExpiresAt: timestamp({ withTimezone: true }),
     parserVersion: smallint(),
     playedAt: timestamp({ withTimezone: true }),

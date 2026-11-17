@@ -97,7 +97,7 @@ const reanalyzer = createWorker(
     const { matchId, parserVersion } = job.data
     if (parserVersion !== PARSER_VERSION) return
     const [row] = await db.select().from(schema.match).where(eq(schema.match.id, matchId))
-    if (!row || (row.parserVersion ?? 0) >= PARSER_VERSION) return
+    if (!row?.demoKey || (row.parserVersion ?? 0) >= PARSER_VERSION) return
     if (row.status !== 'ready' && row.status !== 'recording') return
 
     const started = performance.now()

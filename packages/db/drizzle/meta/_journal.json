@@ -141,6 +141,13 @@
       "when": 1794887145854,
       "tag": "0019_sweet_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794887568205,
+      "tag": "0020_uneven_inhumans",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { type QueueName, type TypedJob, closeOnSignal, createWorker } from '@sub
 import type { WorkerOptions } from 'bullmq'
 import { createContext } from './context'
 import { downloadDemo } from './download'
+import { pruneDemos } from './prune'
 import { resolveMatch } from './resolve'
 import { scheduleSyncs, syncUser } from './sync'
 
@@ -10,6 +11,7 @@ const ctx = await createContext()
 const { env, log, queues } = ctx
 
 const SCHEDULE_EVERY_MS = 60_000
+const PRUNE_EVERY_MS = 3600_000
 
 /** The match a job is about, if any, so a job that runs out of retries can fail its match. */
 const matchIdOf = (data: { matchId?: string; shareCode?: string }) =>
@@ -49,6 +51,12 @@ await queues.schedule.upsertJobScheduler(
   { name: 'steam.schedule', data: {} },
 )
 
+await queues.prune.upsertJobScheduler(
+  'demo.prune',
+  { every: PRUNE_EVERY_MS },
+  { name: 'demo.prune', data: {} },
+)
+
 const workers = [
   start('steam.schedule', () => scheduleSyncs(ctx)),
   // Valve's Web API allows ~100k calls a day; a handful per second is plenty.
@@ -56,6 +64,7 @@ const workers = [
     concurrency: 4,
     limiter: { max: 5, duration: 1000 },
   }),
+  start('demo.prune', () => pruneDemos(ctx)),
   start('demo.download', (job, token) => downloadDemo(ctx, job, token), {
     concurrency: env.WORKER_CONCURRENCY,
     lockDuration: 5 * 60_000,
