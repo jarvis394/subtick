@@ -68,7 +68,7 @@ public_build() {
     awk '/"branches"/{b=1} b&&/"public"/{p=1} p&&/"buildid"/{gsub(/"/,"",$2); print $2; exit}'
 }
 
-installed_build() { awk -F'"' '/"buildid"/{print $4; exit}' "$1/steamapps/appmanifest_730.acf" 2>/dev/null; }
+installed_build() { awk -F'"' '/"buildid"/{print $4; exit}' "$1/steamapps/appmanifest_730.acf" 2>/dev/null || true; }
 
 setup_prefix() {
   local marker="$WINEPREFIX/.subtick-prefix"
@@ -172,14 +172,18 @@ setup_game() {
       ;;
     server)
       : "${CS2_SERVER_DIR:?CS2_SOURCE=server needs CS2_SERVER_DIR}"
-      local server_build public
+      local server_build public bins="$CS2_DIR/.windows-binaries"
       server_build=$(installed_build "$CS2_SERVER_DIR")
       public=$(public_build)
-      if [ -n "$public" ] && [ "$server_build" != "$public" ]; then
+      # Some panel eggs drop steamapps/ after installing, leaving no build to compare against.
+      if [ -z "$server_build" ]; then
+        server_build=${public:-$(cat "$bins/.build" 2>/dev/null)}
+        [ -n "$server_build" ] || { log "no CS2 build in $CS2_SERVER_DIR/steamapps and none from steamcmd"; exit 1; }
+        log "no app manifest in $CS2_SERVER_DIR: assuming it is on build $server_build"
+      elif [ -n "$public" ] && [ "$server_build" != "$public" ]; then
         log "the server in $CS2_SERVER_DIR is on build $server_build, CS2 is on $public: update the server first"
         exit 1
       fi
-      local bins="$CS2_DIR/.windows-binaries"
       if [ "$(cat "$bins/.build" 2>/dev/null)" != "$server_build" ]; then
         log "downloading the Windows binaries for build $server_build"
         rm -rf "$bins" && mkdir -p "$bins"
