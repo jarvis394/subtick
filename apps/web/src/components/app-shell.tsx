@@ -2,7 +2,7 @@ import { Drawer } from '@base-ui/react/drawer'
 import { Menu as MenuIcon } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { type ReactNode, Suspense, lazy, useRef, useState } from 'react'
-import { RAIL_WIDTH, SidebarContent } from '@/components/sidebar'
+import { SidebarContent } from '@/components/sidebar'
 import { IconButton } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
 import { useLocalStorage } from '@/hooks/use-local-storage'
@@ -31,10 +31,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     setDrawerOpen(false)
   }
   useMatchEvents()
-  const frameRect = cn(
-    'pointer-events-none fixed top-2 right-2 bottom-2 hidden rounded-2xl transition-[left] duration-200 ease-out-quart md:block motion-reduce:transition-none',
-    collapsed ? 'left-14' : 'left-64',
-  )
+  // Insets grow by the safe area: a landscape phone at md+ has a notch on one side.
+  const frameRect =
+    'pointer-events-none fixed top-[calc(--spacing(2)+var(--safe-top))] right-[calc(--spacing(2)+var(--safe-right))] bottom-[calc(--spacing(2)+var(--safe-bottom))] left-(--sidebar-width) hidden rounded-2xl transition-[left] duration-200 ease-out-quart md:block motion-reduce:transition-none'
 
   return (
     <Drawer.Provider>
@@ -43,6 +42,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         data-app-shell=""
         className={cn(
           'group/indent relative overflow-x-clip',
+          collapsed
+            ? '[--sidebar-width:calc(--spacing(14)+var(--safe-left))]'
+            : '[--sidebar-width:calc(--spacing(64)+var(--safe-left))]',
           // Base UI's `--drawer-swipe-progress` doesn't inherit (and the popup resets it for
           // itself), so the page and the drawer's content read this copy instead.
           '[--nav-progress:var(--drawer-swipe-progress)]',
@@ -77,16 +79,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {/* The sidebar is fixed, so page overscroll doesn't drag it; this keeps its place in the row. */}
           <div
             className={cn(
-              'hidden shrink-0 transition-[width] duration-200 ease-out-quart md:block motion-reduce:transition-none',
-              collapsed ? RAIL_WIDTH : 'w-64',
+              'hidden w-(--sidebar-width) shrink-0 transition-[width] duration-200 ease-out-quart md:block motion-reduce:transition-none',
             )}
           >
             {/* Captured apart from the page (class `chrome`), so page transitions leave it in place. */}
             <aside
               className={cn(
                 '[view-transition-class:chrome] [view-transition-name:sidebar]',
-                'fixed top-0 left-0 z-40 h-dvh overflow-hidden bg-background transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 motion-reduce:transition-none',
-                collapsed ? RAIL_WIDTH : 'w-64',
+                'fixed top-0 left-0 z-40 h-dvh w-(--sidebar-width) overflow-hidden bg-background pt-(--safe-top) pb-(--safe-bottom) pl-(--safe-left) transition-[width,opacity] duration-200 ease-out-quart starting:opacity-0 motion-reduce:transition-none',
               )}
             >
               <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
@@ -106,11 +106,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {/* Behind the page, so overscroll inside the frame shows the surface, not the background. */}
           <div aria-hidden className={cn(frameRect, '-z-10 bg-surface')} />
 
-          <div className="@container min-w-0 flex-1 md:py-2 md:pr-2">
+          <div className="@container min-w-0 flex-1 md:pt-[calc(--spacing(2)+var(--safe-top))] md:pr-[calc(--spacing(2)+var(--safe-right))] md:pb-[calc(--spacing(2)+var(--safe-bottom))]">
             {/* styles.css pins it in place during page transitions (data-mobile-header). */}
             <header
               data-mobile-header=""
-              className="sticky top-0 z-20 flex h-14 [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 px-2 backdrop-blur-md md:hidden"
+              className="sticky top-0 z-20 flex h-(--mobile-header) [view-transition-class:chrome] [view-transition-name:mobile-header] items-center gap-2 border-b bg-surface/85 pt-(--safe-top) pr-[max(--spacing(2),var(--safe-right))] pl-[max(--spacing(2),var(--safe-left))] backdrop-blur-md md:hidden"
             >
               <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen} swipeDirection="left">
                 <Drawer.Trigger render={<IconButton size="lg" label="Open menu" tooltip={false} />}>
@@ -135,7 +135,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                     >
                       <div
                         className={cn(
-                          'h-full',
+                          'h-full pt-(--safe-top) pb-(--safe-bottom) pl-(--safe-left)',
                           // Settles from 98% / 0.8 as the page leaves, and back as it's dragged in.
                           '[scale:calc(1-0.02*var(--nav-progress))] opacity-[calc(1-0.2*var(--nav-progress))]',
                           'group-data-starting-style/drawer:[scale:0.98] group-data-starting-style/drawer:opacity-80',
@@ -171,7 +171,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               id="content"
               tabIndex={-1}
               // Fades in over the prerendered empty frame, as the sidebar's content does.
-              className="mx-auto w-full max-w-6xl px-4 py-6 outline-none transition-opacity duration-200 ease-out-quart starting:opacity-0 md:px-8 md:py-10 motion-reduce:transition-none"
+              className="mx-auto w-full max-w-6xl pt-6 pr-[max(--spacing(4),var(--safe-right))] pb-[calc(--spacing(6)+var(--safe-bottom))] pl-[max(--spacing(4),var(--safe-left))] outline-none transition-opacity duration-200 ease-out-quart starting:opacity-0 md:px-8 md:py-10 motion-reduce:transition-none"
             >
               {children}
             </main>

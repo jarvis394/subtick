@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { CONTENT_INSET, Player, VIDEO_FRAME } from './player'
 import { Reel } from './reel'
 import { type ReelClip, type ReelSource, recorded, useReel } from './use-reel'
+import { Scrollbar } from '@/components/ui/scroll-area'
 
 export type { ReelSource } from './use-reel'
 
@@ -68,13 +69,13 @@ export const ClipViewerDialog = ({
               <ScrollArea.Content className="min-h-full md:px-16 md:pt-12 md:pb-6">
                 <Dialog.Popup
                   className={cn(
-                    'relative min-h-dvh bg-background outline-none md:min-h-0 md:overflow-clip md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
+                    'relative min-h-dvh bg-background pr-(--safe-right) pb-(--safe-bottom) pl-(--safe-left) outline-none md:min-h-0 md:p-0 md:overflow-clip md:rounded-2xl md:border md:shadow-2xl lg:mx-auto lg:max-w-7xl',
                     'transition-[opacity,scale] duration-200 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0',
                     'motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100',
                   )}
                 >
                   {/* Stays at the top of the screen while the dialog scrolls under it. */}
-                  <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background pr-2.5 pl-4 md:hidden">
+                  <header className="sticky top-0 z-10 flex h-(--mobile-header) items-center justify-between border-b bg-background pt-(--safe-top) pr-2.5 pl-4 md:hidden">
                     <span className="text-lead font-medium">Highlights</span>
                     <CloseButton />
                   </header>
@@ -89,12 +90,7 @@ export const ClipViewerDialog = ({
                 </Dialog.Popup>
               </ScrollArea.Content>
             </ScrollArea.Viewport>
-            <ScrollArea.Scrollbar
-              orientation="vertical"
-              className="z-20 my-1 mr-1 flex w-1.5 justify-center rounded-full opacity-0 transition-opacity duration-200 data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0"
-            >
-              <ScrollArea.Thumb className="w-full rounded-full bg-foreground/25" />
-            </ScrollArea.Scrollbar>
+            <Scrollbar orientation="vertical" className="z-20 my-1 mr-1" />
           </ScrollArea.Root>
           {/* From md up beside the card's top corner, on the backdrop, and held there while the
             dialog scrolls: outside the scroll area. Lines up with the card's right edge, which

@@ -1,7 +1,6 @@
 import { Collapsible } from '@base-ui/react/collapsible'
-import { Dialog } from '@base-ui/react/dialog'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
 import { EmailForm } from '@/components/email-form'
@@ -11,16 +10,17 @@ import { ProfileSection } from '@/components/settings/profile-section'
 import { SteamIcon } from '@/components/steam-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Field, Input } from '@/components/ui/field'
 import { MorphLabel } from '@/components/ui/morph-label'
 import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Badge, Card } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
+import { useLeave, useSignOut } from '@/hooks/use-sign-out'
 import { ApiError, api, unwrap } from '@/lib/api'
 import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
 import { timeAgo } from '@/lib/format'
 import { type Me, meQuery } from '@/lib/queries'
-import { clearStoredMe } from '@/lib/stored-me'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/settings')({
@@ -37,8 +37,7 @@ const linkSteam = () => void startSteamFlow('link', '/settings')
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
   const { error, email: emailStatus } = Route.useSearch()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const signOut = useSignOut()
   const [editingEmail, setEditingEmail] = useState(false)
   const steamOnly = !me.user.hasPassword
   const emailError = error?.startsWith('email_') ? error : undefined
@@ -69,17 +68,7 @@ function SettingsPage() {
               label={me.user.name}
               description={steamOnly ? 'Signed in with Steam' : me.user.email}
             >
-              <Button
-                size="sm"
-                variant="ghost"
-                tone="danger"
-                onClick={async () => {
-                  await authClient.signOut()
-                  clearStoredMe()
-                  queryClient.clear()
-                  await navigate({ to: '/login' })
-                }}
-              >
+              <Button size="sm" variant="ghost" tone="danger" onClick={signOut}>
                 Sign out
               </Button>
             </Row>
@@ -375,8 +364,7 @@ const CONFIRMATION = 'i am sure'
  * gates the button and the submit, so there's no hand-rolled check to drift from the copy.
  */
 function DeleteAccountDialog() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const leave = useLeave()
   const [open, setOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const remove = useMutation({
@@ -385,11 +373,7 @@ function DeleteAccountDialog() {
       const { error } = await authClient.deleteUser({})
       if (error) throw error
     },
-    onSuccess: async () => {
-      clearStoredMe()
-      queryClient.clear()
-      await navigate({ to: '/login' })
-    },
+    onSuccess: leave,
   })
 
   const error = remove.error as { code?: string; message?: string } | null
@@ -399,72 +383,53 @@ function DeleteAccountDialog() {
       ? 'For your safety, sign out and sign back in, then delete your account within a day'
       : error.message || 'Couldn’t delete your account. Check your connection and try again')
 
+  const changeOpen = (next: boolean) => {
+    setOpen(next)
+    if (!next) {
+      setConfirmed(false)
+      remove.reset()
+    }
+  }
+
   return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next)
-        if (!next) {
-          setConfirmed(false)
-          remove.reset()
-        }
-      }}
-    >
-      <Dialog.Trigger render={<Button size="sm" variant="ghost" tone="danger" />}>
+    <>
+      <Button size="sm" variant="ghost" tone="danger" onClick={() => changeOpen(true)}>
         Delete
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="vt-modal fixed inset-0 z-40 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="vt-modal fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl outline-none transition-[opacity,scale] duration-150 ease-out-quart data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100">
-          <Dialog.Title className="text-title font-medium">Delete your account?</Dialog.Title>
-          <Dialog.Description className="mt-2 text-body text-muted">
-            Your account, its linked Steam accounts and your place in their matches are removed for
-            good. Clips stay for the other players in those matches.
-          </Dialog.Description>
-          <form
-            className="mt-5 grid gap-4"
-            onSubmit={(event) => {
-              event.preventDefault()
-              remove.mutate()
-            }}
-          >
-            <Field
-              label={
-                <>
-                  Type{' '}
-                  <span className="mx-0.5 rounded bg-danger/12 px-1 py-px text-danger">
-                    {CONFIRMATION}
-                  </span>{' '}
-                  to confirm
-                </>
-              }
-            >
-              <Input
-                name="confirmation"
-                required
-                // Native validation: the whole value must match, nothing more.
-                pattern={CONFIRMATION}
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(event) => setConfirmed(event.currentTarget.validity.valid)}
-              />
-            </Field>
-            {message && <p className="text-small text-danger select-text">{message}</p>}
-            <div className="flex justify-end gap-2">
-              <Dialog.Close render={<Button variant="ghost" />}>Cancel</Dialog.Close>
-              <Button
-                type="submit"
-                variant="primary"
-                tone="danger"
-                disabled={!confirmed}
-                loading={remove.isPending}
-              >
-                Delete account
-              </Button>
-            </div>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </Button>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={changeOpen}
+        title="Delete your account?"
+        description="Your account, its linked Steam accounts and your place in their matches are removed for good. Clips stay for the other players in those matches."
+        confirmLabel="Delete account"
+        tone="danger"
+        disabled={!confirmed}
+        pending={remove.isPending}
+        error={message}
+        onConfirm={() => remove.mutate()}
+      >
+        <Field
+          label={
+            <>
+              Type{' '}
+              <span className="mx-0.5 rounded bg-danger/12 px-1 py-px text-danger">
+                {CONFIRMATION}
+              </span>{' '}
+              to confirm
+            </>
+          }
+        >
+          <Input
+            name="confirmation"
+            required
+            // Native validation: the whole value must match, nothing more.
+            pattern={CONFIRMATION}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event) => setConfirmed(event.currentTarget.validity.valid)}
+          />
+        </Field>
+      </ConfirmDialog>
+    </>
   )
 }

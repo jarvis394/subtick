@@ -63,3 +63,30 @@ export const confirmEmailMail = ({
     text: `${heading}\n\n${what.replace(/<[^>]+>/g, '')} ${expires}\n\n${url}\n\nIf you didn't ask for this, ignore this email.`,
   }
 }
+
+/** Confirms the address an account signed up with; opening it signs that browser in. */
+export const verifyEmailMail = ({ to, url }: { to: string; url: string }): Mail => {
+  const heading = 'Confirm your email'
+  const what = `Open this link to confirm ${address(to)} and finish signing up for subtick. An admin approves new accounts before they can use it.`
+
+  return {
+    to,
+    subject: 'Confirm your subtick email',
+    html: layout({ heading, body: what, action: { label: 'Confirm email', url } }),
+    text: `${heading}\n\n${what.replace(/<[^>]+>/g, '')}\n\n${url}\n\nIf you didn't ask for this, ignore this email.`,
+  }
+}
+
+/** Tells someone waiting on approval that their account is in. */
+export const approvedMail = ({ to, url }: { to: string; url: string }): Mail => {
+  const heading = 'You’re in'
+  const what =
+    'An admin approved your subtick account. Sign in to link Steam and see your highlights.'
+
+  return {
+    to,
+    subject: 'Your subtick account is approved',
+    html: layout({ heading, body: what, action: { label: 'Open subtick', url } }),
+    text: `${heading}\n\n${what}\n\n${url}`,
+  }
+}

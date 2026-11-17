@@ -1,12 +1,10 @@
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import type { ReactNode } from 'react'
+import { UserRow } from '@/components/admin/user-row'
+import { FadeItem, FadeList } from '@/components/ui/presence'
 import { Badge, Card, Skeleton } from '@/components/ui/surface'
 import { type AdminUser, usersQuery } from '@/lib/admin'
-import { api, unwrap } from '@/lib/api'
-import { timeAgo } from '@/lib/format'
-import { meQuery } from '@/lib/queries'
 
 export const Route = createFileRoute('/_app/admin/users')({
   head: () => ({ meta: [{ title: 'Users · Admin · subtick' }] }),
@@ -16,64 +14,69 @@ export const Route = createFileRoute('/_app/admin/users')({
 
 function UsersPage() {
   const users = useQuery(usersQuery)
+  const all = users.data ?? []
+  const waiting = all.filter((user) => user.pending).toReversed()
+  const members = all.filter((user) => !user.pending)
+
+  if (users.isPending) return <Skeleton className="h-40" />
+  if (users.error) return <p className="text-body text-danger select-text">{users.error.message}</p>
 
   return (
-    <section className="grid gap-4">
-      <p className="text-body text-muted">
-        Admins manage recorders, their Steam accounts and other users' roles.
-      </p>
-      {users.isPending ? (
-        <Skeleton className="h-40" />
-      ) : (
-        <Card className="divide-y">
-          {users.data?.map((user) => (
-            <UserRow key={user.id} user={user} />
-          ))}
-        </Card>
-      )}
-    </section>
+    // The waiting section leaves with its last row, and Members glides up into its place.
+    <div className="grid gap-8">
+      <FadeList>
+        {waiting.length > 0 && (
+          <FadeItem key="waiting">
+            <Section
+              title="Waiting for approval"
+              count={<Badge tone="accent">{waiting.length}</Badge>}
+              description="Sign-up is invite-only. New accounts see a waiting screen until you let them in."
+              users={waiting}
+            />
+          </FadeItem>
+        )}
+        <FadeItem key="members">
+          <Section
+            title="Members"
+            count={<Badge>{members.length}</Badge>}
+            description="Admins manage recorders, storage and other users. Removing data here can’t be undone."
+            users={members}
+          />
+        </FadeItem>
+      </FadeList>
+    </div>
   )
 }
 
-function UserRow({ user }: { user: AdminUser }) {
-  const { data: me } = useSuspenseQuery(meQuery)
-  const queryClient = useQueryClient()
-  const setRole = useMutation({
-    meta: { inlineError: true },
-    mutationFn: (role: AdminUser['role']) =>
-      unwrap(api.admin.users({ id: user.id }).patch({ role })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
-  })
-  const isMe = user.id === me.user.id
-  const admin = user.role === 'admin'
-
+function Section({
+  title,
+  count,
+  description,
+  users,
+}: {
+  title: string
+  count: ReactNode
+  description: string
+  users: AdminUser[]
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4">
-      <Avatar src={user.image} name={user.name} className="size-9" />
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 truncate font-medium">
-          {user.name}
-          {admin && <Badge tone="accent">Admin</Badge>}
-          {isMe && <span className="text-label font-normal text-muted">you</span>}
-        </p>
-        <p className="truncate text-small text-muted select-text">
-          {user.email.endsWith('@steam.invalid') ? 'Steam sign-in' : user.email} · joined{' '}
-          {timeAgo(user.createdAt)}
-        </p>
+    <section className="grid gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 font-medium">
+          {title}
+          {count}
+        </h2>
+        <p className="text-small text-muted">{description}</p>
       </div>
-      {!isMe && (
-        <Button
-          size="sm"
-          variant={admin ? 'ghost' : 'secondary'}
-          onClick={() => setRole.mutate(admin ? 'user' : 'admin')}
-          loading={setRole.isPending}
-        >
-          {admin ? 'Remove admin' : 'Make admin'}
-        </Button>
-      )}
-      {setRole.error && (
-        <p className="w-full text-body text-danger select-text">{setRole.error.message}</p>
-      )}
-    </div>
+      <Card className="divide-y">
+        <FadeList>
+          {users.map((user) => (
+            <FadeItem key={user.id}>
+              <UserRow user={user} />
+            </FadeItem>
+          ))}
+        </FadeList>
+      </Card>
+    </section>
   )
 }

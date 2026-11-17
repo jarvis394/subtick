@@ -22,6 +22,13 @@ export const recordersQuery = queryOptions({
 
 export const usersQuery = queryOptions({ queryKey: ['admin', 'users'], queryFn: fetchUsers })
 
+/** For the tab badge, so the admin layout doesn't load every account. */
+export const pendingCountQuery = queryOptions({
+  queryKey: ['admin', 'users', 'pending'],
+  queryFn: () => unwrap(api.admin.users['pending-count'].get()),
+  refetchInterval: 30_000,
+})
+
 /** The api reuses a report for 30 s, so refetching faster gains nothing. */
 export const storageQuery = queryOptions({
   queryKey: ['admin', 'storage'],

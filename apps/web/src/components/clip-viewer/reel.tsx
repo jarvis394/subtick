@@ -10,6 +10,7 @@ import { clipLength, timeAgo } from '@/lib/format'
 import { KIND_LABEL, KIND_TONE } from '@/lib/highlights'
 import { cn } from '@/lib/utils'
 import type { ReelClip, useReel } from './use-reel'
+import { Scrollbar } from '@/components/ui/scroll-area'
 
 // From lg up the reel scrolls on its own beside the player; below that it scrolls with the rest.
 const ownScroll = () => window.matchMedia('(min-width: 64rem)').matches
@@ -148,12 +149,7 @@ export const Reel = ({
             )}
           </ol>
         </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar
-          orientation="vertical"
-          className="z-20 mt-1 mr-1 mb-4 flex w-1.5 justify-center rounded-full opacity-0 transition-opacity duration-200 data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0"
-        >
-          <ScrollArea.Thumb className="w-full rounded-full bg-foreground/25" />
-        </ScrollArea.Scrollbar>
+        <Scrollbar orientation="vertical" className="z-20 mt-1 mr-1 mb-4" />
       </ScrollArea.Root>
     </aside>
   )

@@ -43,6 +43,13 @@
  * Light/dark follow the system unless [data-theme] is set on <html>.
  */
 :root {
+  /* The notch, home indicator and rounded corners (index.html sets viewport-fit=cover). */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* The app shell's sticky header below md, and the clip viewer's. */
+  --mobile-header: calc(3.5rem + var(--safe-top));
   --background: #f7f7f7;
   --surface: #ffffff;
   --surface-2: #efefef;
@@ -215,13 +222,13 @@
     text-size-adjust: 100%;
     /* Space for the scrollbar even on short pages, so content doesn't shift as pages change height. */
     scrollbar-gutter: stable;
-    /* Below md the app shell's sticky header (h-14) would cover focused and anchored content. */
+    /* Below md the app shell's sticky header would cover focused and anchored content. */
     @media (width < 48rem) {
-      scroll-padding-top: 3.5rem;
+      scroll-padding-top: var(--mobile-header);
     }
     /* From md the app shell's inset frame covers the top 0.5rem. */
     @media (width >= 48rem) {
-      scroll-padding-top: 0.5rem;
+      scroll-padding-top: calc(0.5rem + var(--safe-top));
     }
   }
   body {
@@ -302,7 +309,7 @@
     inset-inline: 0;
   }
   html:active-view-transition [data-mobile-header] + main {
-    margin-top: 3.5rem;
+    margin-top: var(--mobile-header);
   }
 }
 /*

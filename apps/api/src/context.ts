@@ -1,4 +1,4 @@
-import { createDb, createSecretBox, eq, schema } from '@subtick/db'
+import { createDb, createSecretBox } from '@subtick/db'
 import { createLogger } from '@subtick/logger'
 import { createMailer } from '@subtick/mail'
 import { createMatchEventPublisher, createQueue } from '@subtick/queue'
@@ -6,6 +6,7 @@ import { createSteamWebApi } from '@subtick/steam'
 import { createS3Storage } from '@subtick/storage'
 import { createAuth } from './auth'
 import type { Env } from './env'
+import { deleteImageObjects, userImageKeys } from './services/profile-images'
 
 /** Everything route handlers depend on, built once at startup. */
 export const createContext = async (env: Env) => {
@@ -24,11 +25,15 @@ export const createContext = async (env: Env) => {
     publicEndpoint: env.S3_PUBLIC_ENDPOINT,
   })
 
+  const mailer = createMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM })
+  const log = createLogger('api')
+
   return {
     env,
+    mailer,
     db,
     steamApi,
-    log: createLogger('api'),
+    log,
     secrets: await createSecretBox(env.SECRETS_KEY),
     // Recorders on other machines download demos through presigned URLs, like browsers do clips.
     demos: createS3Storage({
@@ -49,17 +54,10 @@ export const createContext = async (env: Env) => {
       env,
       db,
       steamApi,
-      mailer: createMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM }),
-      // Uploaded pictures: the rows cascade from the user, the objects don't.
-      async beforeDeleteUser(userId) {
-        const [row] = await db
-          .select({ avatar: schema.user.avatarKey, banner: schema.user.bannerKey })
-          .from(schema.user)
-          .where(eq(schema.user.id, userId))
-        await Promise.allSettled(
-          [row?.avatar, row?.banner].flatMap((key) => (key ? [clips.delete(key)] : [])),
-        )
-      },
+      mailer,
+      log,
+      beforeDeleteUser: async (userId) =>
+        deleteImageObjects(clips, await userImageKeys(db, userId)),
     }),
   }
 }

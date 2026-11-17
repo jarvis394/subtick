@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <script>
       // The theme picked in the account menu (src/lib/theme.ts), applied before first paint.
@@ -52,8 +52,8 @@
         inset: 0;
         z-index: -1;
         background:
-          linear-gradient(var(--boot-border), var(--boot-border)) 0 calc(3.5rem - 1px) / 100% 1px
-            no-repeat,
+          linear-gradient(var(--boot-border), var(--boot-border)) 0
+            calc(3.5rem + env(safe-area-inset-top, 0px) - 1px) / 100% 1px no-repeat,
           var(--boot-surface);
       }
       @media (width >= 48rem) {
@@ -62,13 +62,16 @@
         }
         .boot-shell-frame {
           position: fixed;
-          inset: 0.5rem 0.5rem 0.5rem 16rem;
+          inset: calc(0.5rem + env(safe-area-inset-top, 0px))
+            calc(0.5rem + env(safe-area-inset-right, 0px))
+            calc(0.5rem + env(safe-area-inset-bottom, 0px))
+            calc(16rem + env(safe-area-inset-left, 0px));
           border: 1px solid var(--boot-border);
           border-radius: 1rem;
           background: var(--boot-surface);
         }
         :root[data-boot-collapsed] .boot-shell-frame {
-          left: 3.5rem;
+          left: calc(3.5rem + env(safe-area-inset-left, 0px));
         }
       }
     </style>

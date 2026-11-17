@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { CardHeader } from './card-header'
 import { CrosshairPreview } from './crosshair-preview'
 import { RankProgressChart } from './rank-progress'
+import { Scrollbar } from '@/components/ui/scroll-area'
 
 const RailCard = ({
   title,
@@ -219,12 +220,7 @@ const CrosshairCard = ({ crosshairs, className }: { crosshairs: string[]; classN
                   ))}
                 </ScrollArea.Content>
               </ScrollArea.Viewport>
-              <ScrollArea.Scrollbar
-                orientation="horizontal"
-                className="absolute bottom-0 mr-4 ml-3 flex h-1.5 items-center rounded-full opacity-0 transition-opacity duration-150 data-hovering:opacity-100 data-scrolling:opacity-100 motion-reduce:transition-none"
-              >
-                <ScrollArea.Thumb className="h-full rounded-full bg-foreground/25" />
-              </ScrollArea.Scrollbar>
+              <Scrollbar orientation="horizontal" className="absolute bottom-0 mr-4 ml-3" />
             </ScrollArea.Root>
           </>
         )}

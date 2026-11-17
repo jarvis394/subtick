@@ -7,7 +7,7 @@ import { ErrorPage } from './components/error-page'
 import { Toaster } from './components/ui/toaster'
 import { ApiError } from './lib/api'
 import { notifyError } from './lib/notify'
-import { isSessionError } from './lib/queries'
+import { isSessionError, meQuery } from './lib/queries'
 import { routeTree } from './routeTree.gen'
 import './styles.css'
 
@@ -16,6 +16,12 @@ const queryClient = new QueryClient({
   // sign out here (the router's beforeLoad only runs on navigation).
   queryCache: new QueryCache({
     onError: (error, query) => {
+      // The account isn't approved (any more): a fresh /me sends the app layout to /pending.
+      if (error instanceof ApiError && error.message === 'pending_approval') {
+        void queryClient.invalidateQueries({ queryKey: meQuery.queryKey }, { cancelRefetch: false })
+
+        return
+      }
       if (query.queryKey[0] !== 'me' || !isSessionError(error)) {
         // A first load shows its own error state; a failed refresh of data already on screen
         // would otherwise go unnoticed, leaving it quietly stale.

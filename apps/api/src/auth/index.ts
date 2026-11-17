@@ -1,5 +1,6 @@
 import type { Db } from '@subtick/db'
-import type { Mailer } from '@subtick/mail'
+import type { createLogger } from '@subtick/logger'
+import { type Mailer, verifyEmailMail } from '@subtick/mail'
 import { schema } from '@subtick/db'
 import type { SteamWebApi } from '@subtick/steam'
 import { betterAuth } from 'better-auth'
@@ -14,12 +15,14 @@ export const createAuth = ({
   db,
   steamApi,
   mailer,
+  log,
   beforeDeleteUser,
 }: {
   env: Env
   db: Db
   steamApi: SteamWebApi
   mailer: Mailer
+  log: ReturnType<typeof createLogger>
   /** Cleans up what doesn't cascade from the user row (uploaded pictures). */
   beforeDeleteUser: (userId: string) => Promise<void>
 }) =>
@@ -37,11 +40,26 @@ export const createAuth = ({
         verification: schema.verification,
       },
     }),
-    // Sign-up isn't verified by email; addresses are confirmed only when added or changed later.
-    emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    // Email sign-up confirms the address first; the link signs the browser in. Either way an admin
+    // then approves the account (`approvedAt`).
+    emailAndPassword: { enabled: true, minPasswordLength: 8, requireEmailVerification: true },
+    emailVerification: {
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      // The user row exists by now: a throw would answer the sign-up with an error for an account
+      // that was made. Signing in sends a new link.
+      sendVerificationEmail: async ({ user, url }) => {
+        await mailer
+          .send(verifyEmailMail({ to: user.email, url }))
+          .catch((error) => log.warn({ userId: user.id }, 'verification mail not sent', error))
+      },
+    },
     user: {
       // Granted by another admin or `bun run grant-admin`, never at sign-up.
-      additionalFields: { role: { type: 'string', defaultValue: 'user', input: false } },
+      additionalFields: {
+        role: { type: 'string', defaultValue: 'user', input: false },
+        approvedAt: { type: 'date', required: false, input: false },
+      },
       // From Settings. Without a password (Steam-only accounts have none) the session must be under
       // a day old; everything the user owns cascades from the user row.
       deleteUser: { enabled: true, beforeDelete: (user) => beforeDeleteUser(user.id) },

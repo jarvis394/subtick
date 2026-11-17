@@ -20,6 +20,8 @@ export const user = pgTable('user', {
   image: text(),
   /** Declared to better-auth as an additional field that sign-up can't set. */
   role: userRole().notNull().default('user'),
+  /** Sign-up is invite-only: null until an admin approves the account, which can't use the app before. */
+  approvedAt: timestamp({ withTimezone: true }),
   /**
    * Uploaded profile pictures, as keys in the clips bucket. Null means none: the avatar falls back
    * to the first linked Steam account's, the banner to a plain one.

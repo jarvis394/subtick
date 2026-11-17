@@ -21,6 +21,9 @@ const AUTH_ERRORS: Record<string, string> = {
   steam_account_orphaned: 'That Steam account is in a broken state. Contact the admin',
   email_link_invalid: 'That email link has expired or was already used. Send a new one',
   email_in_use: 'Another subtick account took that email first. Try a different one',
+  // better-auth's own codes when an email-confirmation link fails.
+  INVALID_TOKEN: 'That confirmation link is invalid. Sign in to get a new one',
+  TOKEN_EXPIRED: 'That confirmation link has expired. Sign in to get a new one',
 }
 
 export const describeAuthError = (code: string | undefined) =>

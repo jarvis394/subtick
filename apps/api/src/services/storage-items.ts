@@ -1,9 +1,9 @@
-import { and, desc, eq, inArray, or, schema, sql } from '@subtick/db'
+import { and, desc, eq, inArray, ne, notExists, or, schema, sql } from '@subtick/db'
 import { isProcessingStatus } from '@subtick/domain'
 import type { Context } from '../context'
 import type { ObjectSizes } from './storage'
 
-const { match, matchPlayer, highlight, clip } = schema
+const { match, matchPlayer, highlight, clip, userMatch } = schema
 
 const sizeOf = (sizes: Map<string, number>, key: string | null) => (key ? (sizes.get(key) ?? 0) : 0)
 
@@ -136,9 +136,14 @@ export const deleteRecordedHighlight = async (ctx: Context, id: string) => {
 /**
  * Deletes a match for everyone: its rows (players, rounds, kills, highlights and clips cascade),
  * its demo and its clips' files. Steam sync only walks forward from each link's last share code,
- * so it isn't fetched again unless someone adds it by hand.
+ * so it isn't fetched again unless someone adds it by hand. With `soleHolder`, it is kept ('shared')
+ * when any other user holds it at delete time.
  */
-export const deleteStoredMatch = async (ctx: Context, id: string) => {
+export const deleteStoredMatch = async (
+  ctx: Context,
+  id: string,
+  { soleHolder }: { soleHolder?: string } = {},
+) => {
   const { db, demos, log } = ctx
   const [row] = await db
     .select({ status: match.status, demoKey: match.demoKey })
@@ -159,7 +164,19 @@ export const deleteStoredMatch = async (ctx: Context, id: string) => {
     .from(clip)
     .innerJoin(highlight, eq(highlight.id, clip.highlightId))
     .where(eq(highlight.matchId, id))
-  await db.delete(match).where(eq(match.id, id))
+  const noOtherHolder = soleHolder
+    ? notExists(
+        db
+          .select({ one: sql`1` })
+          .from(userMatch)
+          .where(and(eq(userMatch.matchId, id), ne(userMatch.userId, soleHolder))),
+      )
+    : undefined
+  const [gone] = await db
+    .delete(match)
+    .where(and(eq(match.id, id), noOtherHolder))
+    .returning({ id: match.id })
+  if (!gone) return soleHolder ? ('shared' as const) : ('not_found' as const)
 
   if (row.demoKey)
     await demos

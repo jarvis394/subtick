@@ -1,4 +1,5 @@
-import { eq, inArray, schema } from '@subtick/db'
+import { type Db, eq, inArray, schema } from '@subtick/db'
+import type { ObjectStorage } from '@subtick/storage'
 import type { Context } from '../context'
 
 export type ProfileImage = 'avatar' | 'banner'
@@ -25,6 +26,21 @@ const column = { avatar: 'avatarKey', banner: 'bannerKey' } as const
 /** Profile pictures live in the clips bucket: it's the one browsers can reach. */
 export const imageUrl = ({ clips }: Pick<Context, 'clips'>, key: string | null) =>
   key ? clips.presign(key, 24 * 3600) : null
+
+/** A user's uploaded pictures: the rows cascade from the user, the objects don't. */
+export const userImageKeys = async (db: Db, userId: string) => {
+  const [row] = await db
+    .select({ avatar: schema.user.avatarKey, banner: schema.user.bannerKey })
+    .from(schema.user)
+    .where(eq(schema.user.id, userId))
+
+  return [row?.avatar, row?.banner].filter((key) => key != null)
+}
+
+/** Only once the row is gone: a failed row delete must not leave it pointing at missing objects. */
+export const deleteImageObjects = async (clips: ObjectStorage, keys: string[]) => {
+  await Promise.allSettled(keys.map((key) => clips.delete(key)))
+}
 
 /** Stores a new picture and drops the old one; a fresh key per upload busts browser caches. */
 export const replaceImage = async (

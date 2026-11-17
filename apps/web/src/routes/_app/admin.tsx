@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useLocation } from '@tanstack/react-router'
 import { RecorderHealthBanner } from '@/components/recorder-health-banner'
+import { Badge } from '@/components/ui/surface'
 import { Tab, Tabs, TabsList } from '@/components/ui/tabs'
-import { recordersQuery } from '@/lib/admin'
+import { pendingCountQuery, recordersQuery } from '@/lib/admin'
 import { meQuery } from '@/lib/queries'
 
 /** Instance administration; only for users with the admin role (the api enforces it too). */
@@ -24,6 +25,7 @@ function AdminLayout() {
   const pathname = useLocation({ select: (location) => location.pathname })
   const active = TABS.find((tab) => pathname.startsWith(tab.to))?.to ?? null
   const recorders = useQuery(recordersQuery).data
+  const waiting = useQuery(pendingCountQuery).data
   const fleet = recorders && {
     registered: recorders.length,
     healthy: recorders.filter((r) => r.health === 'healthy').length,
@@ -41,11 +43,18 @@ function AdminLayout() {
               <Tab
                 key={tab.to}
                 value={tab.to}
+                className="gap-1.5"
                 nativeButton={false}
                 // Only the indicator moves; the page under it swaps without a transition.
                 render={<Link to={tab.to} viewTransition={false} />}
               >
                 {tab.label}
+                {tab.to === '/admin/users' && waiting ? (
+                  <Badge tone="accent">
+                    {waiting}
+                    <span className="sr-only"> waiting for approval</span>
+                  </Badge>
+                ) : null}
               </Tab>
             ))}
           </TabsList>

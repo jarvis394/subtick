@@ -1,6 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { MailCheck } from 'lucide-react'
 import { type CSSProperties, type FormEvent, useState } from 'react'
+import { AuthFrame } from '@/components/auth-frame'
+import { FadeSwap } from '@/components/fade-swap'
 import { SteamIcon } from '@/components/steam-icon'
 import { Button } from '@/components/ui/button'
 import { Field, Input, PasswordInput } from '@/components/ui/field'
@@ -22,6 +25,7 @@ const AUTH_ERRORS: Record<string, [FieldName | 'form', string]> = {
     'An account with this email already exists. Sign in instead',
   ],
   INVALID_EMAIL_OR_PASSWORD: ['form', 'Wrong email or password'],
+  EMAIL_NOT_VERIFIED: ['form', 'Confirm your email first. We sent a new link to it'],
   PASSWORD_TOO_SHORT: ['password', 'Use at least 8 characters'],
   PASSWORD_TOO_LONG: ['password', 'That password is too long'],
 }
@@ -54,7 +58,7 @@ const part = (name: string) =>
 
 const COPY = {
   'sign-in': { subtitle: 'Your best Counter-Strike moments', switch: 'I do not have an account' },
-  'sign-up': { subtitle: 'Create your account, for free', switch: 'I already have an account' },
+  'sign-up': { subtitle: 'Ask to join this instance', switch: 'I already have an account' },
 } as const
 
 /**
@@ -73,6 +77,8 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
   })
 
   const [pending, setPending] = useState<'email' | 'steam' | null>(null)
+  // Sign-up doesn't sign in: the address is confirmed first, by a link sent to it.
+  const [sentTo, setSentTo] = useState<string | null>(null)
   // Only same-origin paths; anything else falls back to the feed.
   const next =
     search.redirect?.startsWith('/') && !search.redirect.startsWith('//') ? search.redirect : '/'
@@ -88,12 +94,20 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
     const password = String(form.get('password'))
     setPending('email')
     setErrors({})
+    // The confirmation link lands on /login, which sends a now signed-in browser on into the app.
+    const callbackURL = '/login'
     const result =
       mode === 'sign-in'
-        ? await authClient.signIn.email({ email, password })
-        : await authClient.signUp.email({ email, password, name: String(form.get('name')) })
+        ? await authClient.signIn.email({ email, password, callbackURL })
+        : await authClient.signUp.email({
+            email,
+            password,
+            name: String(form.get('name')),
+            callbackURL,
+          })
     setPending(null)
     if (result.error) return setErrors(describeError(result.error))
+    if (mode === 'sign-up') return setSentTo(email)
     await queryClient.invalidateQueries({ queryKey: meQuery.queryKey })
     await navigate({ to: next })
   }
@@ -110,128 +124,150 @@ export const AuthPage = ({ mode }: { mode: Mode }) => {
 
   // Only the heading is text worth copying; it and the inputs opt back in (select-text).
   return (
-    <div className="flex min-h-dvh flex-col items-center px-4 pt-12 pb-8 select-none">
-      <div className="grid w-full max-w-[25rem] flex-1 content-center justify-items-center gap-8">
-        <div className="grid justify-items-center gap-2 text-center select-text">
-          <h1 className="[view-transition-name:auth-logo] [view-transition-class:auth]">
-            <Wordmark className="text-hero" />
-          </h1>
-          <p className="font-display text-heading tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
-            {COPY[mode].subtitle}
-          </p>
-        </div>
-
-        {/* Each part has its own name, so it slides to its new place instead of the card's
-          contents crossfading as one picture; the card's own snapshot is just its outline. */}
-        <div className="w-full rounded-[28px] border p-6 [view-transition-name:auth-card] [view-transition-class:auth]">
-          <div className="grid gap-4">
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full [view-transition-name:auth-steam] [view-transition-class:auth]"
-              onClick={steam}
-              disabled={pending === 'email'}
-              loading={pending === 'steam'}
-            >
-              <SteamIcon />
-              Continue with Steam
-            </Button>
-
-            <p className="text-center text-label text-muted [view-transition-name:auth-or] [view-transition-class:auth]">
-              OR
-            </p>
-
-            {/* Flex, not grid: a closed error's negative margin has to cancel the gap before it, and
-              grid rows can't shrink below zero. */}
-            <form onSubmit={submit} className="flex flex-col gap-3">
-              {mode === 'sign-up' && (
-                <Field
-                  label="Name"
-                  className="flex flex-col"
-                  style={part('name')}
-                  invalid={Boolean(errors.name)}
-                >
-                  <Input
-                    name="name"
-                    placeholder="Alex"
-                    required
-                    autoComplete="nickname"
-                    className="h-11"
-                    onChange={() => clearError('name')}
-                  />
-                  <ErrorText message={errors.name} gap="0.375rem" />
-                </Field>
-              )}
-              <Field
-                label="Email"
-                className="flex flex-col"
-                style={part('email')}
-                invalid={Boolean(errors.email)}
-              >
-                <Input
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
-                  className="h-11"
-                  onChange={() => clearError('email')}
-                />
-                <ErrorText message={errors.email} gap="0.375rem" />
-              </Field>
-              <Field
-                label="Password"
-                className="flex flex-col"
-                style={part('password')}
-                invalid={Boolean(errors.password)}
-              >
-                <PasswordInput
-                  className="h-11"
-                  name="password"
-                  placeholder={mode === 'sign-in' ? 'Enter your password' : 'At least 8 characters'}
-                  required
-                  minLength={8}
-                  autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
-                  onChange={() => {
-                    clearError('password')
-                    // A wrong password is the form's error; retyping it is the fix.
-                    if (errors.form) setErrors((all) => ({ ...all, form: undefined }))
-                  }}
-                />
-                <ErrorText message={errors.password} gap="0.375rem" />
-              </Field>
-              <ErrorText message={errors.form} gap="0.75rem" style={part('error')} />
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="mt-1 w-full"
-                style={part('submit')}
-                disabled={pending === 'steam'}
-                loading={pending === 'email'}
-              >
-                {mode === 'sign-in' ? 'Continue with email' : 'Create account'}
-              </Button>
-            </form>
-          </div>
-        </div>
+    <AuthFrame
+      className="select-none"
+      // Pinned to the bottom of the page, apart from the form.
+      footer={
+        <Button
+          variant="ghost"
+          className="mt-8"
+          style={part('switch')}
+          render={
+            <Link
+              to={mode === 'sign-in' ? '/signup' : '/login'}
+              search={{ redirect: search.redirect }}
+            />
+          }
+        >
+          {COPY[mode].switch}
+        </Button>
+      }
+    >
+      <div className="grid justify-items-center gap-2 text-center select-text">
+        <h1 className="[view-transition-name:auth-logo] [view-transition-class:auth]">
+          <Wordmark className="text-hero" />
+        </h1>
+        <p className="font-display text-heading tracking-tight text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
+          {COPY[mode].subtitle}
+        </p>
       </div>
 
-      {/* Pinned to the bottom of the page, apart from the form. */}
-      <Button
-        variant="ghost"
-        className="mt-8"
-        style={part('switch')}
-        render={
-          <Link
-            to={mode === 'sign-in' ? '/signup' : '/login'}
-            search={{ redirect: search.redirect }}
-          />
-        }
-      >
-        {COPY[mode].switch}
-      </Button>
-    </div>
+      {/* Each part has its own name, so it slides to its new place instead of the card's
+          contents crossfading as one picture; the card's own snapshot is just its outline. */}
+      <div className="w-full rounded-[28px] border p-6 [view-transition-name:auth-card] [view-transition-class:auth]">
+        {/* Once sent, the form gives way to what happens next; reduced motion keeps the fade only. */}
+        <FadeSwap swapKey={sentTo ? 'sent' : 'form'} appear={false} mode="wait">
+          {sentTo ? (
+            <div role="status" className="grid gap-2 select-text">
+              <p className="flex items-center gap-2 font-medium">
+                <MailCheck className="size-4 text-muted" />
+                Check your inbox
+              </p>
+              <p className="text-body text-muted">
+                We sent a link to <span className="text-foreground">{sentTo}</span>. Open it to
+                confirm your email. An admin then approves your account before you can use subtick.
+              </p>
+              <p className="text-small text-muted">
+                Didn’t get it? Sign in with the same email and password to get a new link.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full [view-transition-name:auth-steam] [view-transition-class:auth]"
+                onClick={steam}
+                disabled={pending === 'email'}
+                loading={pending === 'steam'}
+              >
+                <SteamIcon />
+                Continue with Steam
+              </Button>
+
+              <p className="text-center text-label text-muted [view-transition-name:auth-or] [view-transition-class:auth]">
+                OR
+              </p>
+
+              {/* Flex, not grid: a closed error's negative margin has to cancel the gap before it, and
+              grid rows can't shrink below zero. */}
+              <form onSubmit={submit} className="flex flex-col gap-3">
+                {mode === 'sign-up' && (
+                  <Field
+                    label="Name"
+                    className="flex flex-col"
+                    style={part('name')}
+                    invalid={Boolean(errors.name)}
+                  >
+                    <Input
+                      name="name"
+                      placeholder="Alex"
+                      required
+                      autoComplete="nickname"
+                      className="h-11"
+                      onChange={() => clearError('name')}
+                    />
+                    <ErrorText message={errors.name} gap="0.375rem" />
+                  </Field>
+                )}
+                <Field
+                  label="Email"
+                  className="flex flex-col"
+                  style={part('email')}
+                  invalid={Boolean(errors.email)}
+                >
+                  <Input
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                    className="h-11"
+                    onChange={() => clearError('email')}
+                  />
+                  <ErrorText message={errors.email} gap="0.375rem" />
+                </Field>
+                <Field
+                  label="Password"
+                  className="flex flex-col"
+                  style={part('password')}
+                  invalid={Boolean(errors.password)}
+                >
+                  <PasswordInput
+                    className="h-11"
+                    name="password"
+                    placeholder={
+                      mode === 'sign-in' ? 'Enter your password' : 'At least 8 characters'
+                    }
+                    required
+                    minLength={8}
+                    autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+                    onChange={() => {
+                      clearError('password')
+                      // A wrong password is the form's error; retyping it is the fix.
+                      if (errors.form) setErrors((all) => ({ ...all, form: undefined }))
+                    }}
+                  />
+                  <ErrorText message={errors.password} gap="0.375rem" />
+                </Field>
+                <ErrorText message={errors.form} gap="0.75rem" style={part('error')} />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="mt-1 w-full"
+                  style={part('submit')}
+                  disabled={pending === 'steam'}
+                  loading={pending === 'email'}
+                >
+                  {mode === 'sign-in' ? 'Continue with email' : 'Request access'}
+                </Button>
+              </form>
+            </div>
+          )}
+        </FadeSwap>
+      </div>
+    </AuthFrame>
   )
 }
 

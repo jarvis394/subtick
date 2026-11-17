@@ -4,6 +4,7 @@
  * Paths match the upstream proposal (better-auth/better-auth#4877), but flow state is server-side and
  * single-use, and linking re-checks the finishing browser is the user who started. Failures go to `callbackURL?error=<code>`.
  */
+import { STEAM_EMAIL_DOMAIN } from '@subtick/domain'
 import type { BetterAuthPlugin } from 'better-auth'
 import { createAuthEndpoint, getSessionFromCtx, sessionMiddleware } from 'better-auth/api'
 import { setSessionCookie } from 'better-auth/cookies'
@@ -118,7 +119,7 @@ export const steam = (options: SteamPluginOptions) =>
               {
                 name: profile?.name ?? steamId,
                 // better-auth requires an email; Steam has none. Users can change it later.
-                email: `${steamId}@steam.invalid`,
+                email: `${steamId}${STEAM_EMAIL_DOMAIN}`,
                 emailVerified: false,
                 image: profile?.image ?? null,
               },

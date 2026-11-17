@@ -1,4 +1,5 @@
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { isPlaceholderEmail } from '@subtick/domain'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ChevronDown, LogOut, Monitor, Moon, Server, Settings, Sun, UserRound } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
@@ -7,9 +8,8 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuLabel, MenuRow, MenuSeparator } from '@/components/ui/menu'
 import { Segmented } from '@/components/ui/segmented'
-import { authClient } from '@/lib/auth'
+import { useSignOut } from '@/hooks/use-sign-out'
 import { meQuery } from '@/lib/queries'
-import { clearStoredMe } from '@/lib/stored-me'
 import { type Theme, applyTheme, storedTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { fade } from './rows'
@@ -47,19 +47,12 @@ export const AccountMenu = ({
   viewTransition?: boolean
 }) => {
   const { data: me } = useSuspenseQuery(meQuery)
+  const signOut = useSignOut()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   const avatar = me.user.avatarUrl
   const ownSteamLink = me.steamLinks[0]
-  const subtitle = me.user.email.endsWith('@steam.invalid') ? 'Steam account' : me.user.email
-
-  const signOut = async () => {
-    await authClient.signOut()
-    clearStoredMe()
-    queryClient.clear()
-    await navigate({ to: '/login' })
-  }
+  const subtitle = isPlaceholderEmail(me.user.email) ? 'Steam account' : me.user.email
 
   return (
     <Menu

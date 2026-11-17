@@ -4,10 +4,20 @@ import { Spinner } from '@/components/ui/surface'
 
 const ICON = 'size-4'
 
+// Sonner's own offsets (24px, 16px on phones) plus the notch and home indicator (styles.css).
+const inset = (base: string) => ({
+  top: `calc(${base} + var(--safe-top))`,
+  right: `calc(${base} + var(--safe-right))`,
+  bottom: `calc(${base} + var(--safe-bottom))`,
+  left: `calc(${base} + var(--safe-left))`,
+})
+
 /** Sonner positions and stacks the toasts; their look is the kit's floating surface. */
 export const Toaster = () => (
   <Sonner
     position="bottom-right"
+    offset={inset('24px')}
+    mobileOffset={inset('16px')}
     icons={{
       error: <CircleAlert className={`${ICON} text-danger`} />,
       success: <CircleCheck className={`${ICON} text-success`} />,

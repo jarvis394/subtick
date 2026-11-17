@@ -1,4 +1,5 @@
 import { and, eq, schema } from '@subtick/db'
+import { isApproved } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
@@ -61,6 +62,8 @@ export const meRoutes = (ctx: Context) => {
             hasUploadedAvatar: uploadedAvatar !== null,
             bannerUrl: imageUrl(ctx, row?.bannerKey ?? null),
             isAdmin: user.role === 'admin',
+            /** Signed up but not approved by an admin yet: the app shows only a waiting screen. */
+            pending: !isApproved(user),
             /** False for Steam-only accounts, whose email is a placeholder. */
             hasPassword: credential !== undefined,
           },
@@ -79,7 +82,7 @@ export const meRoutes = (ctx: Context) => {
           })),
         }
       },
-      { auth: true },
+      { signedIn: true },
     )
     .patch(
       '/me/profile',

@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Players:** a small circle of friends who play CS2 together. Each links their Steam account once and gives access to their match history. After that they come back to see what subtick found and clipped from the matches they played.
-- **Host / admin:** the one person who self-hosts the instance, usually on a homelab, for themselves and those friends. They manage users, storage, and the recorder machines from **Manage instance** (Users, Storage, Recorders).
+- **Host / admin:** the one person who self-hosts the instance, usually on a homelab, for themselves and those friends. They approve sign-ups and manage users (roles, their matches and clips), storage, and the recorder machines from **Manage instance** (Users, Storage, Recorders).
 
 The instance is private to the group, with no public audience.
 
@@ -45,7 +45,7 @@ The core differences, all four confirmed:
 
 - Monorepo apps: `web` (React, TanStack Router, Tailwind), `api`, `parser` (demo parsing and highlight detection), `steam` (match-history worker), and `recorder` (CS2 + HLAE, natively on Windows or under Wine in Docker on an NVIDIA GPU).
 - Clip throughput depends on the GPU. The reference recorder is a GTX 650 (1 GB), so clips can take a while to appear. The UI must handle queued, in-progress, and failed states well.
-- Accounts use email sign-up and sign-in. Steam is linked as a separate step.
+- Sign-up is invite-only. Accounts sign up with email (confirmed by a link) or with Steam, then wait on a pending screen until an admin approves them from Manage instance → Users. Steam match history is linked as a separate step.
 - Terms: highlight / moment, clip, match, round, kill tag, recorder, instance.
 
 ## Brand Commitments

@@ -3,6 +3,15 @@ import { USER_ROLES } from '@subtick/domain'
 import { Elysia } from 'elysia'
 import { z } from 'zod'
 import type { Context } from '../context'
+import {
+  approveUser,
+  countPendingUsers,
+  deleteUser,
+  deleteUserClips,
+  deleteUserMatches,
+  listUsers,
+  setUserRole,
+} from '../services/admin-users'
 import { latestHlaeBuild } from '../services/hlae'
 import { newRecorderToken, recorderView } from '../services/recorders'
 import { createStorageReport } from '../services/storage'
@@ -14,7 +23,7 @@ import {
 } from '../services/storage-items'
 import { authGuard } from './guard'
 
-const { user, recorder } = schema
+const { recorder } = schema
 
 /** better-auth user ids are opaque strings; recorders use uuids. */
 const UserId = z.object({ id: z.string() })
@@ -23,7 +32,7 @@ const Id = z.object({ id: z.uuid() })
 const MatchId = z.object({ id: z.string().regex(/^\d{1,20}$/) })
 const Name = z.string().trim().min(1).max(64)
 
-/** Instance administration: users' roles, recorder machines and storage. Every route needs the admin role. */
+/** Instance administration: users (approval, roles, their data), recorder machines and storage. Every route needs the admin role. */
 export const adminRoutes = (ctx: Context) => {
   const { db, auth } = ctx
 
@@ -39,38 +48,53 @@ export const adminRoutes = (ctx: Context) => {
     new Elysia({ prefix: '/admin' })
       .use(authGuard(auth))
 
-      // Users and roles
-      .get(
-        '/users',
-        async () =>
-          db
-            .select({
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              image: user.image,
-              role: user.role,
-              createdAt: user.createdAt,
-            })
-            .from(user)
-            .orderBy(asc(user.createdAt)),
-        { admin: true },
+      // Users: approval, roles, and what they hold
+      .get('/users', () => listUsers(ctx), { admin: true })
+      .get('/users/pending-count', () => countPendingUsers(ctx), { admin: true })
+      .post(
+        '/users/:id/approve',
+        async ({ params, status }) => {
+          if ((await approveUser(ctx, params.id)) === 'not_found')
+            return status(404, { error: 'not_found' as const })
+
+          return { ok: true as const }
+        },
+        { admin: true, params: UserId },
       )
       .patch(
         '/users/:id',
         async ({ user: me, params, body, status }) => {
           // Demoting yourself could leave the instance without an admin; ask another admin.
           if (params.id === me.id) return status(409, { error: 'cannot_change_own_role' as const })
-          const [row] = await db
-            .update(user)
-            .set({ role: body.role })
-            .where(eq(user.id, params.id))
-            .returning({ id: user.id })
-          if (!row) return status(404, { error: 'not_found' as const })
+          if ((await setUserRole(ctx, params.id, body.role)) === 'not_found')
+            return status(404, { error: 'not_found' as const })
 
           return { ok: true as const }
         },
         { admin: true, params: UserId, body: z.object({ role: z.enum(USER_ROLES) }) },
+      )
+      .delete(
+        '/users/:id',
+        async ({ user: me, params, status }) => {
+          // Your own account goes from Settings, which re-checks who you are.
+          if (params.id === me.id) return status(409, { error: 'cannot_delete_self' as const })
+          if ((await deleteUser(ctx, params.id)) === 'not_found')
+            return status(404, { error: 'not_found' as const })
+          storage.invalidate()
+
+          return { ok: true as const }
+        },
+        { admin: true, params: UserId },
+      )
+      .delete(
+        '/users/:id/matches',
+        ({ params }) => deleteUserMatches(ctx, params.id).finally(() => storage.invalidate()),
+        { admin: true, params: UserId },
+      )
+      .delete(
+        '/users/:id/clips',
+        ({ params }) => deleteUserClips(ctx, params.id).finally(() => storage.invalidate()),
+        { admin: true, params: UserId },
       )
 
       // Storage
