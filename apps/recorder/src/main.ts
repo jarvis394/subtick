@@ -30,10 +30,14 @@ await installConfig(ctx.layout.configDir, ctx.resolution)
 
 Object.assign(status, await installedHlae(ctx.layout.hlaeDir))
 
+/** Settles once CS2 is down after the queue emptied; a job arriving meanwhile must not catch it dying. */
+let idleStop = Promise.resolve()
+
 const worker = createWorker(
   'clip.record',
   env.REDIS_URL,
   async (job, token) => {
+    await idleStop
     const stale =
       env.CS2_SERVER_DIR && (await staleWindowsBinaries(ctx.layout.cs2Dir, env.CS2_SERVER_DIR))
     const update = await pendingHlaeUpdate()
@@ -111,6 +115,14 @@ worker.on('failed', async (job, error) => {
         reason: failureReason('job', error),
       })
       .catch((cause) => log.error({ matchId }, 'could not mark match failed', cause))
+})
+
+// With one job at a time, BullMQ looks for the next only once nothing is recording.
+worker.on('drained', () => {
+  if (recorder.loadedMatchId) log.info('queue empty; stopping CS2 until the next job')
+  idleStop = recorder.reset().catch((error) => {
+    log.error('could not stop the idle CS2', error)
+  })
 })
 
 const run = () => {
