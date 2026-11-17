@@ -49,8 +49,8 @@ export const createGameCoordinator = (
     autoRelogin: true,
     renewRefreshTokens: true,
     dataDirectory: null,
-    // steam-user's WebSocket transport never connects under Bun 1.3; raw TCP does.
-    protocol: SteamUser.EConnectionProtocol.TCP,
+    // Steam's TCP CMs can stall on ClientLogon while WebSocket CMs keep working.
+    protocol: SteamUser.EConnectionProtocol.WebSocket,
   })
   const gc = new GlobalOffensive(user)
   let ready: Promise<void> | null = null
