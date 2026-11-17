@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/cli.ts run",
-    "start": "bun src/cli.ts run",
+    "dev": "bun --no-env-file --watch src/cli.ts run",
+    "start": "bun --no-env-file src/cli.ts run",
     "compile": "bun scripts/compile.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",

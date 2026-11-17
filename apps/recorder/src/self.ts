@@ -10,4 +10,6 @@ export const VERSION =
 export const isCompiled = /\$bunfs|~BUN/.test(import.meta.path)
 
 /** How to run this program again, for hints. */
-export const self = isCompiled ? basename(process.execPath) : 'bun apps/recorder/src/cli.ts'
+export const self = isCompiled
+  ? basename(process.execPath)
+  : 'bun --no-env-file apps/recorder/src/cli.ts'

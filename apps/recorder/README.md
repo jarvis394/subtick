@@ -146,12 +146,12 @@ With `VNC_PASSWORD` set, a VNC client on `127.0.0.1:5900` of the Docker host (th
 
 ## Development
 
-On a Windows machine, the recorder runs from source in WSL and the game on Windows, through WSL's interop. WSL needs mirrored networking (`networkingMode=mirrored` in `.wslconfig`): the worker reaches the game's console on `127.0.0.1`. The same commands work, with the settings file at `~/.config/subtick-recorder/recorder.env`, where `setup` adds `GAME_HOST=windows`; paths in it can be Windows paths. From source, the repo's `.env` fills in what neither the environment nor `recorder.env` sets.
+On a Windows machine, the recorder runs from source in WSL and the game on Windows, through WSL's interop. WSL needs mirrored networking (`networkingMode=mirrored` in `.wslconfig`): the worker reaches the game's console on `127.0.0.1`. The same commands work, with the settings file at `~/.config/subtick-recorder/recorder.env`, where `setup` adds `GAME_HOST=windows`; paths in it can be Windows paths. From source, the repo's `.env` fills in what neither the environment nor `recorder.env` sets; `--no-env-file` keeps Bun from loading that `.env` itself first, which would let it win over `recorder.env`.
 
 ```sh
-bun apps/recorder/src/cli.ts setup                # installs into C:\subtick, as the Windows executable does
-bun apps/recorder/src/cli.ts doctor
-bun run --filter @subtick/recorder-worker dev     # run, restarting on changes
+bun --no-env-file apps/recorder/src/cli.ts setup   # installs into C:\subtick, as the Windows executable does
+bun --no-env-file apps/recorder/src/cli.ts doctor
+bun run --filter @subtick/recorder-worker dev      # run, restarting on changes
 bun run --filter @subtick/recorder-worker test
 ```
 

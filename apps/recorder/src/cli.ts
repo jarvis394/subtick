@@ -1,6 +1,6 @@
 /**
  * subtick-recorder: one program for installing, checking, running and updating a recorder. Built
- * into an executable by `scripts/compile.ts`; from source, `bun apps/recorder/src/cli.ts <command>`.
+ * into an executable by `scripts/compile.ts`; from source, `bun --no-env-file apps/recorder/src/cli.ts <command>`.
  */
 import { parseArgs } from 'node:util'
 import pins from '../pins.json'
