@@ -9,7 +9,7 @@ import {
   WorkerEnv,
   loadEnv,
 } from '@subtick/config'
-import { and, createDb, createSecretBox, eq, notCancelled, schema } from '@subtick/db'
+import { createDb, createSecretBox, setMatchStatus } from '@subtick/db'
 import type { MatchStatus } from '@subtick/domain'
 import { createLogger } from '@subtick/logger'
 import { createMatchEventPublisher, createQueue } from '@subtick/queue'
@@ -45,15 +45,8 @@ export const createContext = async () => {
         )
       : null
 
-  /** Moves a match to a pipeline status and tells subscribed browsers. */
-  const setStatus = async (matchId: string, status: MatchStatus, error: string | null = null) => {
-    const updated = await db
-      .update(schema.match)
-      .set({ status, error })
-      .where(and(eq(schema.match.id, matchId), notCancelled))
-      .returning({ id: schema.match.id })
-    if (updated.length) await publish({ matchId, status })
-  }
+  const setStatus = (matchId: string, status: MatchStatus, error: string | null = null) =>
+    setMatchStatus(db, publish, matchId, status, error)
 
   return {
     env,

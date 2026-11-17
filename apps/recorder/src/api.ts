@@ -27,6 +27,8 @@ interface ClipInfo {
 
 /** Tries after the first, for a call that found subtick unreachable or failing (1 s, 2 s, 4 s apart). */
 const RETRIES = 3
+/** A call that hangs counts as a failed one, so it is retried instead of stalling the job. */
+const REQUEST_TIMEOUT_MS = 30_000
 
 /**
  * Subtick's api as a recorder machine sees it, authenticated with the machine's token. Everything
@@ -41,6 +43,7 @@ export const createSubtickApi = ({ url, token }: { url: string; token: string })
       method: body === undefined ? 'GET' : 'POST',
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     }).catch(() => null)
     if (response?.ok) return (await response.json()) as T
     if (response?.status === 401)

@@ -5,7 +5,7 @@ import { installConfig } from './cs2/config'
 import { createContext } from './context'
 import { failureReason } from './failure'
 import { installedHlae, needsHlaeUpdate, writeHlaeTarget } from './hlae'
-import { checkRedis, checkSubtick, redactUrl } from './reachability'
+import { checkRedis, checkToken, redactUrl } from './reachability'
 import { RECORDER_VERSION, recordMatch } from './record'
 
 const ctx = createContext()
@@ -19,7 +19,7 @@ await checkRedis(env.REDIS_URL).catch((error: Error) => {
 })
 
 // Unreachable is waited out like any heartbeat; a token subtick refuses won't get better.
-await checkSubtick(env.SUBTICK_URL, env.RECORDER_TOKEN).catch((error: Error) => {
+await checkToken(env.SUBTICK_URL, env.RECORDER_TOKEN).catch((error: Error) => {
   if (!error.message.includes('RECORDER_TOKEN')) return
   log.fatal(error.message)
   process.exit(1)

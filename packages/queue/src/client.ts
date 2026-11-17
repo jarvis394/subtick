@@ -13,11 +13,20 @@ const log = createLogger('queue')
  * treats the object as connection options and silently falls back to ioredis on 127.0.0.1:6379.
  */
 const connect = (redisUrl: string) => {
-  const raw = createRedisClient(redisUrl)
-  const client = createBunRedisClient(raw)
-  client.once('end', watchConnection(raw, redisUrl))
+  const client = createBunRedisClient(createRedisClient(redisUrl))
+  client.once(
+    'end',
+    watchConnection(() => isConnected(client), redisUrl),
+  )
 
   return client
+}
+
+/** BullMQ swaps its raw client for a duplicate when one closes, so read the current one each time. */
+const isConnected = (client: ReturnType<typeof createBunRedisClient>) => {
+  const raw = 'raw' in client ? (client.raw as { connected?: boolean } | undefined) : undefined
+
+  return client.status === 'ready' && raw?.connected !== false
 }
 
 /** Without a listener BullMQ prints every error, once per retry while Redis is gone. */

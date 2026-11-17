@@ -3,6 +3,8 @@ import { createRedisClient } from './connection'
 
 export const MATCH_EVENTS_CHANNEL = 'subtick:match-events'
 
+const PUBLISH_TIMEOUT_MS = 5000
+
 export interface MatchEvent {
   matchId: string
   status: MatchStatus
@@ -26,7 +28,16 @@ export interface ClipProgress {
 export const createMatchEventPublisher = (redisUrl: string) => {
   const redis = createRedisClient(redisUrl)
 
-  return (event: MatchEvent) => redis.publish(MATCH_EVENTS_CHANNEL, JSON.stringify(event))
+  // The client waits out an outage, so a publish would wait with it and stall whoever awaits it.
+  return (event: MatchEvent) =>
+    Promise.race([
+      redis.publish(MATCH_EVENTS_CHANNEL, JSON.stringify(event)),
+      Bun.sleep(PUBLISH_TIMEOUT_MS).then(() => {
+        throw new Error(
+          `match event not published: Redis gave no answer in ${PUBLISH_TIMEOUT_MS} ms`,
+        )
+      }),
+    ])
 }
 
 /**

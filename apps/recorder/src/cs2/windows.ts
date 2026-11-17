@@ -19,7 +19,10 @@ const kill = async (pids: number[]) => {
  * else (the CS2 someone is playing) are never seen or killed.
  */
 export const createWindowsHost = (dirs: string[]): GameHost => {
-  const own = dirs.map((dir) => windowsPath(dir).toLowerCase())
+  // With the separator, C:\subtick doesn't also claim C:\subtick-dev.
+  const own = dirs
+    .map((dir) => windowsPath(dir).toLowerCase())
+    .map((dir) => (dir.endsWith('\\') ? dir : `${dir}\\`))
 
   const list = async () => {
     const { stdout } = await powershell(LIST_PROCESSES)

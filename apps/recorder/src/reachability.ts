@@ -1,9 +1,5 @@
-import { hostname } from 'node:os'
 import { RedisClient } from 'bun'
 import { SubtickApiError, createSubtickApi } from './api'
-import { createStatus } from './fleet'
-import { RECORDER_VERSION } from './record'
-import { VERSION } from './self'
 
 const TIMEOUT_MS = 5000
 
@@ -40,22 +36,6 @@ export const checkRedis = async (url: string) => {
     client.close()
   }
 }
-
-/**
- * Reaches subtick's recorder api and has it check the token with one heartbeat, as a starting
- * machine; throws with what went wrong.
- */
-export const checkSubtick = (url: string, token: string) =>
-  withTimeout(
-    createSubtickApi({ url, token }).heartbeat({
-      ...createStatus(),
-      hostname: hostname(),
-      gpu: null,
-      version: `v${RECORDER_VERSION}`,
-      buildVersion: VERSION,
-    }),
-    `subtick at ${url}`,
-  )
 
 /**
  * Reaches subtick's recorder api and checks the token without reporting anything; `null` when the

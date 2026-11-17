@@ -9,7 +9,7 @@ import {
   ticksToSeconds,
 } from '@subtick/domain'
 import type { ClipPhase, TypedJob } from '@subtick/queue'
-import { download, upload } from './api'
+import { SubtickApiError, download, upload } from './api'
 import type { Context } from './context'
 import { failureReason } from './failure'
 import { finishClip, joinParts, probe, thumbnail } from './post'
@@ -114,7 +114,10 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
       }
       if (!raw) continue
       await report(index, h.id, 'rendering')
-      await deliverClip(ctx, h, raw, work).catch((error) => fail('delivery', error))
+      await deliverClip(ctx, h, raw, work).catch(async (error) => {
+        if (!isCancelled(error)) return fail('delivery', error)
+        log.info({ matchId, highlightId: h.id }, 'clip cancelled while rendering')
+      })
       // The takes are not needed either way.
       await rm(raw.dir, { recursive: true, force: true })
     }
@@ -123,6 +126,9 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
   }
   await api.finishJob(matchId)
 }
+
+/** subtick answers 410 for a clip no longer queued: cancelled, so there is nothing to save. */
+const isCancelled = (error: unknown) => error instanceof SubtickApiError && error.status === 410
 
 /** Encodes the capture for the web, uploads it with a poster, and records the clip row. */
 const deliverClip = async (ctx: Context, h: RecorderClip, raw: RecordedFile, work: string) => {

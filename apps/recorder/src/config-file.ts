@@ -12,7 +12,7 @@ export const loadConfigFile = async (path = configPath()) => {
   const file = Bun.file(path)
   if (!(await file.exists())) return false
   for (const [key, value] of Object.entries(parseEnv(await file.text())))
-    if (process.env[key] === undefined && value !== '') process.env[key] = value
+    if (!process.env[key] && value !== '') process.env[key] = value
 
   return true
 }

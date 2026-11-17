@@ -42,11 +42,11 @@ export const createRedisClient = (url: string) =>
  * silently, calling neither `onclose` nor anything else until it is back, so this polls.
  * Returns the function that stops watching, for a client closed on purpose.
  */
-export const watchConnection = (client: RedisClient, url: string) => {
+export const watchConnection = (isConnected: () => boolean, url: string) => {
   let downSince: number | undefined
 
   const check = () => {
-    if (client.connected) {
+    if (isConnected()) {
       downSince = undefined
       reportUp(url)
     } else {

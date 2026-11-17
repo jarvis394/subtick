@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, notCancelled, schema } from '@subtick/db'
+import { and, asc, eq, inArray, schema, setMatchStatus } from '@subtick/db'
 import type { MatchStatus, RecorderClipUploads, RecorderJob } from '@subtick/domain'
 import { keys } from '@subtick/storage'
 import type { Context } from '../context'
@@ -10,20 +10,8 @@ type Ctx = Pick<Context, 'db' | 'publish' | 'demos' | 'clips'>
 /** Long enough for a slow link to fetch a demo; the recorder downloads it as the job starts. */
 const DEMO_URL_SECONDS = 3600
 
-/** Moves a match to a pipeline status and tells subscribed browsers. */
-const setStatus = async (
-  { db, publish }: Ctx,
-  matchId: string,
-  status: MatchStatus,
-  error: string | null = null,
-) => {
-  const updated = await db
-    .update(match)
-    .set({ status, error })
-    .where(and(eq(match.id, matchId), notCancelled))
-    .returning({ id: match.id })
-  if (updated.length) await publish({ matchId, status })
-}
+const setStatus = ({ db, publish }: Ctx, matchId: string, status: MatchStatus, error?: string) =>
+  setMatchStatus(db, publish, matchId, status, error)
 
 /** A match is ready once none of its highlights is still waiting to be recorded. */
 export const finishRecording = async (ctx: Ctx, matchId: string) => {
@@ -113,33 +101,48 @@ export const isQueued = async ({ db }: Ctx, highlightId: string) => {
   return row?.status === 'queued'
 }
 
-export const clipUploads = ({ clips }: Ctx, highlightId: string): RecorderClipUploads => ({
-  video: clips.presignPut(keys.clip(highlightId)),
-  thumbnail: clips.presignPut(keys.thumbnail(highlightId)),
-})
+/** Upload URLs only for a clip still waiting to be recorded, so a token can't overwrite others. */
+export const clipUploads = async (ctx: Ctx, highlightId: string) => {
+  if (!(await isQueued(ctx, highlightId))) return null
+  const uploads: RecorderClipUploads = {
+    video: ctx.clips.presignPut(keys.clip(highlightId)),
+    thumbnail: ctx.clips.presignPut(keys.thumbnail(highlightId)),
+  }
 
-/** Records the clip row once both of its objects are uploaded; `false` when one is missing. */
+  return uploads
+}
+
+/** Records the clip row of a still-queued highlight once both of its objects are uploaded. */
 export const clipRecorded = async (
-  { db, clips }: Ctx,
+  ctx: Ctx,
   highlightId: string,
   info: { durationMs: number; width: number; height: number; recorderVersion: number },
 ) => {
+  const { db, clips } = ctx
   const videoKey = keys.clip(highlightId)
   const thumbnailKey = keys.thumbnail(highlightId)
+  if (!(await isQueued(ctx, highlightId))) return 'not_queued'
   const uploaded = await Promise.all([clips.exists(videoKey), clips.exists(thumbnailKey)])
-  if (!uploaded.every(Boolean)) return false
+  if (!uploaded.every(Boolean)) return 'not_uploaded'
   const values = { videoKey, thumbnailKey, ...info, createdAt: new Date() }
   await db
     .insert(clip)
     .values({ highlightId, ...values })
     .onConflictDoUpdate({ target: clip.highlightId, set: values })
-  await db.update(highlight).set({ status: 'recorded' }).where(eq(highlight.id, highlightId))
+  await db
+    .update(highlight)
+    .set({ status: 'recorded' })
+    .where(and(eq(highlight.id, highlightId), eq(highlight.status, 'queued')))
 
-  return true
+  return 'recorded'
 }
 
+/** Leaves a highlight cancelled meanwhile as it is. */
 export const clipFailed = ({ db }: Ctx, highlightId: string, error: string) =>
-  db.update(highlight).set({ status: 'failed', error }).where(eq(highlight.id, highlightId))
+  db
+    .update(highlight)
+    .set({ status: 'failed', error })
+    .where(and(eq(highlight.id, highlightId), eq(highlight.status, 'queued')))
 
 /**
  * A job out of attempts: the match failed, and so did what it still had queued. Left `queued`,

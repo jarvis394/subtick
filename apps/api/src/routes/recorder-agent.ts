@@ -107,15 +107,18 @@ export const recorderAgentRoutes = (ctx: Context) =>
       async ({ params }) => ({ queued: await jobs.isQueued(ctx, params.id) }),
       { recorderToken: true, params: HighlightParams },
     )
-    .post('/highlights/:id/uploads', ({ params }) => jobs.clipUploads(ctx, params.id), {
-      recorderToken: true,
-      params: HighlightParams,
-    })
+    .post(
+      '/highlights/:id/uploads',
+      async ({ params, status }) =>
+        (await jobs.clipUploads(ctx, params.id)) ?? status(410, { error: 'not_queued' as const }),
+      { recorderToken: true, params: HighlightParams },
+    )
     .post(
       '/highlights/:id/recorded',
       async ({ params, body, status }) => {
-        if (!(await jobs.clipRecorded(ctx, params.id, body)))
-          return status(409, { error: 'not_uploaded' as const })
+        const result = await jobs.clipRecorded(ctx, params.id, body)
+        if (result === 'not_queued') return status(410, { error: result })
+        if (result === 'not_uploaded') return status(409, { error: result })
 
         return { ok: true }
       },
