@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Map art from the Counter-Strike wiki (fetched by `scripts/fetch-map-assets.ts`):
- * src/assets/maps/<map>.webp is the emblem, src/assets/maps/preview/<map>.webp a screenshot.
+ * src/assets/maps/<map>.webp (or .svg) is the emblem, src/assets/maps/preview/<map>.webp a screenshot.
  */
 const urls = (files: Record<string, string>) =>
   new Map(
@@ -18,7 +18,7 @@ const urls = (files: Record<string, string>) =>
   )
 
 const EMBLEMS = urls(
-  import.meta.glob<string>('../assets/maps/*.webp', {
+  import.meta.glob<string>('../assets/maps/*.{webp,svg}', {
     eager: true,
     query: '?url',
     import: 'default',

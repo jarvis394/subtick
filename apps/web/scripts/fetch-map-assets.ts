@@ -1,8 +1,8 @@
 /* oxlint-disable no-await-in-loop -- one page at a time is polite to the wiki */
 /**
  * Downloads each map's preview image (first infobox image) and logo from the Counter-Strike
- * Fandom wiki into src/assets/maps/. Re-run to refresh; existing files are overwritten. Pass map
- * ids to fetch only those.
+ * Fandom wiki into src/assets/maps/. Re-run to refresh; existing files are overwritten, except an
+ * SVG emblem added by hand, which wins over the wiki's logo. Pass map ids to fetch only those.
  *   bun scripts/fetch-map-assets.ts [de_cache ...]
  */
 import { mkdir } from 'node:fs/promises'
@@ -18,6 +18,7 @@ const MAPS: Record<string, string> = {
   de_ancient: 'Ancient',
   de_anubis: 'Anubis',
   de_cache: 'Cache',
+  de_cbble: 'Cobblestone',
   de_dust2: 'Dust II',
   de_inferno: 'Inferno',
   de_mirage: 'Mirage',
@@ -88,7 +89,8 @@ for (const [id, page] of Object.entries(MAPS)) {
     console.log(`✓ ${id} preview ${(size / 1024).toFixed(0)} KB`)
   } else console.warn(`✗ ${id}: no preview image`)
 
-  if (logo) {
+  if (await Bun.file(`${OUT}${id}.svg`).exists()) console.log(`· ${id} logo kept (svg)`)
+  else if (logo) {
     const size = await download(
       `${logo}/revision/latest/scale-to-width-down/${LOGO_WIDTH}`,
       `${OUT}${id}.webp`,
