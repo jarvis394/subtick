@@ -189,7 +189,7 @@ function RecorderCard({
 
   const update = useMutation({
     meta: { inlineError: true },
-    mutationFn: (body: { paused?: boolean }) =>
+    mutationFn: (body: { paused?: boolean; killGame?: boolean }) =>
       unwrap(api.admin.recorders({ id: recorder.id }).patch(body)),
     onSuccess: refresh,
   })
@@ -218,7 +218,7 @@ function RecorderCard({
                 : 'never connected'}
           </p>
         </div>
-        {recorder.paused && <Badge>Paused</Badge>}
+        {recorder.paused && <Badge>{recorder.killGame ? 'Paused, CS2 killed' : 'Paused'}</Badge>}
         {recorder.health === 'failing' && <Badge tone="danger">Failing</Badge>}
         <Badge tone={tone}>{state ? STATE_LABEL[state] : 'Offline'}</Badge>
       </div>
@@ -269,10 +269,28 @@ function RecorderCard({
           size="sm"
           variant="secondary"
           onClick={() => update.mutate({ paused: !recorder.paused })}
-          loading={update.isPending}
+          loading={update.isPending && update.variables?.killGame === undefined}
         >
           {recorder.paused ? 'Resume' : 'Pause'}
         </Button>
+        {!recorder.killGame && (
+          <Button
+            size="sm"
+            variant="secondary"
+            tone="danger"
+            onClick={() => {
+              if (
+                confirm(
+                  `Kill CS2 on ${recorder.name}? It frees the GPU and pauses the recorder; a match being recorded goes back in the queue.`,
+                )
+              )
+                update.mutate({ paused: true, killGame: true })
+            }}
+            loading={update.isPending && update.variables?.killGame === true}
+          >
+            Kill CS2
+          </Button>
+        )}
         <Button
           size="sm"
           variant="ghost"

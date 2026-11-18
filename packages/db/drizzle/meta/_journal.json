@@ -148,6 +148,13 @@
       "when": 1794887568205,
       "tag": "0020_uneven_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795009038092,
+      "tag": "0021_pink_starfox",
+      "breakpoints": true
     }
   ]
 }

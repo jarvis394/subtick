@@ -75,7 +75,12 @@ export const createFleetLink = (options: {
       })
       if (failing) log.info('subtick api reachable again')
       failing = false
-      settings = { name: reply.name, paused: reply.paused, hlaeTarget: reply.hlaeTarget ?? null }
+      settings = {
+        name: reply.name,
+        paused: reply.paused,
+        killGame: reply.killGame ?? false,
+        hlaeTarget: reply.hlaeTarget ?? null,
+      }
       for (const listener of listeners) listener(settings)
     } catch (error) {
       if (!failing) log.warn('heartbeat failed; recording goes on with the last settings', error)

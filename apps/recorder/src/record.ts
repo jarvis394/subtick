@@ -24,6 +24,13 @@ const CAPTURE_SHARE = 0.85
 /** Tries per clip, each in a fresh game after the first fails. */
 const CAPTURE_ATTEMPTS = 2
 
+/** An admin killed CS2 mid-job; the job goes back in the queue. */
+export class GameKilledError extends Error {
+  constructor() {
+    super('CS2 was killed from subtick')
+  }
+}
+
 /**
  * One job per match batch: load the demo once, then record its highlights in demo order, so each
  * seek is short. A clip that fails is marked failed and the game restarted; the batch goes on.
@@ -69,6 +76,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
     await Bun.write(demoPath, await Bun.zstdDecompress(await download(batch.demoUrl)))
 
     for (const [index, h] of pending.entries()) {
+      if (ctx.killSwitch.on) throw new GameKilledError()
       // Cancelled while earlier clips recorded: it went back to being a candidate.
       if (!(await api.isQueued(h.id))) continue
       let raw: RecordedFile | undefined
@@ -101,6 +109,7 @@ export const recordMatch = async (ctx: Context, job: TypedJob<'clip.record'>) =>
         try {
           raw = await capture()
         } catch (error) {
+          if (ctx.killSwitch.on) throw new GameKilledError()
           // The game's state is unknown after a failed capture: start it fresh. A session that
           // slowed down mid-clip times out, so the clip gets one more try in a new game.
           await recorder.reset()

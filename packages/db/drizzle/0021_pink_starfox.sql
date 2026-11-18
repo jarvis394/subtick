@@ -1,0 +1,1 @@
+ALTER TABLE "recorder" ADD COLUMN "kill_game" boolean DEFAULT false NOT NULL;

@@ -64,7 +64,12 @@ export const recorderAgentRoutes = (ctx: Context) =>
           .set({ ...body, lastSeenAt: new Date() })
           .where(eq(recorder.id, self.id))
 
-        return { name: self.name, paused: self.paused, hlaeTarget: self.hlaeTarget }
+        return {
+          name: self.name,
+          paused: self.paused,
+          killGame: self.killGame,
+          hlaeTarget: self.hlaeTarget,
+        }
       },
       { recorderToken: true, body: Heartbeat },
     )

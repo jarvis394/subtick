@@ -25,6 +25,7 @@ export const recorderView = (row: RecorderRow) => ({
   name: row.name,
   tokenHint: row.tokenHint,
   paused: row.paused,
+  killGame: row.killGame,
   online: isRecorderOnline(row.lastSeenAt),
   health: recorderHealth(row),
   failStreak: row.failStreak,

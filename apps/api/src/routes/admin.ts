@@ -148,9 +148,10 @@ export const adminRoutes = (ctx: Context) => {
       .patch(
         '/recorders/:id',
         async ({ params, body, status }) => {
+          const killGame = body.paused === false ? false : body.killGame
           const [row] = await db
             .update(recorder)
-            .set({ name: body.name, paused: body.paused })
+            .set({ name: body.name, paused: killGame || body.paused, killGame })
             .where(eq(recorder.id, params.id))
             .returning({ id: recorder.id })
           if (!row) return status(404, { error: 'not_found' as const })
@@ -160,7 +161,11 @@ export const adminRoutes = (ctx: Context) => {
         {
           admin: true,
           params: Id,
-          body: z.object({ name: Name.optional(), paused: z.boolean().optional() }),
+          body: z.object({
+            name: Name.optional(),
+            paused: z.boolean().optional(),
+            killGame: z.boolean().optional(),
+          }),
         },
       )
       .get(

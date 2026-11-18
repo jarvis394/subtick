@@ -29,6 +29,8 @@ export const createContext = () => {
     game,
     fleet,
     status: health,
+    /** On while an admin keeps CS2 killed: a dead game then stops the job instead of restarting. */
+    killSwitch: { on: false },
     layout,
     resolution,
     progress: (matchId: string, progress: MatchEvent['progress'], clip?: ClipProgress) =>

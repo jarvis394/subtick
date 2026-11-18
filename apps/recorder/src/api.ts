@@ -4,6 +4,8 @@ import type { HlaeBuild, RecorderClipUploads, RecorderJob } from '@subtick/domai
 export interface RecorderSettings {
   name: string
   paused: boolean
+  /** Paused with CS2 killed, freeing the GPU; the current job is cut off. */
+  killGame?: boolean
   /** The HLAE build to install between jobs. */
   hlaeTarget?: HlaeBuild | null
 }

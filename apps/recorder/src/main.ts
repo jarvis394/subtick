@@ -6,7 +6,7 @@ import { createContext } from './context'
 import { failureReason } from './failure'
 import { installedHlae, needsHlaeUpdate, writeHlaeTarget } from './hlae'
 import { checkRedis, checkToken, redactUrl } from './reachability'
-import { RECORDER_VERSION, recordMatch } from './record'
+import { GameKilledError, RECORDER_VERSION, recordMatch } from './record'
 
 const ctx = createContext()
 const { env, log, api, recorder, fleet, status } = ctx
@@ -58,6 +58,11 @@ const worker = createWorker(
     try {
       await recordMatch(ctx, job)
       status.lastError = null
+    } catch (error) {
+      if (!(error instanceof GameKilledError)) throw error
+      log.info({ matchId: job.data.matchId }, 'job cut off by the kill; back in the queue')
+      await job.moveToDelayed(Date.now() + 60_000, token)
+      throw new DelayedError()
     } finally {
       status.state = 'idle'
       status.currentMatchId = null
@@ -144,6 +149,12 @@ fleet.onSettings(async (settings) => {
     if (settings.paused) void worker.pause()
     else worker.resume()
   }
+  if (settings.paused && settings.killGame && !ctx.killSwitch.on) {
+    ctx.killSwitch.on = true
+    log.info('killing CS2 as asked in subtick')
+    await recorder.reset().catch((error) => log.error('could not kill CS2', error))
+  }
+  if (!settings.killGame) ctx.killSwitch.on = false
 })
 
 status.state = 'idle'

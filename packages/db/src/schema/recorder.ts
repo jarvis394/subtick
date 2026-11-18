@@ -24,6 +24,8 @@ export const recorder = pgTable('recorder', {
   tokenHint: text().notNull(),
   /** A paused recorder finishes its current job and takes no new ones. */
   paused: boolean().notNull().default(false),
+  /** While paused, CS2 is killed too, cutting off the current job (it goes back in the queue). */
+  killGame: boolean().notNull().default(false),
 
   // Last heartbeat. All null until the machine first connects.
   state: recorderState(),
