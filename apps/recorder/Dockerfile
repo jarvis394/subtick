@@ -78,6 +78,10 @@ COPY apps/recorder/gbe apps/recorder/gbe
 COPY apps/recorder/docker/xorg.conf /etc/X11/xorg.conf
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=all \
     DISPLAY=:0 WINEPREFIX=/wine/pfx WINEDEBUG=-all PULSE_SERVER=unix:/tmp/pulse.sock
+# DXVK compiles CS2's shaders into Vulkan pipelines on the CPU, slowing capture several times over
+# until warm. The driver's cache keeps them across restarts on the /wine volume; 1 GB is too small.
+ENV __GL_SHADER_DISK_CACHE_PATH=/wine/shader-cache __GL_SHADER_DISK_CACHE_SIZE=10737418240 \
+    __GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1
 # `docker run <image> doctor` (or smoke, version) runs another command after the same bootstrap.
 ENTRYPOINT ["/app/apps/recorder/docker/entrypoint.sh", "subtick-recorder"]
 CMD ["run"]

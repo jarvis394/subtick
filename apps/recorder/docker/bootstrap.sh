@@ -192,8 +192,12 @@ setup_game() {
         echo "$server_build" > "$bins/.build"
       fi
       log "linking $CS2_DIR to the server install"
+      # CS2's own shader cache is the one thing worth keeping from the last build of game/.
+      rm -rf "$CS2_DIR/.shadercache"
+      [ -d "$CS2_DIR/game/csgo/shadercache" ] && mv "$CS2_DIR/game/csgo/shadercache" "$CS2_DIR/.shadercache"
       rm -rf "$CS2_DIR/game"
       cp -rs "$CS2_SERVER_DIR/game" "$CS2_DIR/game"
+      [ -d "$CS2_DIR/.shadercache" ] && mv "$CS2_DIR/.shadercache" "$CS2_DIR/game/csgo/shadercache"
       # Real copies of the Windows binaries over the links (they replace any same-named file).
       cp -r --remove-destination "$bins/game/." "$CS2_DIR/game/"
       # Panel eggs add Metamod to the server's gameinfo.gi on every boot, and its plugins ship
@@ -214,6 +218,7 @@ setup_game() {
 }
 
 use_hlae_target
+mkdir -p "${__GL_SHADER_DISK_CACHE_PATH:-/wine/shader-cache}"
 setup_prefix
 setup_game
 log "ready"
