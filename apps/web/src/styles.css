@@ -1,7 +1,11 @@
 @import 'tailwindcss';
 
 /* Phones and tablets, as useHandheld reads them, and everything else. */
-@custom-variant handheld (@media (width < 64rem), (pointer: coarse));
+@custom-variant handheld {
+  @media (width < 64rem), (pointer: coarse) {
+    @slot;
+  }
+}
 @custom-variant desktop (@media (width >= 64rem) and (not (pointer: coarse)));
 
 /* Titles and the wordmark. */
