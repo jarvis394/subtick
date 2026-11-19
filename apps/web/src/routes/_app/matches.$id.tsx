@@ -4,7 +4,7 @@ import { ArrowLeft, CircleStop, Plus, RotateCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { FadeSwap } from '@/components/fade-swap'
-import { HighlightCard } from '@/components/highlight-card'
+import { HighlightCard, HighlightCardSkeleton } from '@/components/highlight-card'
 import { PlayerPicker } from '@/components/highlight-filters/player-picker'
 import { MapIcon, matchName } from '@/components/map-icon'
 import { perspectiveScore } from '@/components/match-table'
@@ -149,12 +149,22 @@ function MatchPage() {
 const analyzed = (data: MatchDetail) =>
   data.players.length > 0 || data.match.status === 'ready' || data.match.status === 'recording'
 
+/** The Highlights section as it will look: its heading, and stand-ins for the buttons and cards. */
 const BodySkeleton = () => (
-  <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-    {Array.from({ length: 3 }, (_, i) => (
-      <Skeleton key={i} className="aspect-video" />
-    ))}
-  </div>
+  <section aria-hidden className="min-w-0">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <h2 className="font-display text-heading tracking-tight">Highlights</h2>
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-20 rounded-control sm:w-32" />
+        <Skeleton className="h-9 w-36 rounded-control" />
+      </div>
+    </div>
+    <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 3 }, (_, i) => (
+        <HighlightCardSkeleton key={i} />
+      ))}
+    </div>
+  </section>
 )
 
 function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
@@ -204,11 +214,12 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                     progress={progress}
                     className="ml-1.5"
                   />
+                  {/* The buttons overhang the 20px line instead of making it taller. */}
                   {canRetry && (
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="ml-1"
+                      className="-my-2 ml-1"
                       onClick={() => retry.mutate(id)}
                       loading={retry.isPending}
                     >
@@ -220,7 +231,7 @@ function MatchHeader({ id, head }: { id: string; head: MatchHead | null }) {
                       size="sm"
                       variant="ghost"
                       tone="danger"
-                      className="ml-1"
+                      className="-my-2 ml-1"
                       onClick={() => cancel.mutate(id)}
                       loading={cancel.isPending}
                     >

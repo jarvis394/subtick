@@ -5,7 +5,7 @@ import { type ComponentProps, memo, useRef, useState } from 'react'
 import { PlayerAvatarLink, PlayerLink } from '@/components/player-link'
 import { RoundMoment } from '@/components/round-moment'
 import { FadeImage } from '@/components/ui/fade-image'
-import { Badge } from '@/components/ui/surface'
+import { Badge, Skeleton } from '@/components/ui/surface'
 import { clipSeconds, clock } from '@/lib/format'
 import { KIND_LABEL, KIND_TONE, clipMask, tagSummary } from '@/lib/highlights'
 import type { Clip } from '@/lib/queries'
@@ -228,4 +228,23 @@ export const HighlightCard = memo(
     prev.context === next.context &&
     shallowEqual(prev.highlight, next.highlight) &&
     shallowEqual(prev.player, next.player),
+)
+
+/** Stands in for a card while it loads: the thumbnail, avatar, title and meta line. */
+export const HighlightCardSkeleton = () => (
+  <div>
+    <Skeleton className="aspect-video" />
+    <div className="mt-3 flex gap-3">
+      <Skeleton className="mt-0.5 size-8 shrink-0 rounded-full" />
+      {/* Line boxes the size of the title's (15px) and the meta line's (13px). */}
+      <div className="min-w-0 flex-1">
+        <div className="flex h-[22.5px] items-center">
+          <Skeleton className="h-3.5 w-3/4 rounded" />
+        </div>
+        <div className="mt-0.5 flex h-[19.5px] items-center">
+          <Skeleton className="h-3 w-1/2 rounded" />
+        </div>
+      </div>
+    </div>
+  </div>
 )

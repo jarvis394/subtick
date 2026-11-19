@@ -6,7 +6,7 @@ import { useDeferredValue, useLayoutEffect, useRef } from 'react'
 import { ClipViewerDialog } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
 import { FadeSwap } from '@/components/fade-swap'
-import { HighlightCard } from '@/components/highlight-card'
+import { HighlightCard, HighlightCardSkeleton } from '@/components/highlight-card'
 import { HighlightFilters } from '@/components/highlight-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
@@ -28,21 +28,7 @@ const HighlightsSkeleton = () => (
     </div>
     <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i}>
-          <Skeleton className="aspect-video" />
-          <div className="mt-3 flex gap-3">
-            <Skeleton className="mt-0.5 size-8 shrink-0 rounded-full" />
-            {/* Line boxes the size of the title's (15px) and the meta line's (13px). */}
-            <div className="min-w-0 flex-1">
-              <div className="flex h-[22.5px] items-center">
-                <Skeleton className="h-3.5 w-3/4 rounded" />
-              </div>
-              <div className="mt-0.5 flex h-[19.5px] items-center">
-                <Skeleton className="h-3 w-1/2 rounded" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <HighlightCardSkeleton key={i} />
       ))}
     </div>
   </section>
