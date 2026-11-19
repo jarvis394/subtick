@@ -55,10 +55,11 @@ export const AuthDialog = ({
       {/* Opened from the account menu, which on phones sits in the nav drawer: a nested portal
           would land in that drawer's layer, under the page, so this one goes to the body. */}
       <Dialog.Portal container={document.body}>
-        {/* Base UI drops the backdrop of a dialog nested in another (the phone nav drawer). */}
+        {/* Base UI drops the backdrop of a dialog nested in another (the phone nav drawer).
+            Named, so a mode switch captures it above the sidebar's own snapshot and holds it. */}
         <Dialog.Backdrop
           forceRender
-          className="fixed inset-0 z-50 bg-black/60 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0"
+          className="fixed inset-0 z-50 bg-black/60 [view-transition-name:auth-backdrop] [view-transition-class:chrome] transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0"
         />
         <Dialog.Popup
           className={
