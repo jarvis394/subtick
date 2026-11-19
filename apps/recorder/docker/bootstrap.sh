@@ -88,7 +88,8 @@ setup_prefix() {
   # done by then, and HLAE and CS2 start fine.
   local wine_inf
   wine_inf="$(dirname "$(readlink -f "$(command -v wine)")")/../share/wine/wine.inf"
-  if [ "$(cat "$WINEPREFIX/.update-timestamp" 2>/dev/null)" != "$(stat -c %Y "$wine_inf")" ]; then
+  # Wine writes the timestamp with a CRLF line ending.
+  if [ "$(tr -d '\r\n' 2>/dev/null < "$WINEPREFIX/.update-timestamp")" != "$(stat -c %Y "$wine_inf")" ]; then
     log "updating the Wine prefix for $(wine --version)"
     timeout 120 wineboot -u || true
     wineserver -k || true
