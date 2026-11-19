@@ -75,11 +75,14 @@ export const SessionSection = ({
     matches: session.matches.map((m) => m.id),
   }
 
+  // Sessions off screen skip layout and paint, keeping a long page cheap while still in the DOM for
+  // #session links and find-in-page; `auto` remembers each one's real height once it has rendered.
+  // That clips to the box, so it reaches out as far as the roster and table bleed (-mx-4).
   return (
     <section
       id={sessionAnchor(session.id)}
       aria-label={day}
-      className="grid scroll-mt-20 grid-cols-1 gap-4 md:scroll-mt-10"
+      className="-mx-4 grid scroll-mt-20 grid-cols-1 gap-4 px-4 [contain-intrinsic-size:auto_800px] [content-visibility:auto] md:scroll-mt-10"
     >
       <header className="flex flex-col items-start gap-x-4 gap-y-2 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
@@ -104,7 +107,7 @@ export const SessionSection = ({
 
       <SessionRoster session={session} selected={player} label={day} onSelect={setPicked} />
 
-      {/* The picked player's clips and matches crossfade in place; both keep their height. */}
+      {/* The picked player's clips and matches crossfade in place. */}
       <FadeSwap swapKey={player.steamId} appear={false}>
         <div className="grid grid-cols-1 gap-4">
           <SessionReel filters={filters} count={player.clips} onOpen={() => onOpenReel(filters)} />

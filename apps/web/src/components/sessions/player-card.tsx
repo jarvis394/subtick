@@ -38,8 +38,20 @@ const TOP = 'absolute inset-x-0 top-0 bottom-1/2 mb-px rounded-[2px]'
 const BOTTOM = 'absolute inset-x-0 top-1/2 bottom-0 mt-px rounded-[2px]'
 const EMPTY = 'bg-foreground/10'
 
-/** Empty slots past the last match, fading out toward the card's edge. */
-const FILLER = 32
+/**
+ * Empty slots past the last match, fading out toward the card's edge: one element masked by a
+ * repeating slot (12px wide, a 2px gap, two halves a 2px gap apart) rather than dozens of spans.
+ */
+const SLOT = encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="24"><rect width="12" height="11" rx="2"/><rect y="13" width="12" height="11" rx="2"/></svg>',
+)
+
+const FILLER_STYLE = {
+  maskImage: `url("data:image/svg+xml,${SLOT}"), linear-gradient(to right, black, transparent)`,
+  maskRepeat: 'repeat-x, no-repeat',
+  maskSize: '14px 24px, 100% 100%',
+  maskComposite: 'intersect',
+} as const
 
 /**
  * A two-row grid, oldest match first: a win fills the top slot, a loss the bottom one and a draw
@@ -79,17 +91,7 @@ const SessionForm = ({ session, player }: { session: Session; player: SessionPla
           </span>
         )
       })}
-      <span
-        aria-hidden
-        className="flex min-w-0 flex-1 gap-0.5 overflow-hidden [mask-image:linear-gradient(to_right,black,transparent)]"
-      >
-        {Array.from({ length: FILLER }, (_, i) => (
-          <span key={i} className="relative w-3 shrink-0">
-            <span className={cn(TOP, EMPTY)} />
-            <span className={cn(BOTTOM, EMPTY)} />
-          </span>
-        ))}
-      </span>
+      <span aria-hidden className={cn('min-w-0 flex-1', EMPTY)} style={FILLER_STYLE} />
     </span>
   )
 }

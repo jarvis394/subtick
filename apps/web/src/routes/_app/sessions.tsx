@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useLocation, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { z } from 'zod'
 import { ClipViewerDialog, type ReelSource } from '@/components/clip-viewer'
 import { EmptyState } from '@/components/empty-state'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/surface'
 import { clipMask, clipViewerSearch } from '@/lib/highlights'
 import { meQuery, playerQuery, sessionsQuery } from '@/lib/queries'
+import { sessionAnchor } from '@/lib/sessions'
 
 const sessionsSearch = clipViewerSearch.extend({
   /** Whose sessions; the signed-in user's when absent. */
@@ -34,6 +35,9 @@ export const Route = createFileRoute('/_app/sessions')({
   },
   component: SessionsPage,
 })
+
+/** Sessions rendered with the navigation; the rest follow once the page is on screen. */
+const FIRST_SESSIONS = 2
 
 const SessionsSkeleton = () => (
   <div aria-hidden className="grid gap-6">
@@ -61,6 +65,11 @@ function SessionsPage() {
   })
   const [reel, setReel] = useState<ReelSource>({ kinds: [] })
   const items = sessions.data?.pages.flatMap((p) => p.items) ?? []
+  const { hash } = useLocation()
+  const linked = items.findIndex((s) => sessionAnchor(s.id) === hash)
+  // Every session is a full table, and rendering them all held the navigation up. It lands with
+  // the first few (through a linked one, so its fragment scrolls there); the rest render after.
+  const shown = useDeferredValue(items, items.slice(0, Math.max(FIRST_SESSIONS, linked + 1)))
 
   return (
     <div>
@@ -104,7 +113,7 @@ function SessionsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-16">
-          {items.map((session) => (
+          {shown.map((session) => (
             <SessionSection key={session.id} session={session} onOpenReel={setReel} />
           ))}
         </div>

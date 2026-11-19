@@ -12,26 +12,13 @@ import { cn } from '@/lib/utils'
 
 const PREVIEW = 4
 
-/**
- * Takes a clip card's height (its thumbnail plus two lines of text) in one cell of the same grid,
- * so a player without clips keeps the section's height and the page doesn't jump.
- */
-const CardSpacer = () => (
-  <div aria-hidden className="invisible grid grid-cols-1 gap-x-5 @xl:grid-cols-3 @5xl:grid-cols-4">
-    <div>
-      <div className="aspect-video" />
-      <div className="mt-3">
-        <p className="text-lead">&nbsp;</p>
-        <p className="mt-0.5 text-small">&nbsp;</p>
-      </div>
-    </div>
-  </div>
-)
-
 /** Two on phones, three in a mid column, four when there's room, so a row never ends half full. */
 const slot = (i: number) => cn(i >= 2 && 'hidden @xl:block', i >= 3 && '@xl:hidden @5xl:block')
 
-/** The best few of one player's clips from the session; the rest play on in the viewer. */
+/**
+ * The best few of one player's clips from the session; the rest play on in the viewer. Nothing
+ * when they have none.
+ */
 export const SessionReel = ({
   filters,
   count,
@@ -47,6 +34,8 @@ export const SessionReel = ({
   const clips = useInfiniteQuery({ ...clipsQuery(filters), enabled: near && count > 0 })
   const items = (clips.data?.pages[0]?.items ?? []).slice(0, PREVIEW)
   const navigate = useNavigate()
+
+  if (count === 0) return null
 
   const openAll = () => {
     const first = items[0]
@@ -72,34 +61,25 @@ export const SessionReel = ({
           </Button>
         )}
       </div>
-      {count === 0 ? (
-        <div className="relative">
-          <CardSpacer />
-          <p className="absolute inset-0 grid place-items-center rounded-xl border border-dashed px-6 text-center text-body text-muted">
-            No clips this session.
-          </p>
-        </div>
-      ) : (
-        <div
-          className="grid grid-cols-1 gap-x-5 gap-y-6 @xl:grid-cols-3 @5xl:grid-cols-4"
-          onClickCapture={onOpen}
-        >
-          {items.length
-            ? items.map((clip, i) =>
-                clip.clip ? (
-                  <div key={clip.id} className={slot(i)}>
-                    <HighlightCard highlight={{ ...clip, clip: clip.clip }} player={clip.player} />
-                  </div>
-                ) : null,
-              )
-            : Array.from({ length: Math.min(count, PREVIEW) }, (_, i) => (
-                <div key={i} className={slot(i)}>
-                  <Skeleton className="aspect-video" />
-                  <Skeleton className="mt-3 h-12" />
+      <div
+        className="grid grid-cols-1 gap-x-5 gap-y-6 @xl:grid-cols-3 @5xl:grid-cols-4"
+        onClickCapture={onOpen}
+      >
+        {items.length
+          ? items.map((clip, i) =>
+              clip.clip ? (
+                <div key={clip.id} className={slot(i)}>
+                  <HighlightCard highlight={{ ...clip, clip: clip.clip }} player={clip.player} />
                 </div>
-              ))}
-        </div>
-      )}
+              ) : null,
+            )
+          : Array.from({ length: Math.min(count, PREVIEW) }, (_, i) => (
+              <div key={i} className={slot(i)}>
+                <Skeleton className="aspect-video" />
+                <Skeleton className="mt-3 h-12" />
+              </div>
+            ))}
+      </div>
     </section>
   )
 }
