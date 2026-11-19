@@ -119,7 +119,7 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
               <Avatar
                 src={otherOwner.avatarUrl}
                 name={otherOwner.name}
-                className="size-4.5 text-micro"
+                className="size-4 text-micro"
               />
             </span>
           )}

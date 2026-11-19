@@ -231,7 +231,7 @@ export const MenuTile = ({
     'transition-[scale,box-shadow,background-color] duration-150 ease-out-quart active:scale-[0.96] motion-reduce:transition-none',
     // The ring sits in the gap around the tile, so the picture inside never shrinks.
     'ring-offset-2 ring-offset-surface',
-    selected ? 'ring-2 ring-border' : 'ring-0 ring-transparent',
+    selected ? 'ring-2 ring-border-strong' : 'ring-0 ring-transparent',
     '[&_svg]:size-4.5 [&_svg]:shrink-0',
     sheet
       ? 'size-12 rounded-xl bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring'
