@@ -112,7 +112,10 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
     >
       <span className="flex min-w-0 items-center gap-3">
         <span className="relative flex shrink-0">
-          <MapIcon map={match.map} className={cn(match.absent && 'opacity-40')} />
+          {/* Dimmed around the icon, so its own fade-in still starts from transparent. */}
+          <span className={cn('flex', match.absent && 'opacity-40')}>
+            <MapIcon map={match.map} />
+          </span>
           {otherOwner && (
             // Ringed in the table's color, so it reads as cut out of the map icon.
             <span className="absolute -right-1 -bottom-1 flex rounded-full ring-2 ring-surface">

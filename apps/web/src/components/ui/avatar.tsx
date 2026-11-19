@@ -16,7 +16,16 @@ export const Avatar = ({
       className,
     )}
   >
-    {src && <BaseAvatar.Image src={src} alt="" className="size-full object-cover" />}
-    <BaseAvatar.Fallback>{name.slice(0, 1).toUpperCase()}</BaseAvatar.Fallback>
+    {src && (
+      <BaseAvatar.Image
+        src={src}
+        alt=""
+        className="size-full object-cover transition-opacity duration-300 ease-out-quart data-starting-style:opacity-0 motion-reduce:transition-none"
+      />
+    )}
+    {/* With a picture coming, the initial waits a beat, so a quick load doesn't flash it first. */}
+    <BaseAvatar.Fallback delay={src ? 600 : undefined}>
+      {name.slice(0, 1).toUpperCase()}
+    </BaseAvatar.Fallback>
   </BaseAvatar.Root>
 )

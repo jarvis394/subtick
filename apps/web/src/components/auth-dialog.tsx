@@ -1,16 +1,23 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { useState } from 'react'
 import { flushSync } from 'react-dom'
 import { AUTH_COPY, type AuthMode, AuthForm, part } from '@/components/auth-form'
+import { PendingAccount } from '@/components/pending-account'
+import { RECHECK_MS } from '@/components/pending-approval'
 import { Button, IconButton } from '@/components/ui/button'
+import { leavePendingAccount } from '@/lib/pending-account'
+import { accountsQuery, meQuery } from '@/lib/queries'
 
 const COPY = {
   'sign-in': { title: 'Add an account', subtitle: 'Sign in to switch between your accounts' },
   'sign-up': { title: 'Add an account', subtitle: 'Ask to join this instance' },
 } as const
+
+/** The sign-in form, or one signed-in account's wait for approval. */
+export type AuthDialogView = { kind: 'add' } | { kind: 'pending'; accountId: string }
 
 /**
  * Switching modes morphs the form like the /login and /signup pages do, but the page behind the
@@ -27,20 +34,37 @@ const morph = (update: () => void) => {
 
 /**
  * Signs another account in to this browser, beside the current one, as a dialog over the page.
- * The new account becomes the active one; email sign-up sends its confirmation link first.
+ * The new account becomes the active one, unless it still awaits approval: then the previous one
+ * stays active and the dialog shows the wait. Email sign-up sends its confirmation link first.
  */
 export const AuthDialog = ({
   open,
+  view,
   onOpenChange,
+  onPending,
 }: {
   open: boolean
+  view: AuthDialogView
   onOpenChange: (open: boolean) => void
+  onPending: (accountId: string) => void
 }) => {
   const queryClient = useQueryClient()
   const location = useLocation()
   const [mode, setMode] = useState<AuthMode>('sign-in')
+  const previousId = useQuery(meQuery).data?.user.id
+  const waiting = open && view.kind === 'pending'
+  const { data: accounts } = useQuery({
+    ...accountsQuery,
+    refetchInterval: waiting ? RECHECK_MS : false,
+  })
+  const pending = view.kind === 'pending' ? accounts?.find((a) => a.id === view.accountId) : null
+  const copy = pending
+    ? { title: pending.name, subtitle: pending.pending ? 'Waiting for approval' : 'Approved' }
+    : COPY[mode]
 
   const signedIn = async () => {
+    const left = await leavePendingAccount(queryClient, previousId)
+    if (left) return onPending(left)
     await queryClient.invalidateQueries()
     onOpenChange(false)
   }
@@ -82,29 +106,36 @@ export const AuthDialog = ({
           </Dialog.Close>
           <div className="grid justify-items-center gap-1.5 text-center">
             <Dialog.Title className="font-display text-display tracking-tight [view-transition-name:auth-logo] [view-transition-class:auth]">
-              {COPY[mode].title}
+              {copy.title}
             </Dialog.Title>
             <Dialog.Description className="text-body text-muted [view-transition-name:auth-subtitle] [view-transition-class:auth]">
-              {COPY[mode].subtitle}
+              {copy.subtitle}
             </Dialog.Description>
           </div>
-          <AuthForm
-            key={open ? 'open' : 'closed'}
-            mode={mode}
-            adding
-            framed={false}
-            // Steam leaves the page; it comes back here, signed in to the new account.
-            steamCallbackURL={location.href}
-            onSignedIn={signedIn}
-          />
-          <Button
-            variant="ghost"
-            className="-mt-2"
-            style={part('switch')}
-            onClick={() => morph(() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'))}
-          >
-            {AUTH_COPY[mode].switch}
-          </Button>
+          {view.kind === 'pending' ? (
+            pending && <PendingAccount account={pending} onDone={() => onOpenChange(false)} />
+          ) : (
+            <>
+              <AuthForm
+                key={open ? 'open' : 'closed'}
+                mode={mode}
+                adding
+                framed={false}
+                // Steam leaves the page; it comes back here, signed in to the new account
+                // (or, while that one awaits approval, to this one, with the wait shown).
+                steamCallbackURL={location.href}
+                onSignedIn={signedIn}
+              />
+              <Button
+                variant="ghost"
+                className="-mt-2"
+                style={part('switch')}
+                onClick={() => morph(() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'))}
+              >
+                {AUTH_COPY[mode].switch}
+              </Button>
+            </>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

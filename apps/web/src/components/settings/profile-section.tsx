@@ -111,7 +111,8 @@ export const ProfileSection = ({ me }: { me: Me }) => {
         )}
       </div>
       <Card bleed className="divide-y *:px-4 md:px-4 md:*:px-0">
-        <NameRow current={me.user.name} />
+        {/* Keyed by account, so switching accounts starts the field from the new name. */}
+        <NameRow key={me.user.id} current={me.user.name} />
 
         <Row
           label="Avatar"

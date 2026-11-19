@@ -12,7 +12,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { AuthDialog } from '@/components/auth-dialog'
+import { AuthDialog, type AuthDialogView } from '@/components/auth-dialog'
 import { FadeSwap } from '@/components/fade-swap'
 import { playerSlug } from '@/components/player-link'
 import { Avatar } from '@/components/ui/avatar'
@@ -71,7 +71,10 @@ export const AccountMenu = ({
   const signOut = useSignOut()
   const { switchTo, target } = useSwitchAccount()
   const navigate = useNavigate()
-  const [adding, setAdding] = useState(false)
+  const [dialog, setDialog] = useState<{ open: boolean; view: AuthDialogView }>({
+    open: false,
+    view: { kind: 'add' },
+  })
 
   const avatar = me.user.avatarUrl
   const ownSteamLink = me.steamLinks[0]
@@ -123,9 +126,13 @@ export const AccountMenu = ({
               key={account.id}
               label={account.name || account.email || 'Account'}
               selected={account.id === shownId}
-              // Stays open, so the switch is seen landing.
-              closeOnClick={false}
-              onClick={() => void switchTo(account)}
+              // Stays open, so the switch is seen landing; one awaiting approval shows its wait.
+              closeOnClick={account.pending}
+              onClick={() =>
+                account.pending
+                  ? setDialog({ open: true, view: { kind: 'pending', accountId: account.id } })
+                  : void switchTo(account)
+              }
             >
               <Avatar
                 src={account.avatarUrl}
@@ -135,7 +142,10 @@ export const AccountMenu = ({
             </MenuTile>
           ))}
           {accounts.length < MAX_ACCOUNTS && (
-            <MenuTile label="Add an account" onClick={() => setAdding(true)}>
+            <MenuTile
+              label="Add an account"
+              onClick={() => setDialog({ open: true, view: { kind: 'add' } })}
+            >
               <Plus />
             </MenuTile>
           )}
@@ -183,7 +193,11 @@ export const AccountMenu = ({
           <LogOut /> Sign out
         </MenuItem>
       </Menu>
-      <AuthDialog open={adding} onOpenChange={setAdding} />
+      <AuthDialog
+        {...dialog}
+        onOpenChange={(open) => setDialog({ ...dialog, open })}
+        onPending={(accountId) => setDialog({ open: true, view: { kind: 'pending', accountId } })}
+      />
     </>
   )
 }

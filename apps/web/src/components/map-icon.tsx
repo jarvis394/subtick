@@ -1,5 +1,6 @@
 import { type MatchStatus, isProcessingStatus, mapName } from '@subtick/domain'
 import { Map as MapGlyph } from 'lucide-react'
+import { FadeImage } from '@/components/ui/fade-image'
 import { cn } from '@/lib/utils'
 
 /**
@@ -47,12 +48,7 @@ export const MapIcon = ({ map, className }: { map: string | null; className?: st
   const emblem = map ? EMBLEMS.get(map) : undefined
   if (emblem) {
     return (
-      <img
-        src={emblem}
-        alt=""
-        draggable={false}
-        className={cn('size-9 shrink-0 object-contain', className)}
-      />
+      <FadeImage src={emblem} alt="" className={cn('size-9 shrink-0 object-contain', className)} />
     )
   }
 

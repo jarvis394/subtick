@@ -19,7 +19,7 @@ const layout = ({ heading, body, action }: { heading: string; body: string; acti
       <tr><td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid rgba(17,17,17,0.09);border-radius:16px">
           <tr><td style="padding:32px">
-            <p style="margin:0 0 28px;font-family:Georgia,'Times New Roman',serif;font-size:22px;letter-spacing:-0.02em">subtick<span style="color:#2974cf">.</span></p>
+            <p style="margin:0 0 28px;font-size:22px;font-weight:500;letter-spacing:-0.025em">subtick<span style="color:#e38717">.</span></p>
             <h1 style="margin:0 0 12px;font-size:20px;font-weight:600;letter-spacing:-0.01em">${heading}</h1>
             <p style="margin:0 0 28px;font-size:15px;line-height:1.55;color:#3d3d3d">${body}</p>
             <a href="${escape(action.url)}" style="display:inline-block;background:#111111;color:#ffffff;font-size:15px;font-weight:500;text-decoration:none;padding:11px 20px;border-radius:10px">${action.label}</a>
