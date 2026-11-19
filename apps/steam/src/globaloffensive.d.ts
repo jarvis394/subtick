@@ -21,6 +21,8 @@ declare module 'globaloffensive' {
     interface MatchInfo {
       matchid: string | null
       matchtime: number | null
+      /** Wingman leaves `roundstatsall` empty and sends only this final summary. */
+      roundstats_legacy: RoundStats | null
       roundstatsall: RoundStats[]
     }
   }

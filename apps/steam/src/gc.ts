@@ -143,9 +143,14 @@ export const createGameCoordinator = (
         gc.requestGame(shareCode)
       })
 
+      const rounds = info.roundstatsall.length
+        ? info.roundstatsall
+        : info.roundstats_legacy
+          ? [info.roundstats_legacy]
+          : []
       // Round stats arrive once per round; the last one carries the final demo URL.
-      const last = info.roundstatsall.at(-1)
-      const reservation = info.roundstatsall.find((r) => r.reservation)?.reservation
+      const last = rounds.at(-1)
+      const reservation = rounds.find((r) => r.reservation)?.reservation
 
       return {
         demoUrl: last?.map || null,
