@@ -34,9 +34,11 @@ export const clipFilterQuery = z.object({
   matches: list,
   /** One player's plays, for their profile. */
   steamId: z.string().optional(),
-  /** Any of these players, the signed-in user (`me`) or people they played with. */
+  /** Any of these players, the signed-in accounts (`me`) or people they played with. */
   players: list,
   me: flag,
+  /** Own plays of these signed-in accounts (user ids), a narrower `me`. */
+  accounts: list,
   playedWith: flag,
   /** Kill tags, all of which some kill in the moment has. */
   tags: list,
@@ -63,8 +65,11 @@ const isOn = (value: ClipFilterQuery['me']) => value === true || value === 'true
 const killsHaveTag = (tag: string) =>
   sql`${highlight.kills} @> ${JSON.stringify([{ tags: [tag] }])}::text::jsonb`
 
-/** The feed's filters as a condition on `highlight` joined with its `match`. */
-export const clipFilterWhere = (db: Db, userId: string, query: ClipFilterQuery) => {
+/**
+ * The feed's filters as a condition on `highlight` joined with its `match`. `userIds` are the
+ * accounts signed in to the browser, which "me" and "played with" stand for.
+ */
+export const clipFilterWhere = (db: Db, userIds: string[], query: ClipFilterQuery) => {
   const kinds = listParam(query.kinds).filter(oneOf(HIGHLIGHT_KINDS))
   const tags = listParam(query.tags).filter(oneOf(KILL_TAGS))
   const moments = listParam(query.moments).filter(oneOf(MOMENT_TAGS))
@@ -72,21 +77,23 @@ export const clipFilterWhere = (db: Db, userId: string, query: ClipFilterQuery) 
   const matches = listParam(query.matches)
   const clutch = listParam(query.clutch).map(Number).filter(Number.isInteger)
   const players = listParam(query.players)
+  const accounts = listParam(query.accounts).filter((id) => userIds.includes(id))
   const who = [
-    isOn(query.me) && inUsersMatch(true),
-    isOn(query.playedWith) && inUsersMatch(false),
+    isOn(query.me) && inUsersMatch(userIds, true),
+    accounts.length > 0 && inUsersMatch(accounts, true),
+    isOn(query.playedWith) && inUsersMatch(userIds, false),
     players.length > 0 && inArray(highlight.steamId, players),
   ].filter((condition) => condition !== false)
 
-  /** Plays from the user's matches: their own, or everyone else's in them. */
-  function inUsersMatch(own: boolean) {
+  /** Plays from the users' matches: their own, or everyone else's in them. */
+  function inUsersMatch(users: string[], own: boolean) {
     return exists(
       db
         .select({ one: sql`1` })
         .from(userMatch)
         .where(
           and(
-            eq(userMatch.userId, userId),
+            inArray(userMatch.userId, users),
             eq(userMatch.matchId, highlight.matchId),
             own
               ? eq(userMatch.steamId, highlight.steamId)

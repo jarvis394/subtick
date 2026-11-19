@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { KindTabs } from '@/components/kind-tabs'
 import type { ClipListSearch } from '@/lib/highlights'
-import { clipFacetsQuery, meQuery } from '@/lib/queries'
+import { accountsQuery, clipFacetsQuery, meQuery } from '@/lib/queries'
 import { DetailFilters } from './detail-filters'
 import { PlayerPicker } from './player-picker'
 
@@ -21,6 +21,11 @@ export const HighlightFilters = ({
 }) => {
   const facets = useQuery(clipFacetsQuery(steamId))
   const { data: me } = useSuspenseQuery(meQuery)
+  const { data: accounts = [] } = useQuery(accountsQuery)
+  // Every account's players count as "me"; before the list loads, the active account's.
+  const mySteamIds = accounts.length
+    ? accounts.flatMap((a) => a.steamIds)
+    : me.steamLinks.map((link) => link.steamId)
 
   return (
     <div className="mb-8">
@@ -34,7 +39,8 @@ export const HighlightFilters = ({
           {!steamId && (
             <PlayerPicker
               players={facets.data?.players ?? []}
-              mySteamIds={me.steamLinks.map((link) => link.steamId)}
+              mySteamIds={mySteamIds}
+              accounts={accounts.filter((a) => !a.pending)}
               search={search}
               onChange={onChange}
               className="rounded-r-none"

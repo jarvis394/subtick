@@ -20,7 +20,7 @@ export const DetailedTable = ({
   teams,
   summary,
   parties,
-  viewerSteamId,
+  viewerSteamIds,
   sortOf,
   toggleSort,
   bestRating,
@@ -29,7 +29,8 @@ export const DetailedTable = ({
   teams: Team[]
   summary: (team: Team) => ReactNode
   parties: Map<string, PartyMarker>
-  viewerSteamId: string | null
+  /** Players from accounts signed in here, each marked as the viewer. */
+  viewerSteamIds: string[]
   sortOf: (id: string) => false | 'asc' | 'desc'
   toggleSort: (id: string) => void
   bestRating: number
@@ -79,7 +80,7 @@ export const DetailedTable = ({
             <IdentityCells
               player={p}
               marker={parties.get(p.steamId)}
-              isViewer={p.steamId === viewerSteamId}
+              isViewer={viewerSteamIds.includes(p.steamId)}
             />
             <RatingCell rating={p.stats.rating} best={bestRating} mvp={p.steamId === mvp} />
             {COLUMNS.map((c, j) => {

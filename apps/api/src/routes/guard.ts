@@ -40,3 +40,20 @@ export const authGuard = (auth: Auth) => {
     },
   })
 }
+
+// better-auth's multi-session types leave out additional fields, though it returns them.
+export const isApprovedUser = (user: object) => isApproved(user as Parameters<typeof isApproved>[0])
+
+/**
+ * Everyone signed in to this browser who may use the app, the active user first. The rest come
+ * from multi-session cookies, which better-auth verifies against live sessions.
+ */
+export const connectedUserIds = async (auth: Auth, headers: Headers, activeId: string) => {
+  const sessions = await auth.api.listDeviceSessions({ headers }).catch(() => [])
+  const others = sessions
+    .map((s) => s.user)
+    .filter((u) => u.id !== activeId && isApprovedUser(u))
+    .map((u) => u.id)
+
+  return [activeId, ...new Set(others)]
+}

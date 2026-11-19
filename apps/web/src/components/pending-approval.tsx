@@ -5,7 +5,7 @@ import { Hourglass, LogOut } from 'lucide-react'
 import { AuthFrame } from '@/components/auth-frame'
 import { Button } from '@/components/ui/button'
 import { Wordmark } from '@/components/wordmark'
-import { useSignOut } from '@/hooks/use-sign-out'
+import { useSignOut } from '@/hooks/use-accounts'
 import { meQuery } from '@/lib/queries'
 
 /** How often a waiting account checks whether it was let in. */
@@ -41,7 +41,7 @@ export const PendingApproval = () => {
           <p className="min-w-0 truncate text-small text-muted">
             Signed in as <span className="text-foreground">{me.user.name}</span>
           </p>
-          <Button size="sm" variant="ghost" tone="danger" onClick={signOut}>
+          <Button size="sm" variant="ghost" tone="danger" onClick={() => void signOut()}>
             <LogOut />
             Sign out
           </Button>

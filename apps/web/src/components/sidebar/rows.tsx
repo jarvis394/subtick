@@ -7,8 +7,10 @@ import { isProcessing } from '@/components/match-status'
 import { perspectiveScore } from '@/components/match-table'
 import { NewDot } from '@/components/new-dot'
 import { ProgressRing, liveProgress } from '@/components/queue-ring'
+import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
+import { useAccounts } from '@/hooks/use-accounts'
 import { percent, useMatchProgress, useProgressMap } from '@/hooks/use-match-events'
 import { shortAge } from '@/lib/format'
 import { justFound } from '@/lib/new-matches'
@@ -114,6 +116,9 @@ export const RecentRow = ({
   viewTransition?: boolean
 }) => {
   const score = perspectiveScore(match, match.player?.startingSide)
+  // Another signed-in account's match says whose it is; the active account's goes unmarked.
+  const owner = useAccounts().find((a) => a.id === match.userId)
+  const otherOwner = owner && !owner.active ? owner : undefined
   const streamed = useMatchProgress(match.id, match.status)
   // The queue's poll covers what the stream hasn't said yet (e.g. right after a reload).
   const { data: queued } = useQuery({
@@ -178,6 +183,16 @@ export const RecentRow = ({
         {/* In the rail the name (and its new-match dot) fades out, so a dot fades in on the map. */}
         <span className="relative flex shrink-0">
           <MapIcon map={match.map} className="size-6 rounded-md text-label" />
+          {otherOwner && (
+            // Ringed in the sidebar's color, so it reads as cut out of the map icon.
+            <span className="absolute -right-1 -bottom-1 flex rounded-full ring-2 ring-background">
+              <Avatar
+                src={otherOwner.avatarUrl}
+                name={otherOwner.name}
+                className="size-3.5 text-micro"
+              />
+            </span>
+          )}
           <NewDot
             matchId={match.id}
             hidden={!collapsed}

@@ -35,13 +35,13 @@ export const matchPlayerScope = (
 
   return {
     players,
-    mySteamIds: viewer ? [viewer] : [],
+    mySteamIds: data.viewerSteamIds,
     hasParty: party.size > 0,
     /** Just one player picked, so lists can leave out whose each moment is. */
     single: !search.playedWith && Number(Boolean(search.me)) + picked.size === 1,
     includes: (steamId: string) =>
       !any ||
-      (search.me && steamId === viewer) ||
+      (search.me && data.viewerSteamIds.includes(steamId)) ||
       (search.playedWith && party.has(steamId)) ||
       picked.has(steamId),
   }

@@ -10,9 +10,11 @@ export interface ClipFilters {
   matches?: string[]
   /** One player's plays. */
   steamId?: string
-  /** Any of these players, the signed-in user's own plays or those of people they played with. */
+  /** Any of these players, the signed-in accounts' own plays or those of people they played with. */
   players?: string[]
   me?: boolean
+  /** Own plays of these signed-in accounts (user ids). */
+  accounts?: string[]
   playedWith?: boolean
   tags?: KillTag[]
   moments?: MomentTag[]
@@ -30,6 +32,8 @@ const fetchMe = async () => {
 
   return me
 }
+
+const fetchAccounts = () => unwrap(api.me.accounts.get())
 
 const fetchMatches = async (cursor?: string, limit = 20) => {
   const page = await unwrap(api.matches.get({ query: { cursor, limit } }))
@@ -51,6 +55,7 @@ const fetchClips = (offset: number, filters: ClipFilters) =>
         steamId: filters.steamId,
         players: joined(filters.players),
         me: filters.me || undefined,
+        accounts: joined(filters.accounts),
         playedWith: filters.playedWith || undefined,
         tags: joined(filters.tags),
         moments: joined(filters.moments),
@@ -71,6 +76,7 @@ const fetchSessions = (player: string, cursor?: string, until?: string) =>
   unwrap(api.players({ steamId: player }).sessions.get({ query: { cursor, until } }))
 
 export type Me = Awaited<ReturnType<typeof fetchMe>>
+export type Account = Awaited<ReturnType<typeof fetchAccounts>>[number]
 export type MatchListItem = Awaited<ReturnType<typeof fetchMatches>>['items'][number]
 export type MatchDetail = Awaited<ReturnType<typeof fetchMatch>>
 export type Clip = Awaited<ReturnType<typeof fetchClips>>['items'][number]
@@ -91,6 +97,13 @@ export const meQuery = queryOptions({
   // The last known user renders the app straight away; epoch 0 marks it stale so it revalidates.
   initialData: readStoredMe,
   initialDataUpdatedAt: 0,
+})
+
+/** Every account signed in to this browser, in the order they were added. */
+export const accountsQuery = queryOptions({
+  queryKey: ['me', 'accounts'],
+  queryFn: fetchAccounts,
+  staleTime: 30_000,
 })
 
 export const matchesQuery = infiniteQueryOptions({

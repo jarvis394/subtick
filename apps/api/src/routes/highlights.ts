@@ -7,7 +7,7 @@ import { clipFacets, clipFilterQuery, clipFilterWhere } from '../services/clip-f
 import { notOneKill, playedAt, withClipUrls } from '../services/highlights'
 import { actorOf, cancelHighlight } from '../services/matches'
 import { getProfiles } from '../services/profiles'
-import { authGuard } from './guard'
+import { authGuard, connectedUserIds } from './guard'
 
 const PAGE_SIZE = 24
 const { highlight, clip, match, matchPlayer } = schema
@@ -52,10 +52,11 @@ export const highlightRoutes = (ctx: Context) => {
     .use(authGuard(auth))
     .get(
       '/',
-      async ({ user, query }) => {
+      async ({ user, query, request }) => {
+        const userIds = await connectedUserIds(auth, request.headers, user.id)
         const rows = await selectClips()
           .where(
-            and(eq(highlight.status, 'recorded'), notOneKill, clipFilterWhere(db, user.id, query)),
+            and(eq(highlight.status, 'recorded'), notOneKill, clipFilterWhere(db, userIds, query)),
           )
           // Newest match first; within a match, best moment first.
           .orderBy(desc(playedAt), desc(highlight.score))

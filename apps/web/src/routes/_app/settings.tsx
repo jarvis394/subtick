@@ -7,7 +7,7 @@ import { EmailForm } from '@/components/email-form'
 import { MatchAuthForm } from '@/components/match-auth-form'
 import { useDetailedByDefault } from '@/components/scoreboard/preference'
 import { ProfileSection } from '@/components/settings/profile-section'
-import { SteamIcon } from '@/components/steam-icon'
+import { ProviderButton } from '@/components/provider-button'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -16,10 +16,11 @@ import { MorphLabel } from '@/components/ui/morph-label'
 import { FadeItem, FadeList, Presence } from '@/components/ui/presence'
 import { Badge, Card } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
-import { useLeave, useSignOut } from '@/hooks/use-sign-out'
+import { useNextAccount, useSignOut } from '@/hooks/use-accounts'
 import { ApiError, api, unwrap } from '@/lib/api'
-import { authClient, describeAuthError, startSteamFlow } from '@/lib/auth'
+import { authClient, describeAuthError } from '@/lib/auth'
 import { timeAgo } from '@/lib/format'
+import { notifyError } from '@/lib/notify'
 import { type Me, meQuery } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -32,7 +33,18 @@ export const Route = createFileRoute('/_app/settings')({
   component: SettingsPage,
 })
 
-const linkSteam = () => void startSteamFlow('link', '/settings')
+const LinkSteam = ({ children }: { children: ReactNode }) => (
+  <ProviderButton
+    provider="steam"
+    mode="link"
+    callbackURL="/settings"
+    size="sm"
+    variant="secondary"
+    onError={(e) => notifyError('Couldn’t start the Steam sign-in', e)}
+  >
+    {children}
+  </ProviderButton>
+)
 
 function SettingsPage() {
   const { data: me } = useSuspenseQuery(meQuery)
@@ -68,7 +80,7 @@ function SettingsPage() {
               label={me.user.name}
               description={steamOnly ? 'Signed in with Steam' : me.user.email}
             >
-              <Button size="sm" variant="ghost" tone="danger" onClick={signOut}>
+              <Button size="sm" variant="ghost" tone="danger" onClick={() => void signOut()}>
                 Sign out
               </Button>
             </Row>
@@ -102,13 +114,7 @@ function SettingsPage() {
 
         <Section
           title="Steam accounts"
-          action={
-            me.steamLinks.length > 0 && (
-              <Button size="sm" variant="secondary" onClick={linkSteam}>
-                <SteamIcon /> Link another
-              </Button>
-            )
-          }
+          action={me.steamLinks.length > 0 && <LinkSteam>Link another</LinkSteam>}
         >
           {steamError && (
             <p className="text-body text-danger select-text">{describeAuthError(steamError)}</p>
@@ -119,9 +125,7 @@ function SettingsPage() {
                 label="No Steam account linked"
                 description="Link one so subtick can pick up your matches."
               >
-                <Button size="sm" variant="secondary" onClick={linkSteam}>
-                  <SteamIcon /> Link Steam
-                </Button>
+                <LinkSteam>Link Steam</LinkSteam>
               </Row>
             </Group>
           )}
@@ -364,7 +368,8 @@ const CONFIRMATION = 'i am sure'
  * gates the button and the submit, so there's no hand-rolled check to drift from the copy.
  */
 function DeleteAccountDialog() {
-  const leave = useLeave()
+  const { data: me } = useSuspenseQuery(meQuery)
+  const nextAccount = useNextAccount()
   const [open, setOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const remove = useMutation({
@@ -373,7 +378,12 @@ function DeleteAccountDialog() {
       const { error } = await authClient.deleteUser({})
       if (error) throw error
     },
-    onSuccess: leave,
+    // Another signed-in account takes over here; the sign-in page only once none is left.
+    onSuccess: async () => {
+      await nextAccount(me.user.id)
+      setOpen(false)
+      setConfirmed(false)
+    },
   })
 
   const error = remove.error as { code?: string; message?: string } | null

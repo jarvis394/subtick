@@ -25,7 +25,7 @@ export const OverviewTable = ({
   summary,
   ranges,
   parties,
-  viewerSteamId,
+  viewerSteamIds,
   sortOf,
   toggleSort,
 }: {
@@ -33,7 +33,8 @@ export const OverviewTable = ({
   summary: (team: Team) => ReactNode
   ranges: Map<string, Range>
   parties: Map<string, PartyMarker>
-  viewerSteamId: string | null
+  /** Players from accounts signed in here, each marked as the viewer. */
+  viewerSteamIds: string[]
   sortOf: (id: string) => false | 'asc' | 'desc'
   toggleSort: (id: string) => void
 }) => (
@@ -72,7 +73,7 @@ export const OverviewTable = ({
             <IdentityCells
               player={p}
               marker={parties.get(p.steamId)}
-              isViewer={p.steamId === viewerSteamId}
+              isViewer={viewerSteamIds.includes(p.steamId)}
             />
             {OVERVIEW.map((c) => (
               <OverviewCell key={c.id} column={c} value={c.value(p)} range={ranges.get(c.id)!} />

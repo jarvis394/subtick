@@ -9,7 +9,7 @@ import { withParties } from '../services/parties'
 import { getProfiles } from '../services/profiles'
 import { notOneKill, withClipUrls } from '../services/highlights'
 import { earlierStats } from '../services/baseline'
-import { authGuard } from './guard'
+import { authGuard, connectedUserIds } from './guard'
 
 const PAGE_SIZE = 20
 
@@ -32,12 +32,17 @@ export const matchRoutes = (ctx: Context) => {
   const playedOrDiscovered = sql`coalesce(${match.playedAt}, ${userMatch.discoveredAt})`
 
   /** Spending or stopping pipeline work is for people who have the match, and admins. */
-  const canManage = async (user: { id: string; role?: string | null }, matchId: string) => {
+  const canManage = async (
+    user: { id: string; role?: string | null },
+    headers: Headers,
+    matchId: string,
+  ) => {
     if (user.role === 'admin') return true
+    const ids = await connectedUserIds(auth, headers, user.id)
     const [own] = await db
       .select({ matchId: userMatch.matchId })
       .from(userMatch)
-      .where(and(eq(userMatch.matchId, matchId), eq(userMatch.userId, user.id)))
+      .where(and(eq(userMatch.matchId, matchId), inArray(userMatch.userId, ids)))
 
     return Boolean(own)
   }
@@ -46,7 +51,9 @@ export const matchRoutes = (ctx: Context) => {
     .use(authGuard(auth))
     .get(
       '/',
-      async ({ user, query }) => {
+      async ({ user, query, request }) => {
+        // Every account signed in here: the list is the browser's, not just the active account's.
+        const ids = await connectedUserIds(auth, request.headers, user.id)
         const rows = await db
           .select({
             id: match.id,
@@ -59,6 +66,8 @@ export const matchRoutes = (ctx: Context) => {
             scoreStartedT: match.scoreStartedT,
             discoveredAt: userMatch.discoveredAt,
             steamId: userMatch.steamId,
+            /** Which signed-in account the match is listed for. */
+            userId: userMatch.userId,
             mode: match.mode,
             shareCode: match.shareCode,
             /** Valve's copy, until it expires; subtick keeps its own for parsing. */
@@ -83,18 +92,26 @@ export const matchRoutes = (ctx: Context) => {
           )
           .where(
             and(
-              eq(userMatch.userId, user.id),
+              inArray(userMatch.userId, ids),
               query.cursor ? lt(playedOrDiscovered, new Date(query.cursor)) : undefined,
             ),
           )
           .orderBy(desc(playedOrDiscovered))
           .limit(query.limit)
 
+        // Two accounts here may share a match; it's listed once, as the active account's if theirs.
+        const byMatch = new Map<string, (typeof rows)[number]>()
+        for (const row of rows) {
+          if (!byMatch.has(row.id) || row.userId === user.id) byMatch.set(row.id, row)
+        }
+
         return {
-          items: rows.map(({ error, ...row }) => ({
-            ...row,
-            cancelled: isCancelled({ status: row.status, error }),
-          })),
+          items: rows
+            .filter((row) => byMatch.get(row.id) === row)
+            .map(({ error, ...row }) => ({
+              ...row,
+              cancelled: isCancelled({ status: row.status, error }),
+            })),
           nextCursor:
             rows.length === query.limit
               ? (rows.at(-1)!.playedAt ?? rows.at(-1)!.discoveredAt).toISOString()
@@ -111,11 +128,12 @@ export const matchRoutes = (ctx: Context) => {
     )
     .get(
       '/:id',
-      async ({ user, params, status }) => {
+      async ({ user, params, status, request }) => {
         const [row] = await db.select().from(match).where(eq(match.id, params.id))
         if (!row) return status(404, { error: 'not_found' as const })
 
-        const [players, rounds, kills, highlights, [viewer]] = await Promise.all([
+        const ids = await connectedUserIds(auth, request.headers, user.id)
+        const [players, rounds, kills, highlights, viewers] = await Promise.all([
           db.select().from(matchPlayer).where(eq(matchPlayer.matchId, row.id)),
           db.select().from(round).where(eq(round.matchId, row.id)).orderBy(round.number),
           db.select().from(kill).where(eq(kill.matchId, row.id)).orderBy(kill.tick),
@@ -126,10 +144,12 @@ export const matchRoutes = (ctx: Context) => {
             .where(and(eq(highlight.matchId, row.id), notOneKill))
             .orderBy(desc(highlight.score)),
           db
-            .select({ steamId: userMatch.steamId })
+            .select({ steamId: userMatch.steamId, userId: userMatch.userId })
             .from(userMatch)
-            .where(and(eq(userMatch.matchId, row.id), eq(userMatch.userId, user.id))),
+            .where(and(eq(userMatch.matchId, row.id), inArray(userMatch.userId, ids))),
         ])
+        // The active account's player decides the perspective; another account here stands in.
+        const viewer = viewers.find((v) => v.userId === user.id) ?? viewers[0]
 
         const requesterIds = [
           ...new Set(
@@ -164,6 +184,8 @@ export const matchRoutes = (ctx: Context) => {
           match: { ...publicMatch, cancelled: isCancelled(row) },
           /** The viewer's player in this match, if they played it. */
           viewerSteamId: viewer?.steamId ?? null,
+          /** Every player here from an account signed in to this browser. */
+          viewerSteamIds: [...new Set(viewers.map((v) => v.steamId))],
           /** The viewer's stats here against their usual level; empty without enough history. */
           performance: own ? comparePerformance(own.stats, earlier.get(own.steamId) ?? []) : [],
           players: partied.map((p) => ({
@@ -227,8 +249,10 @@ export const matchRoutes = (ctx: Context) => {
     )
     .post(
       '/:id/retry',
-      async ({ user, params, status }) => {
-        if (!(await canManage(user, params.id))) return status(403, { error: 'forbidden' as const })
+      async ({ user, params, status, request }) => {
+        if (!(await canManage(user, request.headers, params.id))) {
+          return status(403, { error: 'forbidden' as const })
+        }
         const result = await retryMatch(ctx, params.id)
         if (!result) return status(404, { error: 'not_found' as const })
 

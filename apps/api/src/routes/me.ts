@@ -10,6 +10,7 @@ import {
   imageUrl,
   replaceImage,
 } from '../services/profile-images'
+import { listAccounts } from '../services/accounts'
 import { getProfiles } from '../services/profiles'
 import { authGuard } from './guard'
 
@@ -81,6 +82,22 @@ export const meRoutes = (ctx: Context) => {
             hasMatchAuth: link.authCode !== null && link.lastShareCode !== null,
           })),
         }
+      },
+      { signedIn: true },
+    )
+    .get(
+      '/me/accounts',
+      async ({ request, status }) => {
+        const current = await auth.api.getSession({ headers: request.headers })
+        if (!current) return status(401, { error: 'unauthorized' as const })
+        const { session } = current
+
+        return listAccounts(ctx, request.headers, {
+          userId: session.userId,
+          token: session.token,
+          createdAt: new Date(session.createdAt),
+          pending: !isApproved(current.user),
+        })
       },
       { signedIn: true },
     )

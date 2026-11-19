@@ -51,11 +51,16 @@ export const TeamSummary = ({
   const enemy = teamScore(data, side === 'CT' ? 'T' : 'CT')
   const halves = halfScores(data.rounds, side)
   const avg = averagePremier(players)
+  // From the viewer's side when they played; otherwise by the result, as Leetify does.
   const label = viewerTeam
     ? side === viewerTeam
       ? 'Your team'
       : 'Opponents'
-    : `Team ${players[0]?.name ?? side}`
+    : score > enemy
+      ? 'Winning team'
+      : score < enemy
+        ? 'Losing team'
+        : `Team ${side}`
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-body">

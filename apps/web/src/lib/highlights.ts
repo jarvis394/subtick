@@ -97,7 +97,10 @@ export const clipListSearch = clipViewerSearch.extend({
   maps: z.array(z.string()).optional(),
   /** Any of these players, the viewer (`me`) or people the viewer played with. */
   players: z.array(z.string()).optional(),
+  /** Every account signed in to the browser. */
   me: z.boolean().optional(),
+  /** Some of the signed-in accounts, by user id. */
+  accounts: z.array(z.string()).optional(),
   playedWith: z.boolean().optional(),
   tags: z.array(z.enum(KILL_TAGS)).optional(),
   moments: z.array(z.enum(MOMENT_TAGS)).optional(),
@@ -107,7 +110,7 @@ export const clipListSearch = clipViewerSearch.extend({
 export type ClipListSearch = z.infer<typeof clipListSearch>
 
 /** Who the player picker keeps: the viewer, people they played with, and picked players. */
-export type PlayerSearch = Pick<ClipListSearch, 'players' | 'me' | 'playedWith'>
+export type PlayerSearch = Pick<ClipListSearch, 'players' | 'me' | 'accounts' | 'playedWith'>
 
 /** Every filter param, cleared: patched over the search to reset the feed. */
 export const NO_FILTERS = {
@@ -115,6 +118,7 @@ export const NO_FILTERS = {
   maps: undefined,
   players: undefined,
   me: undefined,
+  accounts: undefined,
   playedWith: undefined,
   tags: undefined,
   moments: undefined,
@@ -125,7 +129,14 @@ export const NO_FILTERS = {
 export const feedFilters = (search: ClipListSearch, steamId?: string) => ({
   kinds: [...KIND_FILTERS.find((f) => f.id === (search.kind ?? 'all'))!.kinds],
   steamId,
-  ...(steamId ? {} : { players: search.players, me: search.me, playedWith: search.playedWith }),
+  ...(steamId
+    ? {}
+    : {
+        players: search.players,
+        me: search.me,
+        accounts: search.accounts,
+        playedWith: search.playedWith,
+      }),
   tags: search.tags,
   moments: search.moments,
   maps: search.maps,

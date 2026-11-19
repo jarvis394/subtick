@@ -5,10 +5,15 @@ import { schema } from '@subtick/db'
 import type { SteamWebApi } from '@subtick/steam'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { multiSession } from 'better-auth/plugins'
 import type { Env } from '../env'
+import { accounts } from './accounts-plugin'
 import { upsertSteamLink } from '../services/steam-links'
 import { emailChange } from './email-plugin'
 import { steam } from './steam-plugin'
+
+/** Accounts one browser can be signed in to at once. */
+export const MAX_ACCOUNTS = 5
 
 export const createAuth = ({
   env,
@@ -74,6 +79,9 @@ export const createAuth = ({
         onAccount: (userId, steamId) => upsertSteamLink({ db, steamApi }, userId, steamId),
       }),
       emailChange({ mailer }),
+      // Several accounts signed in at once in one browser; the account menu switches between them.
+      multiSession({ maximumSessions: MAX_ACCOUNTS }),
+      accounts(),
     ],
   })
 

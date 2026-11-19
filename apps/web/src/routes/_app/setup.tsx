@@ -1,14 +1,14 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import type { ReactNode } from 'react'
 import { z } from 'zod'
 import { MatchAuthForm } from '@/components/match-auth-form'
-import { SteamIcon } from '@/components/steam-icon'
+import { ProviderButton } from '@/components/provider-button'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/surface'
-import { describeAuthError, startSteamFlow } from '@/lib/auth'
+import { describeAuthError } from '@/lib/auth'
 import { notifyError } from '@/lib/notify'
 import { meQuery } from '@/lib/queries'
 import { skipSetup } from '@/lib/setup'
@@ -51,7 +51,6 @@ function SetupPage() {
   const { data: me } = useSuspenseQuery(meQuery)
   const { error } = Route.useSearch()
   const navigate = useNavigate()
-  const [linking, setLinking] = useState(false)
   const link = me.steamLinks[0]
 
   return (
@@ -71,21 +70,16 @@ function SetupPage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            <Button
+            <ProviderButton
+              provider="steam"
+              mode="link"
+              callbackURL="/setup"
               variant="secondary"
               className="justify-self-start"
-              loading={linking}
-              onClick={() => {
-                setLinking(true)
-                void startSteamFlow('link', '/setup').catch((e: unknown) => {
-                  setLinking(false)
-                  notifyError('Couldn’t start the Steam sign-in', e)
-                })
-              }}
+              onError={(e) => notifyError('Couldn’t start the Steam sign-in', e)}
             >
-              <SteamIcon />
               Connect Steam
-            </Button>
+            </ProviderButton>
             {error && (
               <p className="text-body text-danger select-text">{describeAuthError(error)}</p>
             )}

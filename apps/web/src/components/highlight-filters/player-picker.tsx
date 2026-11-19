@@ -15,6 +15,9 @@ const STACKED = 2
 const ME = '__me'
 const PLAYED_WITH = '__played_with'
 const ALL = '__all'
+const ACCOUNT = '__account:'
+
+const accountKey = (userId: string) => `${ACCOUNT}${userId}`
 
 interface PickerPlayer {
   steamId: string
@@ -23,13 +26,28 @@ interface PickerPlayer {
   clips: number
 }
 
+interface PickerAccount {
+  id: string
+  name: string
+  avatarUrl: string | null
+  steamIds: string[]
+}
+
+const NO_ACCOUNTS: PickerAccount[] = []
+
+/** How many of the list's clips are by any of `steamIds`. */
+const clipsOf = (players: PickerPlayer[], steamIds: string[]) =>
+  players.reduce((n, p) => (steamIds.includes(p.steamId) ? n + p.clips : n), 0)
+
 /**
  * Who made the play: the viewer, people they played with, or anyone picked from the list. The
  * viewer's own accounts (`mySteamIds`) show under You as "Me" rather than among the players.
+ * With two or more `accounts` signed in, You lists each of them and "All my accounts".
  */
 export const PlayerPicker = ({
   players,
   mySteamIds,
+  accounts = NO_ACCOUNTS,
   playedWith = true,
   countLabel = 'Clips',
   align = 'start',
@@ -39,6 +57,8 @@ export const PlayerPicker = ({
 }: {
   players: PickerPlayer[]
   mySteamIds: string[]
+  /** The accounts signed in to this browser; offered one by one only when there are two or more. */
+  accounts?: PickerAccount[]
   /** Offers "People I played with"; a match page has it only when the viewer queued with others. */
   playedWith?: boolean
   /** What the number beside each player counts, for screen readers. */
@@ -53,13 +73,27 @@ export const PlayerPicker = ({
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const sheet = useSheetMode(open)
-  const byId = new Map(players.map((p) => [p.steamId, p]))
-  const mine = players.filter((p) => mySteamIds.includes(p.steamId))
-  const meRow = mine[0] && { ...mine[0], clips: mine.reduce((n, p) => n + p.clips, 0) }
+  const multi = accounts.length > 1
+  const accountRows = multi
+    ? accounts.map((a) => ({
+        steamId: accountKey(a.id),
+        name: a.name,
+        avatarUrl: a.avatarUrl,
+        clips: clipsOf(players, a.steamIds),
+      }))
+    : []
+  const byId = new Map([...players, ...accountRows].map((p) => [p.steamId, p]))
+  const firstMine = players.find((p) => mySteamIds.includes(p.steamId))
+  // With several accounts "Me" is all of them, shown as an icon rather than one face.
+  const meRow =
+    multi || !firstMine ? undefined : { ...firstMine, clips: clipsOf(players, mySteamIds) }
   // All players heads the list on its own, without a section label.
   const groups = [
     { label: '', items: [ALL] },
-    { label: 'You', items: [ME, ...(playedWith ? [PLAYED_WITH] : [])] },
+    {
+      label: 'You',
+      items: [...accountRows.map((a) => a.steamId), ME, ...(playedWith ? [PLAYED_WITH] : [])],
+    },
     {
       label: 'Players',
       items: players.filter((p) => !mySteamIds.includes(p.steamId)).map((p) => p.steamId),
@@ -67,6 +101,7 @@ export const PlayerPicker = ({
   ].filter((group) => group.items.length > 0)
   const value = [
     ...(search.me ? [ME] : []),
+    ...(multi ? (search.accounts ?? []).map(accountKey) : []),
     ...(search.playedWith && playedWith ? [PLAYED_WITH] : []),
     ...(search.players ?? []),
   ]
@@ -97,7 +132,9 @@ export const PlayerPicker = ({
     id === ALL
       ? 'All players'
       : id === ME
-        ? (meRow?.name ?? 'Me')
+        ? multi
+          ? 'All my accounts'
+          : (meRow?.name ?? 'Me')
         : id === PLAYED_WITH
           ? 'People I played with'
           : (byId.get(id)?.name ?? 'Unknown player')
@@ -108,9 +145,13 @@ export const PlayerPicker = ({
     let next = choice.filter((id) => id !== ALL)
     if (added === ALL) next = []
     else if (added === ME || added === PLAYED_WITH) next = [added]
-    const picked = next.filter((id) => id !== ME && id !== PLAYED_WITH)
+    const picked = next.filter((id) => id !== ME && id !== PLAYED_WITH && !id.startsWith(ACCOUNT))
+    const pickedAccounts = next.flatMap((id) =>
+      id.startsWith(ACCOUNT) ? [id.slice(ACCOUNT.length)] : [],
+    )
     onChange({
       me: next.includes(ME) || undefined,
+      accounts: pickedAccounts.length ? pickedAccounts : undefined,
       playedWith: next.includes(PLAYED_WITH) || undefined,
       players: picked.length ? picked : undefined,
     })
@@ -121,7 +162,7 @@ export const PlayerPicker = ({
     <TriggerSummary
       tokens={tokens}
       label={value.length === 0 ? 'All players' : only ? labelOf(only) : `${value.length} selected`}
-      me={only === ME && Boolean(meRow)}
+      me={(only === ME && Boolean(meRow)) || Boolean(only?.startsWith(ACCOUNT))}
     />
   )
 

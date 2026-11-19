@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { popupClass, sheetRowClass } from '@/components/ui/popup-styles'
 import { Sheet } from '@/components/ui/sheet'
+import { Tooltip } from '@/components/ui/tooltip'
 import { useSheetMode } from '@/hooks/use-handheld'
 import { cn } from '@/lib/utils'
 
@@ -188,5 +189,87 @@ export const MenuRow = ({ children }: { children: ReactNode }) => {
     >
       {children}
     </div>
+  )
+}
+
+/**
+ * A wrapping row of square tiles, such as the accounts a menu switches between. Tiles line up with
+ * the items' text, and the selected ring sits as far from the panel's top as from its side.
+ */
+export const MenuTiles = ({ children }: { children: ReactNode }) => {
+  const { sheet } = use(MenuContext)
+
+  return (
+    <div className={cn('flex flex-wrap', sheet ? 'gap-3 px-3 pt-3 pb-1' : 'gap-2 px-2 pt-2 pb-1')}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * A square item in `MenuTiles`. `selected` rings it as the current pick; `label` names it, since
+ * its content is a picture or an icon. Content takes the tile's corners with `rounded-[inherit]`.
+ * Corners scale with the tile like the items' do (an 8px-cornered tile is the size-up of a 6px
+ * item; a 12px one matches the sheet's rows), so the ring, 4px out, never outgrows the panel's.
+ */
+export const MenuTile = ({
+  label,
+  selected,
+  closeOnClick = true,
+  onClick,
+  children,
+}: {
+  label: string
+  selected?: boolean
+  closeOnClick?: boolean
+  onClick?: () => void
+  children: ReactNode
+}) => {
+  const { sheet, close } = use(MenuContext)
+  const className = cn(
+    'relative grid shrink-0 cursor-pointer place-items-center text-muted outline-none select-none',
+    'transition-[scale,box-shadow,background-color] duration-150 ease-out-quart active:scale-[0.96] motion-reduce:transition-none',
+    // The ring sits in the gap around the tile, so the picture inside never shrinks.
+    'ring-offset-2 ring-offset-surface',
+    selected ? 'ring-2 ring-foreground' : 'ring-0 ring-transparent',
+    '[&_svg]:size-4.5 [&_svg]:shrink-0',
+    sheet
+      ? 'size-12 rounded-xl bg-surface-2 focus-visible:ring-2 focus-visible:ring-ring'
+      : 'size-9 rounded-lg bg-surface-2 data-highlighted:bg-surface-3',
+  )
+
+  if (sheet) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={selected}
+        className={className}
+        onClick={() => {
+          onClick?.()
+          if (closeOnClick) close()
+        }}
+      >
+        {children}
+      </button>
+    )
+  }
+
+  return (
+    <Tooltip
+      content={label}
+      side="bottom"
+      trigger={
+        <BaseMenu.Item
+          aria-label={label}
+          aria-current={selected || undefined}
+          closeOnClick={closeOnClick}
+          onClick={onClick}
+          className={className}
+        >
+          {children}
+        </BaseMenu.Item>
+      }
+    />
   )
 }

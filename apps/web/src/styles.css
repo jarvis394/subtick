@@ -374,8 +374,20 @@
   animation-duration: 200ms;
 }
 ::view-transition-old(auth-card),
-::view-transition-new(auth-card) {
+::view-transition-new(auth-card),
+::view-transition-old(auth-dialog),
+::view-transition-new(auth-dialog) {
   height: 100%;
+}
+/* The add-account dialog's own mode switch: the page behind it holds still. */
+html[data-auth-dialog]::view-transition-group(root) {
+  animation: none;
+}
+html[data-auth-dialog]::view-transition-old(root) {
+  display: none;
+}
+html[data-auth-dialog]::view-transition-new(root) {
+  animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),

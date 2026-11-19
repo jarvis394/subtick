@@ -62,7 +62,7 @@ export const Scoreboard = memo(function Scoreboard({
             summary={summary}
             ranges={ranges}
             parties={parties}
-            viewerSteamId={viewerSteamId}
+            viewerSteamIds={data.viewerSteamIds}
             sortOf={sortOf}
             toggleSort={toggleSort}
           />
@@ -71,7 +71,7 @@ export const Scoreboard = memo(function Scoreboard({
             teams={teams}
             summary={summary}
             parties={parties}
-            viewerSteamId={viewerSteamId}
+            viewerSteamIds={data.viewerSteamIds}
             sortOf={sortOf}
             toggleSort={toggleSort}
             bestRating={bestRating}
