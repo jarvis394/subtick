@@ -189,7 +189,7 @@ export const RecentRow = ({
               <Avatar
                 src={otherOwner.avatarUrl}
                 name={otherOwner.name}
-                className="size-3.5 text-micro"
+                className="size-3 text-micro"
               />
             </span>
           )}

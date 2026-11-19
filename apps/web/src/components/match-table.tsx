@@ -6,6 +6,8 @@ import { MapIcon, matchName } from '@/components/map-icon'
 import { MatchStatusBadge } from '@/components/match-status'
 import { RankBadge } from '@/components/rank-badge'
 import { NewDot } from '@/components/new-dot'
+import { Avatar } from '@/components/ui/avatar'
+import { useAccounts } from '@/hooks/use-accounts'
 import { formatDate } from '@/lib/format'
 import { justFound } from '@/lib/new-matches'
 import type { MatchListItem } from '@/lib/queries'
@@ -21,15 +23,16 @@ export type MatchRowData = Pick<
   | 'scoreStartedCt'
   | 'scoreStartedT'
   | 'highlightCount'
-> & {
-  player:
-    | (Pick<NonNullable<MatchListItem['player']>, 'startingSide' | 'rank'> & {
-        stats: Pick<PlayerStats, 'kills' | 'deaths' | 'assists' | 'rating' | 'adr' | 'hsPercent'>
-      })
-    | null
-  /** A session's match this player sat out: its row stays, so the gap shows. */
-  absent?: boolean
-}
+> &
+  Partial<Pick<MatchListItem, 'userId'>> & {
+    player:
+      | (Pick<NonNullable<MatchListItem['player']>, 'startingSide' | 'rank'> & {
+          stats: Pick<PlayerStats, 'kills' | 'deaths' | 'assists' | 'rating' | 'adr' | 'hsPercent'>
+        })
+      | null
+    /** A session's match this player sat out: its row stays, so the gap shows. */
+    absent?: boolean
+  }
 
 import { cn } from '@/lib/utils'
 
@@ -91,6 +94,9 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
   const score = perspectiveScore(match, match.player?.startingSide)
   const s = match.player?.stats
   const kd = s ? (s.deaths ? s.kills / s.deaths : s.kills) : null
+  // Another signed-in account's match says whose it is; the active account's goes unmarked.
+  const owner = useAccounts().find((a) => a.id === match.userId)
+  const otherOwner = owner && !owner.active ? owner : undefined
 
   return (
     <Link
@@ -105,7 +111,19 @@ const MatchRow = ({ match }: { match: MatchRowData }) => {
       )}
     >
       <span className="flex min-w-0 items-center gap-3">
-        <MapIcon map={match.map} className={cn(match.absent && 'opacity-40')} />
+        <span className="relative flex shrink-0">
+          <MapIcon map={match.map} className={cn(match.absent && 'opacity-40')} />
+          {otherOwner && (
+            // Ringed in the table's color, so it reads as cut out of the map icon.
+            <span className="absolute -right-1 -bottom-1 flex rounded-full ring-2 ring-surface">
+              <Avatar
+                src={otherOwner.avatarUrl}
+                name={otherOwner.name}
+                className="size-4.5 text-micro"
+              />
+            </span>
+          )}
+        </span>
         <span className="min-w-0">
           <span className="flex min-w-0 items-center">
             <span className={cn('truncate font-medium', match.absent && 'text-muted')}>
